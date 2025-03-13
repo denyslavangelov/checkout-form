@@ -31,7 +31,7 @@ export function Combobox({
   value,
   onChange,
   onSearch,
-  placeholder = "Изберете...",
+  placeholder = "Търсете населено място...",
   emptyText = "Няма намерени резултати.",
   className,
   disabled = false,
@@ -111,6 +111,18 @@ export function Combobox({
     }
   }, [value, options, open])
 
+  const getDisplayText = (option: ComboboxOption) => {
+    if (option.type === 'city' || type === 'city') {
+      // Extract postal code if it's in parentheses at the end of the label
+      const match = option.label.match(/(.*?)(?:\s*\((\d+)\))?$/)
+      if (match) {
+        const [, city, postalCode] = match
+        return postalCode ? `${city.trim()} (${postalCode})` : city
+      }
+    }
+    return option.label
+  }
+
   const displayValue = React.useMemo(() => {
     if (!value) return placeholder
     const option = options.find(option => option.value === value)
@@ -119,10 +131,21 @@ export function Combobox({
     return (
       <div className="flex items-center">
         <span className="mr-2">{getOptionIcon(option)}</span>
-        <span>{option.label}</span>
+        <span>{getDisplayText(option)}</span>
       </div>
     )
   }, [value, options, placeholder, type])
+
+  // Update input placeholder based on selection
+  const inputPlaceholder = React.useMemo(() => {
+    if (value) {
+      const option = options.find(opt => opt.value === value)
+      if (option) {
+        return getDisplayText(option)
+      }
+    }
+    return placeholder
+  }, [value, options, placeholder])
 
   const getOptionIcon = (option: ComboboxOption) => {
     if (option.icon) {
@@ -178,7 +201,7 @@ export function Combobox({
                 ref={inputRef}
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={placeholder}
+                placeholder={inputPlaceholder}
                 className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
                 autoComplete="off"
               />
