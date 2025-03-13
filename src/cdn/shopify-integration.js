@@ -132,6 +132,14 @@ function openCustomCheckout() {
     .then(cartData => {
       console.log('Cart data retrieved:', cartData);
       
+      // Make cart data globally available so the checkout form can access it
+      window.shopifyCart = cartData;
+      window.customCheckoutData = {
+        cartData: cartData,
+        timestamp: new Date().toISOString()
+      };
+      console.log('Cart data made globally available at window.shopifyCart and window.customCheckoutData.cartData');
+      
       // Create modal container if it doesn't exist
       let modal = document.getElementById('custom-checkout-modal');
 
@@ -218,8 +226,24 @@ function openCustomCheckout() {
         iframe.onload = function() {
           iframe.contentWindow.postMessage({
             type: 'cart-data',
-            cart: cartData
+            cart: cartData,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              shopUrl: window.location.hostname,
+              source: 'shopify-integration'
+            }
           }, '*');
+          
+          // Log the message sent to iframe
+          console.log('Sent cart data to iframe with details:', {
+            itemCount: cartData.items.length,
+            total: cartData.total_price,
+            items: cartData.items.map(item => ({
+              id: item.id,
+              title: item.title,
+              quantity: item.quantity
+            }))
+          });
         };
     })
     .catch(error => {

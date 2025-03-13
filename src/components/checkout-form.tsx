@@ -87,6 +87,43 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     componentOrigin: 'CheckoutForm component'
   });
 
+  // Look for cart data in the global window object if it's not passed as props
+  useEffect(() => {
+    // This runs only when cartData is null and we're in a browser environment
+    if (!cartData && typeof window !== 'undefined') {
+      console.log('Attempting to find cart data in window object...');
+      
+      // Check if cart data exists in any known locations
+      // These are common places where the custom checkout script might store cart data
+      const possibleCartData = 
+        (window as any).cartData || 
+        (window as any).customCheckoutData?.cartData || 
+        (window as any).shopifyCart;
+      
+      if (possibleCartData) {
+        console.log('Found cart data in window object:', possibleCartData);
+        setLocalCartData(possibleCartData);
+      } else {
+        // If we need to, we could also try to fetch the cart data directly
+        console.log('Could not find cart data in window object. Consider adding a global variable in custom-checkout.js');
+        
+        // If we're in development, we might also check localStorage
+        if (process.env.NODE_ENV === 'development') {
+          const storedCartData = localStorage.getItem('cartData');
+          if (storedCartData) {
+            try {
+              const parsedCartData = JSON.parse(storedCartData);
+              console.log('Found cart data in localStorage:', parsedCartData);
+              setLocalCartData(parsedCartData);
+            } catch (e) {
+              console.error('Error parsing cart data from localStorage:', e);
+            }
+          }
+        }
+      }
+    }
+  }, [cartData]);
+
   // Create a default test cart for development/testing
   const defaultTestCart = {
     items: [
