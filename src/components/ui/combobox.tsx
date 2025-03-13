@@ -43,8 +43,6 @@ export function Combobox({
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
   
-  console.log("Combobox render state:", { open, value, disabled, optionsCount: options.length })
-  
   // Handle clicks outside to close the dropdown
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -62,7 +60,7 @@ export function Combobox({
     }
   }, [open])
   
-  // When the dropdown opens, focus the input but DON'T clear the search if we have a selection
+  // When the dropdown opens, focus the input
   React.useEffect(() => {
     if (open) {
       const timer = setTimeout(() => {
@@ -107,18 +105,6 @@ export function Combobox({
     }
   }, [value, options])
 
-  const getDisplayText = (option: ComboboxOption) => {
-    if (option.type === 'city' || type === 'city') {
-      // Extract postal code if it's in parentheses at the end of the label
-      const match = option.label.match(/(.*?)(?:\s*\((\d+)\))?$/)
-      if (match) {
-        const [, city, postalCode] = match
-        return postalCode ? `${city.trim()} (${postalCode})` : city
-      }
-    }
-    return option.label
-  }
-
   const displayValue = React.useMemo(() => {
     // If we have a selected value, show it with its icon
     const selectedOption = options.find(option => option.value === value)
@@ -141,11 +127,6 @@ export function Combobox({
     // If no selection, show placeholder
     return <span className="text-gray-500">{placeholder}</span>
   }, [value, options, placeholder, type])
-
-  // Simplified input placeholder
-  const inputPlaceholder = React.useMemo(() => {
-    return placeholder
-  }, [placeholder])
 
   const getOptionIcon = (option: ComboboxOption) => {
     if (option.icon) {
@@ -202,7 +183,7 @@ export function Combobox({
                 ref={inputRef}
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={inputPlaceholder}
+                placeholder={placeholder}
                 className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
                 autoComplete="off"
               />
@@ -244,6 +225,21 @@ export function Combobox({
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Display selected city name when dropdown is closed */}
+      {!open && value && (
+        <div className="absolute top-0 left-0 w-full h-full flex items-center pointer-events-none">
+          <div className="flex items-center w-full pl-3">
+            {options.find(option => option.value === value)?.type === 'city' || type === 'city' ? 
+              <MapPin className="h-4 w-4 text-blue-500 mr-2" /> : 
+              options.find(option => option.value === value)?.type === 'office' || type === 'office' ? 
+                <Building className="h-4 w-4 text-blue-500 mr-2" /> : null}
+            <span className="text-blue-900 font-medium">
+              {options.find(option => option.value === value)?.label || ""}
+            </span>
           </div>
         </div>
       )}
