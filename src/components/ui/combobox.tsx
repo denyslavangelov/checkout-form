@@ -303,11 +303,12 @@ export function Combobox({
     return (
       <>
         {loading && (
-          <div className="py-6 px-3 text-sm text-gray-500 text-center">
+          <div className={`py-6 px-3 text-gray-500 text-center ${isMobile ? 'mt-4' : ''}`}>
             {isMobile ? (
-              <div className="flex flex-col items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 text-blue-500 animate-spin mb-2" />
-                <div className="text-base">Зареждане...</div>
+              <div className="flex flex-col items-center justify-center py-6">
+                <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-3" />
+                <div className="text-base font-medium">Зареждане...</div>
+                <div className="text-sm text-gray-400 mt-1">Моля, изчакайте</div>
               </div>
             ) : (
               <>
@@ -319,40 +320,49 @@ export function Combobox({
         )}
         
         {!loading && options.length === 0 && (
-          <div className="py-6 px-3 text-sm text-gray-500 text-center flex flex-col items-center justify-center">
-            <Search className={isMobile ? "h-5 w-5 opacity-50 mb-1" : "h-4 w-4 opacity-50 mr-2"} />
-            <span className={isMobile ? "text-base" : "text-sm"}>{emptyText}</span>
+          <div className={`py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'mt-4' : ''}`}>
+            <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
+            <span className={isMobile ? "text-base font-medium" : "text-sm"}>{emptyText}</span>
+            {isMobile && searchValue.length > 0 && (
+              <span className="text-sm text-gray-400 mt-1">Опитайте с друго търсене</span>
+            )}
           </div>
         )}
         
-        {!loading && options.length > 0 && options.map((option) => (
-          <div
-            key={option.value}
-            onClick={() => handleSelect(option.value)}
-            className={cn(
-              "relative flex cursor-pointer select-none items-center rounded-sm px-2 outline-none",
-              "transition-colors duration-150",
-              "hover:bg-gray-100 hover:text-gray-900",
-              internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
-              isMobile ? "py-4 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
-            )}
-          >
-            <span className={cn(
-              "mr-2 flex items-center justify-center flex-shrink-0",
-              isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
-            )}>
-              {internalValue === option.value ? (
-                <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
-              ) : (
-                getOptionIcon(option)
-              )}
-            </span>
-            <span className="truncate">{option.label}</span>
+        {!loading && options.length > 0 && (
+          <div className={isMobile ? "pb-6" : ""}>
+            {options.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => handleSelect(option.value)}
+                className={cn(
+                  "relative flex cursor-pointer select-none items-center outline-none",
+                  "transition-colors duration-150",
+                  "hover:bg-gray-100 hover:text-gray-900",
+                  internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
+                  isMobile ? 
+                    "py-4 px-4 text-base border-b border-gray-100 active:bg-blue-50/50" : 
+                    "py-2 px-2 text-sm rounded-sm"
+                )}
+              >
+                <span className={cn(
+                  "mr-2 flex items-center justify-center flex-shrink-0",
+                  isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
+                )}>
+                  {internalValue === option.value ? (
+                    <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
+                  ) : (
+                    getOptionIcon(option)
+                  )}
+                </span>
+                <span className="truncate">{option.label}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </>
     );
-  }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon]);
+  }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon, searchValue]);
 
   return (
     <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
@@ -431,7 +441,7 @@ export function Combobox({
       {open && isMobile && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen">
           {/* Mobile header */}
-          <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-10 shadow-sm">
+          <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-20 shadow-sm">
             <button 
               onClick={() => setOpen(false)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
@@ -463,8 +473,8 @@ export function Combobox({
             </div>
           </div>
           
-          {/* Mobile search results */}
-          <div className="flex-1 overflow-auto" ref={listRef}>
+          {/* Mobile search results - add padding to ensure content doesn't start immediately under header */}
+          <div className="flex-1 overflow-auto pt-2" ref={listRef}>
             <div className="divide-y divide-gray-100">
               {renderOptionsList()}
             </div>
