@@ -186,10 +186,17 @@ function openCustomCheckout() {
         iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.style.maxWidth = '600px';
-        iframe.style.maxHeight = '90%';
+        iframe.style.maxHeight = '90vh';
         iframe.style.border = 'none';
         iframe.style.borderRadius = '8px';
         iframe.style.backgroundColor = 'white';
+        iframe.style.margin = 'auto';
+        
+        // For mobile devices
+        if (window.innerWidth < 768) {
+          iframe.style.maxWidth = '95%';
+          iframe.style.maxHeight = '85vh';
+        }
         
         // Set the URL of your Next.js iframe page
         iframe.src = 'https://checkout-form-zeta.vercel.app/iframe';

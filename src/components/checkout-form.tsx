@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { X } from "lucide-react"
+import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -66,13 +67,43 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     },
   })
 
+  // Add state for cart data that can be modified
+  const [localCartData, setLocalCartData] = useState(cartData);
+  
+  // Update local cart data when prop changes
+  useEffect(() => {
+    setLocalCartData(cartData);
+  }, [cartData]);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
+    console.log({ ...values, cart: localCartData })
     // Handle form submission here
   }
+  
+  // Handle quantity changes
+  const updateQuantity = (itemIndex: number, newQuantity: number) => {
+    if (!localCartData || newQuantity < 1) return;
+    
+    // Create a deep copy of the cart data
+    const updatedCart = JSON.parse(JSON.stringify(localCartData));
+    const item = updatedCart.items[itemIndex];
+    
+    // Calculate price differences
+    const priceDifference = item.price * (newQuantity - item.quantity);
+    
+    // Update the item quantity
+    item.quantity = newQuantity;
+    item.line_price = item.price * newQuantity;
+    
+    // Update cart totals
+    updatedCart.total_price += priceDifference;
+    updatedCart.items_subtotal_price += priceDifference;
+    
+    setLocalCartData(updatedCart);
+  };
 
   const renderCartSummary = () => {
-    if (!cartData) {
+    if (!localCartData) {
       return <div>Loading cart data...</div>;
     }
     
@@ -80,7 +111,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Order Summary</h3>
         
-        {cartData.items.map((item: any, index: number) => (
+        {localCartData.items.map((item: any, index: number) => (
           <div key={index} className="flex items-start gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
             {item.image ? (
               <img
@@ -98,7 +129,29 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
               <h4 className="font-medium">{item.title}</h4>
               <div className="text-sm text-gray-500">
                 {item.variant_title && <p>{item.variant_title}</p>}
-                <p>Quantity: {item.quantity}</p>
+                
+                {/* Quantity Selector */}
+                <div className="flex items-center mt-2">
+                  <span className="mr-2">Quantity:</span>
+                  <div className="flex items-center border rounded">
+                    <button 
+                      type="button"
+                      className="px-2 py-0.5 text-gray-600 hover:bg-gray-100"
+                      onClick={() => updateQuantity(index, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      -
+                    </button>
+                    <span className="px-2 py-0.5 text-center w-8">{item.quantity}</span>
+                    <button 
+                      type="button"
+                      className="px-2 py-0.5 text-gray-600 hover:bg-gray-100"
+                      onClick={() => updateQuantity(index, item.quantity + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -116,19 +169,19 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
         <div className="border-t pt-4">
           <div className="flex justify-between mb-2">
             <span>Subtotal</span>
-            <span>{formatMoney(cartData.items_subtotal_price)}</span>
+            <span>{formatMoney(localCartData.items_subtotal_price)}</span>
           </div>
           
-          {cartData.total_discount > 0 && (
+          {localCartData.total_discount > 0 && (
             <div className="flex justify-between mb-2 text-green-600">
               <span>Discount</span>
-              <span>-{formatMoney(cartData.total_discount)}</span>
+              <span>-{formatMoney(localCartData.total_discount)}</span>
             </div>
           )}
           
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>{formatMoney(cartData.total_price)}</span>
+            <span>{formatMoney(localCartData.total_price)}</span>
           </div>
         </div>
       </div>
@@ -138,14 +191,14 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   const formatMoney = (cents: number) => {
     return (cents / 100).toLocaleString('en-US', {
       style: 'currency',
-      currency: cartData?.currency || 'USD'
+      currency: localCartData?.currency || cartData?.currency || 'USD'
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-0 gap-0 bg-white">
-        <DialogHeader className="p-6 pb-2 border-b">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col">
+        <DialogHeader className="p-6 pb-2 border-b shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-medium tracking-tight text-black">
               Поръчайте с наложен платеж
@@ -161,7 +214,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
           </div>
         </DialogHeader>
 
-        <div className="p-6 pt-4 space-y-6">
+        <div className="overflow-y-auto p-6 pt-4 space-y-6">
           {/* Cart Summary */}
           {renderCartSummary()}
 
@@ -358,7 +411,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                 type="submit"
                 className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-xl h-12 font-medium"
               >
-                Завършете покупката си {cartData ? `- ${formatMoney(cartData.total_price)}` : ''}
+                Завършете покупката си {localCartData ? `- ${formatMoney(localCartData.total_price)}` : ''}
               </Button>
             </form>
           </Form>

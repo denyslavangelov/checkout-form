@@ -6,6 +6,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 1rem;
 }
 
 /* Wrapper class for global styles */
@@ -18,8 +19,17 @@
   margin: 0;
   padding: 0;
   overflow: hidden;
+  height: 100%;
 }
 
 .globalStyles :global(html) {
   overflow: hidden;
+  height: 100%;
+}
+
+/* Media queries for responsiveness */
+@media screen and (max-width: 640px) {
+  .container {
+    padding: 0.5rem;
+  }
 } 
