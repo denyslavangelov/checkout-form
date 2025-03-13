@@ -79,6 +79,26 @@ interface CitySearchResult {
 export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
   console.log('CheckoutForm rendered with props:', { open, cartData });
 
+  // Create a default test cart for development/testing
+  const defaultTestCart = {
+    items: [
+      {
+        id: 'test-item-1',
+        title: 'Test Product',
+        quantity: 1,
+        price: 2999,
+        line_price: 2999,
+        original_line_price: 2999,
+        image: null
+      }
+    ],
+    total_price: 2999,
+    items_subtotal_price: 2999,
+    total_discount: 0,
+    item_count: 1,
+    currency: 'BGN'
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -96,14 +116,23 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     },
   })
 
-  // Add state for cart data that can be modified
-  const [localCartData, setLocalCartData] = useState<typeof cartData>(() => cartData);
+  // Use the defaultTestCart when cartData is null/undefined and we're in development
+  const [localCartData, setLocalCartData] = useState<typeof cartData>(() => {
+    // If running in development and no cart data provided, use test cart
+    if (!cartData && process.env.NODE_ENV === 'development') {
+      console.log('Using default test cart for development');
+      return defaultTestCart;
+    }
+    return cartData;
+  });
   
   // Update local cart data when prop changes
   useEffect(() => {
-    
     if (cartData) {
       setLocalCartData(cartData);
+    } else if (process.env.NODE_ENV === 'development') {
+      // In development, if cartData becomes null, use test cart instead of showing loading
+      setLocalCartData(defaultTestCart);
     }
   }, [cartData]);
   
@@ -618,7 +647,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
               <div>
                   <h3 className="text-center font-medium text-black mb-3 text-sm">
-                  Въведете вашия адрес за доставка
+                    {selectedShippingMethod === "address" 
+                      ? "Въведете вашия адрес за доставка"
+                      : `Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
                 </h3>
 
                   <div className="space-y-3">
