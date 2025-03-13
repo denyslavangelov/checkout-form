@@ -62,7 +62,7 @@ export function Combobox({
     }
   }, [open])
   
-  // When the dropdown opens, focus the input
+  // When the dropdown opens, focus the input but DON'T clear the search if we have a selection
   React.useEffect(() => {
     if (open) {
       const timer = setTimeout(() => {
@@ -77,10 +77,6 @@ export function Combobox({
   const handleButtonClick = React.useCallback(() => {
     if (!disabled) {
       setOpen(!open)
-      // Only clear search when opening
-      if (!open) {
-        setSearchValue("")
-      }
     }
   }, [open, disabled])
   
@@ -92,9 +88,24 @@ export function Combobox({
   }, [onSearch])
   
   const handleSelect = React.useCallback((optionValue: string) => {
+    const selectedOption = options.find(opt => opt.value === optionValue)
+    if (selectedOption) {
+      // Update the search value to show the selected city
+      setSearchValue(selectedOption.label)
+    }
     onChange(optionValue)
     setOpen(false)
-  }, [onChange])
+  }, [onChange, options])
+
+  // Initialize search value with selected value
+  React.useEffect(() => {
+    if (value) {
+      const selectedOption = options.find(opt => opt.value === value)
+      if (selectedOption) {
+        setSearchValue(selectedOption.label)
+      }
+    }
+  }, [value, options])
 
   const getDisplayText = (option: ComboboxOption) => {
     if (option.type === 'city' || type === 'city') {
