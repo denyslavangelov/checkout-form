@@ -47,11 +47,19 @@ export function Combobox({
   loading = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [searchTerm, setSearchTerm] = React.useState("")
+  const [inputValue, setInputValue] = React.useState("")
+
+  // Update input value when value prop changes
+  React.useEffect(() => {
+    const selectedOption = options.find(option => option.value === value)
+    if (selectedOption) {
+      setInputValue(selectedOption.label)
+    }
+  }, [value, options])
 
   const handleSearch = React.useCallback(
     (search: string) => {
-      setSearchTerm(search)
+      setInputValue(search)
       if (onSearch) {
         onSearch(search)
       }
@@ -59,16 +67,15 @@ export function Combobox({
     [onSearch]
   )
 
-  const selectedOption = React.useMemo(() => {
-    return options.find(option => option.value === value)
-  }, [options, value])
-
-  // Reset search term when popover closes
+  // Reset input value when popover closes if there's a selected value
   React.useEffect(() => {
-    if (!open) {
-      setSearchTerm("")
+    if (!open && value) {
+      const selectedOption = options.find(option => option.value === value)
+      if (selectedOption) {
+        setInputValue(selectedOption.label)
+      }
     }
-  }, [open])
+  }, [open, value, options])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -89,7 +96,7 @@ export function Combobox({
             }
           }}
         >
-          {selectedOption ? selectedOption.label : placeholder}
+          {value ? (options.find(option => option.value === value)?.label || placeholder) : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -97,7 +104,7 @@ export function Combobox({
         <Command shouldFilter={false}>
           <CommandInput 
             placeholder={placeholder} 
-            value={searchTerm}
+            value={inputValue}
             onValueChange={handleSearch}
             className="h-9"
             autoFocus
@@ -112,6 +119,7 @@ export function Combobox({
                 value={option.value}
                 onSelect={(currentValue) => {
                   onChange(currentValue)
+                  setInputValue(option.label)
                   setOpen(false)
                 }}
                 className="cursor-pointer"
