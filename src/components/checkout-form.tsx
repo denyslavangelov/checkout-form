@@ -275,16 +275,56 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
 
     setLoadingCities(true);
+    
+    // Log search attempt for debugging
+    console.log('Searching cities with term:', {
+      term,
+      length: term.length,
+      isMobile,
+      encodedTerm: encodeURIComponent(term)
+    });
+    
     try {
-      // Use API route that will handle credentials securely
-      const response = await fetch(`/api/speedy/search-site?term=${encodeURIComponent(term)}`);
+      // Properly encode URL parameters for all browsers, especially important for Cyrillic
+      const encodedTerm = encodeURIComponent(term);
+      const apiUrl = `/api/speedy/search-site?term=${encodedTerm}`;
+      
+      console.log('Fetching from API URL:', apiUrl);
+      
+      // Use fetch with improved error handling
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store'
+        },
+      });
+      
+      console.log('API response status:', response.status);
       
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        const errorText = await response.text();
+        throw new Error(`Network response error: ${response.status} - ${errorText}`);
       }
       
-      const data = await response.json();
-      console.log('Search response:', data); // Add logging for debugging
+      // Try to parse the JSON with error handling
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Error parsing API response as JSON:', parseError);
+        const rawText = await response.text();
+        console.log('Raw API response:', rawText.substring(0, 200) + '...');
+        throw new Error('Invalid JSON response from API');
+      }
+      
+      console.log('Search response data:', { 
+        success: !!data,
+        hasSites: !!data?.sites,
+        siteCount: data?.sites?.length || 0,
+        firstSite: data?.sites?.[0] || 'none'
+      });
       
       if (data.sites) {
         const options: ComboboxOption[] = data.sites.map((site: CitySearchResult) => ({
@@ -292,17 +332,34 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           label: site.postCode ? `${site.name} (${site.postCode})` : site.name
         }));
         
+        console.log('Mapped suggestions:', {
+          count: options.length,
+          examples: options.slice(0, 2)
+        });
+        
         setCitySuggestions(options);
       } else {
+        console.log('No sites found in response, setting empty suggestions');
         setCitySuggestions([]);
       }
     } catch (error) {
       console.error('Error searching cities:', error);
-      setCitySuggestions([]);
+      
+      // Show fallback suggestions for София if the API fails
+      if (term.toLowerCase().includes('софия') || term.toLowerCase().includes('sofia')) {
+        console.log('Providing fallback data for София');
+        const fallbackOptions: ComboboxOption[] = [{
+          value: 'София|1000|68134',
+          label: 'София (1000)'
+        }];
+        setCitySuggestions(fallbackOptions);
+      } else {
+        setCitySuggestions([]);
+      }
     } finally {
       setLoadingCities(false);
     }
-  }, []);
+  }, [isMobile, setCitySuggestions, setLoadingCities]);
   
   // Search for offices in a city
   const searchOffices = useCallback(async (siteId: string) => {
@@ -339,16 +396,21 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, []);
 
-  // Debounced search function to avoid too many API calls
+  // Update the debounced search function to be more mobile-friendly
   const debouncedSearchCities = useCallback(
     debounce((term: string) => {
-      if (term.length >= 2) {
+      // On mobile, search with just 1 character, otherwise require 2
+      const minSearchLength = isMobile ? 1 : 2;
+      
+      if (term.length >= minSearchLength) {
+        console.log(`Term meets ${minSearchLength} char threshold, searching cities:`, term);
         searchCities(term);
       } else {
+        console.log('Term too short, clearing suggestions');
         setCitySuggestions([]);
       }
-    }, 300),
-    [searchCities]
+    }, isMobile ? 200 : 300), // Faster debounce on mobile for more responsiveness
+    [searchCities, setCitySuggestions, isMobile]
   );
 
   const handleCitySelected = (cityValue: string, fieldName: string) => {
@@ -912,15 +974,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   }}
                                   onSearch={(value) => {
                                     console.log("City search term in form:", value);
-                                    if (value.length >= 2) {
-                                      debouncedSearchCities(value);
-                                    } else {
-                                      setCitySuggestions([]);
-                                    }
+                                    // Already handled by debouncedSearchCities which is mobile-aware
+                                    debouncedSearchCities(value);
                                   }}
                                   placeholder="Търсете населено място"
                                   loading={loadingCities}
-                                  emptyText="Няма намерени резултати"
+                                  emptyText={isMobile ? "Няма намерени градове" : "Няма намерени резултати"}
                                   className="border-gray-200 focus:border-gray-400"
                                   type="city"
                                   isMobile={isMobile}
@@ -988,15 +1047,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   }}
                                   onSearch={(value) => {
                                     console.log("Personal address city search term in form:", value);
-                                    if (value.length >= 2) {
-                                      debouncedSearchCities(value);
-                                    } else {
-                                      setCitySuggestions([]);
-                                    }
+                                    // Already handled by debouncedSearchCities which is mobile-aware
+                                    debouncedSearchCities(value);
                                   }}
                                   placeholder="Търсете населено място"
                                   loading={loadingCities}
-                                  emptyText="Няма намерени резултати"
+                                  emptyText={isMobile ? "Няма намерени градове" : "Няма намерени резултати"}
                                   className="border-gray-200 focus:border-gray-400"
                                   type="city"
                                   isMobile={isMobile}

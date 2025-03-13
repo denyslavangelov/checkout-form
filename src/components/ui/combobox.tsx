@@ -186,7 +186,19 @@ export function Combobox({
     }
     
     if (onSearch) {
-      onSearch(value);
+      // For mobile, we want to trigger search with fewer characters to be more responsive
+      // and prevent empty results when people might type a bit slower
+      const minimumLength = isMobile ? 1 : 2;
+      
+      // If the value is long enough, trigger search
+      if (value.length >= minimumLength) {
+        console.log(`Search term meets ${minimumLength} char threshold, triggering search`);
+        onSearch(value);
+      } else if (value.length === 0) {
+        // If the search field is cleared, reset the search
+        console.log('Search field cleared, resetting search');
+        onSearch('');
+      }
     }
   }, [onSearch, open, onChange, internalValue, isMobile]);
   
@@ -322,9 +334,20 @@ export function Combobox({
         {!loading && options.length === 0 && (
           <div className={`py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'mt-4' : ''}`}>
             <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
-            <span className={isMobile ? "text-base font-medium" : "text-sm"}>{emptyText}</span>
+            <span className={isMobile ? "text-base font-medium" : "text-sm"}>
+              {searchValue.length >= 3 ? 
+                `${emptyText} за "${searchValue}"` : 
+                emptyText}
+            </span>
             {isMobile && searchValue.length > 0 && (
-              <span className="text-sm text-gray-400 mt-1">Опитайте с друго търсене</span>
+              <div className="text-sm text-gray-400 mt-2">
+                <p className="mb-1">Опитайте с друго търсене или проверете:</p>
+                <ul className="text-left list-disc pl-5 mt-1">
+                  <li>Интернет връзката</li>
+                  <li>Правописа на думата</li>
+                  <li>Използвайте по-кратко търсене</li>
+                </ul>
+              </div>
             )}
           </div>
         )}
