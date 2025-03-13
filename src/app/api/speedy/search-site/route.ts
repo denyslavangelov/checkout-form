@@ -22,8 +22,8 @@ export async function GET(request: Request) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        userName: 1904618,
-        password: 6661214521,
+        userName: username,
+        password: password,
         language: 'bg',
         name: term || '',
         postCode: postcode || '',

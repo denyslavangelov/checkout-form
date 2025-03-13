@@ -123,8 +123,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     setLoadingCities(true);
     try {
       // For simplicity, assuming we have credentials in environment variables in a production app
-      const username = "demo"; // Replace with your actual Speedy API credentials
-      const password = "demo"; // Replace with your actual Speedy API credentials
+      const username = "1904618"; // Replace with your actual Speedy API credentials
+      const password = "6661214521"; // Replace with your actual Speedy API credentials
       
       const response = await fetch(`/api/speedy/search-site?term=${encodeURIComponent(term)}&username=${username}&password=${password}`);
       
