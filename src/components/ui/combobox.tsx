@@ -47,35 +47,6 @@ export function Combobox({
   loading = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState("")
-
-  // Update input value when value prop changes
-  React.useEffect(() => {
-    const selectedOption = options.find(option => option.value === value)
-    if (selectedOption) {
-      setInputValue(selectedOption.label)
-    }
-  }, [value, options])
-
-  const handleSearch = React.useCallback(
-    (search: string) => {
-      setInputValue(search)
-      if (onSearch) {
-        onSearch(search)
-      }
-    },
-    [onSearch]
-  )
-
-  // Reset input value when popover closes if there's a selected value
-  React.useEffect(() => {
-    if (!open && value) {
-      const selectedOption = options.find(option => option.value === value)
-      if (selectedOption) {
-        setInputValue(selectedOption.label)
-      }
-    }
-  }, [open, value, options])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -85,29 +56,23 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-full justify-between h-9 px-3 py-1 text-sm rounded-lg border-gray-200 bg-gray-50/50 text-left font-normal",
+            "w-full justify-between h-9 px-3 text-sm rounded-lg",
+            "border-gray-200 bg-gray-50/50 text-left font-normal",
             disabled && "opacity-50 cursor-not-allowed",
             className
           )}
           disabled={disabled}
-          onClick={() => {
-            if (!disabled) {
-              setOpen(true)
-            }
-          }}
         >
           {value ? (options.find(option => option.value === value)?.label || placeholder) : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-full min-w-[200px] max-w-[400px]" align="start">
-        <Command shouldFilter={false}>
+      <PopoverContent className="w-full min-w-[200px] p-0" align="start">
+        <Command>
           <CommandInput 
-            placeholder={placeholder} 
-            value={inputValue}
-            onValueChange={handleSearch}
+            placeholder={placeholder}
+            onValueChange={onSearch}
             className="h-9"
-            autoFocus
           />
           <CommandEmpty className="py-2 px-3 text-sm text-gray-500">
             {loading ? "Зареждане..." : emptyText}
@@ -117,9 +82,8 @@ export function Combobox({
               <CommandItem
                 key={option.value}
                 value={option.value}
-                onSelect={(currentValue) => {
-                  onChange(currentValue)
-                  setInputValue(option.label)
+                onSelect={() => {
+                  onChange(option.value)
                   setOpen(false)
                 }}
                 className="cursor-pointer"

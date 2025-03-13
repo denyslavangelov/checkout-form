@@ -663,7 +663,13 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   options={citySuggestions}
                                   value={field.value ?? ""}
                                   onChange={(value) => handleCitySelected(value, 'officeCity')}
-                                  onSearch={debouncedSearchCities}
+                                  onSearch={(value) => {
+                                    if (value.length >= 2) {
+                                      debouncedSearchCities(value)
+                                    } else {
+                                      setCitySuggestions([])
+                                    }
+                                  }}
                                   placeholder="Търсете населено място"
                                   loading={loadingCities}
                                   emptyText="Няма намерени резултати"
@@ -717,9 +723,15 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 <div className="flex-1">
                                   <Combobox
                                     options={citySuggestions}
-                                    value={field.value ?? ""}
+                                    value={field.value}
                                     onChange={(value) => handleCitySelected(value, 'city')}
-                                    onSearch={debouncedSearchCities}
+                                    onSearch={(value) => {
+                                      if (value.length >= 2) {
+                                        debouncedSearchCities(value)
+                                      } else {
+                                        setCitySuggestions([])
+                                      }
+                                    }}
                                     placeholder="Търсете населено място"
                                     loading={loadingCities}
                                     emptyText="Няма намерени резултати"
