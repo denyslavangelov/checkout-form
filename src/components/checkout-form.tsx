@@ -49,9 +49,10 @@ const formSchema = z.object({
 interface CheckoutFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  cartData: any | null
 }
 
-export function CheckoutForm({ open, onOpenChange }: CheckoutFormProps) {
+export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -69,6 +70,77 @@ export function CheckoutForm({ open, onOpenChange }: CheckoutFormProps) {
     console.log(values)
     // Handle form submission here
   }
+
+  const renderCartSummary = () => {
+    if (!cartData) {
+      return <div>Loading cart data...</div>;
+    }
+    
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Order Summary</h3>
+        
+        {cartData.items.map((item: any, index: number) => (
+          <div key={index} className="flex items-start gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.title}
+                className="w-16 h-16 object-cover rounded-lg"
+              />
+            ) : (
+              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-gray-500">No image</span>
+              </div>
+            )}
+            
+            <div className="flex-1">
+              <h4 className="font-medium">{item.title}</h4>
+              <div className="text-sm text-gray-500">
+                {item.variant_title && <p>{item.variant_title}</p>}
+                <p>Quantity: {item.quantity}</p>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <p className="font-medium">{formatMoney(item.line_price)}</p>
+              {item.original_line_price !== item.line_price && (
+                <p className="text-sm text-gray-500 line-through">
+                  {formatMoney(item.original_line_price)}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+        
+        <div className="border-t pt-4">
+          <div className="flex justify-between mb-2">
+            <span>Subtotal</span>
+            <span>{formatMoney(cartData.items_subtotal_price)}</span>
+          </div>
+          
+          {cartData.total_discount > 0 && (
+            <div className="flex justify-between mb-2 text-green-600">
+              <span>Discount</span>
+              <span>-{formatMoney(cartData.total_discount)}</span>
+            </div>
+          )}
+          
+          <div className="flex justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>{formatMoney(cartData.total_price)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  const formatMoney = (cents: number) => {
+    return (cents / 100).toLocaleString('en-US', {
+      style: 'currency',
+      currency: cartData?.currency || 'USD'
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -90,42 +162,8 @@ export function CheckoutForm({ open, onOpenChange }: CheckoutFormProps) {
         </DialogHeader>
 
         <div className="p-6 pt-4 space-y-6">
-          {/* Order Summary */}
-          <div className="space-y-4">
-            <div className="flex items-start gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-              <div className="relative">
-                <img
-                  src="https://cdn.shopify.com/s/files/1/0602/7640/8451/files/Screenshot2024-07-08at00-12-32RazorTravelProtectorCasePortableSiliconeRazorCaseCoverWaterproofRazorCarryingCase-BuySafetyRazorTravelProtectorCaseportableRazorCaserubberSafetyTravelSha.png?v=1738601078"
-                  alt="Product"
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
-                <span className="absolute -top-2 -right-2 bg-gray-900 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium">
-                  2
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-black truncate">Комплект Самобръсначка Colorlamb®</h3>
-                <p className="text-sm text-black/70">Лилав</p>
-              </div>
-              <div className="font-medium text-black">70.00 лв</div>
-            </div>
-
-            <div className="space-y-2 text-sm px-1">
-              <div className="flex justify-between text-black">
-                <span>Междинна сума</span>
-                <span>70.00 лв</span>
-              </div>
-              <div className="flex justify-between text-black">
-                <span>Доставка</span>
-                <span>Безплатна</span>
-              </div>
-              <Separator className="my-2" />
-              <div className="flex justify-between font-medium text-base text-black">
-                <span>Обща сума</span>
-                <span>70.00 лв</span>
-              </div>
-            </div>
-          </div>
+          {/* Cart Summary */}
+          {renderCartSummary()}
 
           <Form {...form}>
             <form 
