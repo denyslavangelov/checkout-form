@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search } from "lucide-react"
+import { Check, ChevronsUpDown, Search, MapPin, Building } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 export type ComboboxOption = {
   value: string
   label: string
+  icon?: React.ReactNode
+  type?: 'city' | 'office' | 'default'
 }
 
 interface ComboboxProps {
@@ -21,6 +23,7 @@ interface ComboboxProps {
   className?: string
   disabled?: boolean
   loading?: boolean
+  type?: 'city' | 'office' | 'default'
 }
 
 export function Combobox({
@@ -33,6 +36,7 @@ export function Combobox({
   className,
   disabled = false,
   loading = false,
+  type,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
@@ -98,8 +102,33 @@ export function Combobox({
   const displayValue = React.useMemo(() => {
     if (!value) return placeholder
     const option = options.find(option => option.value === value)
-    return option ? option.label : placeholder
-  }, [value, options, placeholder])
+    if (!option) return placeholder
+    
+    return (
+      <div className="flex items-center">
+        <span className="mr-2">{getOptionIcon(option)}</span>
+        <span>{option.label}</span>
+      </div>
+    )
+  }, [value, options, placeholder, type])
+
+  const getOptionIcon = (option: ComboboxOption) => {
+    if (option.icon) {
+      return option.icon
+    }
+    
+    const optionType = option.type || type
+    
+    if (optionType === 'city') {
+      return <MapPin className="h-4 w-4 text-gray-500" />
+    }
+    
+    if (optionType === 'office') {
+      return <Building className="h-4 w-4 text-gray-500" />
+    }
+    
+    return null
+  }
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -112,6 +141,7 @@ export function Combobox({
         className={cn(
           "w-full justify-between h-9 px-3 text-sm rounded-lg",
           "border-gray-200 bg-gray-50/50 text-left font-normal",
+          "flex items-center",
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}
@@ -151,7 +181,11 @@ export function Combobox({
                   className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-gray-100 hover:text-gray-900"
                 >
                   <span className="mr-2 h-4 w-4 flex items-center justify-center">
-                    {value === option.value && <Check className="h-4 w-4" />}
+                    {value === option.value ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      getOptionIcon(option)
+                    )}
                   </span>
                   {option.label}
                 </div>

@@ -663,11 +663,11 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   options={citySuggestions}
                                   value={field.value ?? ""}
                                   onChange={(value) => {
-                                    console.log("City selected:", value);
+                                    console.log("City selected in form:", value);
                                     handleCitySelected(value, 'officeCity');
                                   }}
                                   onSearch={(value) => {
-                                    console.log("City search term:", value);
+                                    console.log("City search term in form:", value);
                                     if (value.length >= 2) {
                                       debouncedSearchCities(value);
                                     } else {
@@ -678,6 +678,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   loading={loadingCities}
                                   emptyText="Няма намерени резултати"
                                   className="border-gray-200 focus:border-gray-400"
+                                  type="city"
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
@@ -700,7 +701,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     options={officeSuggestions}
                                     value={field.value ?? ""}
                                     onChange={(value) => {
-                                      console.log("Office selected:", value);
+                                      console.log("Office selected in form:", value);
                                       handleOfficeSelected(value);
                                     }}
                                     placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
@@ -708,6 +709,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
                                     disabled={!selectedCityId}
                                     className="border-gray-200 focus:border-gray-400"
+                                    type="office"
                                   />
                                 </div>
                               </div>
@@ -732,11 +734,11 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     options={citySuggestions}
                                     value={field.value ?? ""}
                                     onChange={(value) => {
-                                      console.log("Personal address city selected:", value);
+                                      console.log("Personal address city selected in form:", value);
                                       handleCitySelected(value, 'city');
                                     }}
                                     onSearch={(value) => {
-                                      console.log("Personal address city search term:", value);
+                                      console.log("Personal address city search term in form:", value);
                                       if (value.length >= 2) {
                                         debouncedSearchCities(value);
                                       } else {
@@ -747,6 +749,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     loading={loadingCities}
                                     emptyText="Няма намерени резултати"
                                     className="border-gray-200 focus:border-gray-400"
+                                    type="city"
                                   />
                                 </div>
                                 <FormMessage className="text-red-500 text-xs" />
