@@ -358,7 +358,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                 type="submit"
                 className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-xl h-12 font-medium"
               >
-                Завършете покупката си - 70.00 лв
+                Завършете покупката си {cartData ? `- ${formatMoney(cartData.total_price)}` : ''}
               </Button>
             </form>
           </Form>

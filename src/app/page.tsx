@@ -17,7 +17,7 @@ export default function Home() {
         </Button>
       </div>
 
-      <CheckoutForm open={isOpen} onOpenChange={setIsOpen} />
+      <CheckoutForm open={isOpen} onOpenChange={setIsOpen} cartData={null} />
     </div>
   )
 }
