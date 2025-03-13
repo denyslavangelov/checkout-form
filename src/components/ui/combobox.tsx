@@ -128,6 +128,19 @@ export function Combobox({
     return <span className="text-gray-500">{placeholder}</span>
   }, [value, options, placeholder, type])
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Combobox State:', {
+      value,
+      searchValue,
+      open,
+      disabled,
+      optionsCount: options.length,
+      selectedOption: options.find(opt => opt.value === value),
+      type
+    })
+  }, [value, searchValue, open, disabled, options, type])
+
   const getOptionIcon = (option: ComboboxOption) => {
     if (option.icon) {
       return option.icon
@@ -159,7 +172,7 @@ export function Combobox({
           "border-gray-200 bg-gray-50/50 text-left font-normal",
           "flex items-center transition-colors duration-200",
           "hover:bg-gray-100/50",
-          value && "bg-blue-50/80 border-blue-200", // Make the highlight stronger
+          value && "bg-blue-50/80 border-blue-200",
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}
