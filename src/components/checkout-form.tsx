@@ -100,6 +100,11 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   const [citySuggestions, setCitySuggestions] = useState<ComboboxOption[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
   
+  // State for office search
+  const [officeSuggestions, setOfficeSuggestions] = useState<ComboboxOption[]>([]);
+  const [loadingOffices, setLoadingOffices] = useState(false);
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
+  
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
   
@@ -122,11 +127,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
     setLoadingCities(true);
     try {
-      // For simplicity, assuming we have credentials in environment variables in a production app
-      const username = "1904618"; // Replace with your actual Speedy API credentials
-      const password = "6661214521"; // Replace with your actual Speedy API credentials
-      
-      const response = await fetch(`/api/speedy/search-site?term=${encodeURIComponent(term)}&username=${username}&password=${password}`);
+      // Use API route that will handle credentials securely
+      const response = await fetch(`/api/speedy/search-site?term=${encodeURIComponent(term)}`);
       
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -152,6 +154,41 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     }
   }, []);
   
+  // Search for offices in a city
+  const searchOffices = useCallback(async (siteId: string) => {
+    if (!siteId) {
+      setOfficeSuggestions([]);
+      return;
+    }
+
+    setLoadingOffices(true);
+    try {
+      const response = await fetch(`/api/speedy/search-office?siteId=${encodeURIComponent(siteId)}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      if (data.offices && data.offices.length > 0) {
+        const options: ComboboxOption[] = data.offices.map((office: any) => ({
+          value: office.value,
+          label: office.label
+        }));
+        
+        setOfficeSuggestions(options);
+      } else {
+        setOfficeSuggestions([]);
+      }
+    } catch (error) {
+      console.error('Error searching offices:', error);
+      setOfficeSuggestions([]);
+    } finally {
+      setLoadingOffices(false);
+    }
+  }, []);
+
   // Debounced search function to avoid too many API calls
   const debouncedSearchCities = useCallback(
     debounce((term: string) => {
@@ -162,7 +199,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
   const handleCitySelected = (cityValue: string, fieldName: string) => {
     if (cityValue) {
-      const [cityName, postalCode] = cityValue.split('|');
+      const [cityName, postalCode, cityId] = cityValue.split('|');
       
       // Set city name in the appropriate field
       form.setValue(fieldName as keyof z.infer<typeof formSchema>, cityName);
@@ -171,6 +208,24 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       if (fieldName === 'city' && postalCode) {
         form.setValue('postalCode', postalCode);
       }
+      
+      // For office selection, store the city ID for office search
+      if (fieldName === 'officeCity' && cityId) {
+        setSelectedCityId(cityId);
+        form.setValue('officeAddress', '');
+        
+        // Fetch offices for this city
+        searchOffices(cityId);
+      }
+    }
+  };
+
+  const handleOfficeSelected = (officeValue: string) => {
+    if (officeValue) {
+      const [officeId, officeName, officeAddress] = officeValue.split('|');
+      
+      // Set the office address in the form
+      form.setValue('officeAddress', `${officeName}: ${officeAddress}`);
     }
   };
 
@@ -573,7 +628,65 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                       )}
                     />
 
-                    {selectedShippingMethod === "address" ? (
+                    {selectedShippingMethod !== "address" ? (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="officeCity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Град<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon(selectedShippingMethod)}
+                                <div className="flex-1">
+                                  <Combobox
+                                    options={citySuggestions}
+                                    value={field.value ?? ""}
+                                    onChange={(value) => handleCitySelected(value, 'officeCity')}
+                                    onSearch={debouncedSearchCities}
+                                    placeholder="Търсете населено място"
+                                    loading={loadingCities}
+                                    emptyText="Няма намерени резултати"
+                                    className="border-gray-200 focus:border-gray-400"
+                                  />
+                                </div>
+                              </div>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="officeAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Изберете офис<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon(selectedShippingMethod)}
+                                <div className="flex-1">
+                                  <Combobox
+                                    options={officeSuggestions}
+                                    value={field.value ?? ""}
+                                    onChange={handleOfficeSelected}
+                                    placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                                    loading={loadingOffices}
+                                    emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
+                                    disabled={!selectedCityId}
+                                    className="border-gray-200 focus:border-gray-400"
+                                  />
+                                </div>
+                              </div>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    ) : (
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <FormField
@@ -654,77 +767,14 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                           )}
                         />
                       </>
-                    ) : (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="officeCity"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-black text-xs">
-                                Град<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
-                              <div className="flex items-center gap-2">
-                                {getShippingMethodIcon(selectedShippingMethod)}
-                                <div className="flex-1">
-                                  <Combobox
-                                    options={citySuggestions}
-                                    value={field.value || ""}
-                                    onChange={(value) => handleCitySelected(value, 'officeCity')}
-                                    onSearch={debouncedSearchCities}
-                                    placeholder="Търсете населено място"
-                                    loading={loadingCities}
-                                    emptyText="Няма намерени резултати"
-                                    className="border-gray-200 focus:border-gray-400"
-                                  />
-                                </div>
-                              </div>
-                              <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="officeAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-black text-xs">
-                                Изберете офис<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
-                              <div className="flex items-center gap-2">
-                                {getShippingMethodIcon(selectedShippingMethod)}
-                                <FormControl className="flex-1">
-                                  <Input 
-                                    placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
-                                    autoComplete="new-password"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    {...field}
-                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
-                              </div>
-                              <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                      </>
                     )}
                   </div>
                 </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-lg h-10 font-medium"
-                >
-                  Завършете покупката
-                </Button>
               </form>
             </Form>
           )}
         </div>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

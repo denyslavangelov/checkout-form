@@ -57,3 +57,50 @@ You can customize the appearance of the checkout form by modifying the component
 - Ensure your Next.js app is served over HTTPS
 - Consider implementing CORS restrictions to only allow your Shopify store to embed the checkout form
 - Implement proper validation and security measures for processing customer data
+
+# Checkout Form
+
+A customizable checkout form integrated with Shopify that provides a seamless user experience.
+
+## Features
+
+- Responsive design that works on all devices
+- City autocomplete using Speedy API
+- Multiple shipping options (Speedy, Econt, Personal Address)
+- Dynamic cart updating
+- Product quantity adjustment
+- Multilingual support (Bulgarian)
+
+## Setup
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Set up environment variables:
+Create a `.env.local` file in the root directory with the following variables:
+```
+SPEEDY_USERNAME=your_speedy_username
+SPEEDY_PASSWORD=your_speedy_password
+```
+
+3. Run the development server:
+```bash
+npm run dev
+```
+
+4. Build for production:
+```bash
+npm run build
+```
+
+## API Routes
+
+### `/api/speedy/search-site`
+
+Searches for cities using the Speedy API.
+
+**Parameters:**
+- `term`: Search term for city name
+- `postcode` (optional): Filter by postal code
