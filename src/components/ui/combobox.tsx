@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search, MapPin, Building, X } from "lucide-react"
+import { Check, ChevronsUpDown, Search, MapPin, Building, X, ArrowLeft } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,28 @@ export function Combobox({
   const [searchValue, setSearchValue] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const mobileInputRef = React.useRef<HTMLInputElement>(null)
   const isFirstRender = React.useRef(true)
+  
+  // Manage body scroll when mobile fullscreen search is open
+  React.useEffect(() => {
+    if (isMobile && open) {
+      // Prevent body scrolling when modal is open
+      document.body.style.overflow = 'hidden';
+      
+      // Focus the mobile input when opened
+      setTimeout(() => {
+        if (mobileInputRef.current) {
+          mobileInputRef.current.focus();
+        }
+      }, 100);
+      
+      return () => {
+        // Restore body scrolling when modal is closed
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isMobile, open]);
   
   // Debug mount/unmount
   React.useEffect(() => {
@@ -92,27 +113,29 @@ export function Combobox({
     }
   }, [value, options, type])
 
-  // Handle clicks outside to close the dropdown
+  // Handle clicks outside to close the dropdown (desktop only)
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Only close if the click is outside the container and dropdown
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
+    if (!isMobile) {
+      const handleClickOutside = (event: MouseEvent) => {
+        // Only close if the click is outside the container and dropdown
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setOpen(false);
+        }
+      }
+      
+      if (open) {
+        document.addEventListener("mousedown", handleClickOutside)
+      }
+      
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside)
       }
     }
-    
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-    
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [open])
+  }, [open, isMobile])
   
-  // When the dropdown opens, focus the input and reset search if it's not a value
+  // When the dropdown opens, focus the input and reset search if it's not a value (desktop only)
   React.useEffect(() => {
-    if (open) {
+    if (open && !isMobile) {
       const timer = setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
@@ -124,37 +147,42 @@ export function Combobox({
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [open, internalValue]);
+  }, [open, internalValue, isMobile]);
   
   const handleButtonClick = React.useCallback(() => {
     if (!disabled) {
       setOpen(!open)
+      
+      // Clear search value when opening on mobile
+      if (isMobile && !open) {
+        setSearchValue(internalValue ? options.find(opt => opt.value === internalValue)?.label || "" : "");
+      }
     }
-  }, [open, disabled])
+  }, [open, disabled, isMobile, internalValue, options])
   
   // When search changes, keep dropdown open
   const handleSearchChange = React.useCallback((value: string) => {
     console.log('Search changed:', value);
     setSearchValue(value);
     
-    // Clear the selection if the user deletes all text
-    if (value === '' && internalValue) {
+    // Don't clear selection on mobile when typing
+    if (!isMobile && value === '' && internalValue) {
       console.log('Search field cleared, resetting selection');
       setInternalValue('');
       onChange('');
     }
     
     // Ensure dropdown stays open while searching
-    if (!open) {
+    if (!open && !isMobile) {
       setOpen(true);
     }
+    
     if (onSearch) {
       onSearch(value);
     }
-  }, [onSearch, open, onChange, internalValue]);
+  }, [onSearch, open, onChange, internalValue, isMobile]);
   
   const handleSelect = React.useCallback((optionValue: string) => {
-    debugger;
     console.log('handleSelect called with:', {
       optionValue,
       currentValue: internalValue,
@@ -262,8 +290,56 @@ export function Combobox({
     onChange('');
   }, [onChange]);
 
+  // Render options list (shared between mobile and desktop views)
+  const renderOptionsList = React.useCallback(() => {
+    return (
+      <>
+        {loading && (
+          <div className="py-6 px-3 text-sm text-gray-500 text-center">
+            <div className="inline-block animate-spin mr-2">⏳</div>
+            Зареждане...
+          </div>
+        )}
+        
+        {!loading && options.length === 0 && (
+          <div className="py-6 px-3 text-sm text-gray-500 text-center flex items-center justify-center">
+            <Search className="mr-2 h-4 w-4 opacity-50" />
+            {emptyText}
+          </div>
+        )}
+        
+        {options.map((option) => (
+          <div
+            key={option.value}
+            onClick={() => handleSelect(option.value)}
+            className={cn(
+              "relative flex cursor-pointer select-none items-center rounded-sm px-2 outline-none",
+              "transition-colors duration-150",
+              "hover:bg-gray-100 hover:text-gray-900",
+              internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
+              isMobile ? "py-4 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
+            )}
+          >
+            <span className={cn(
+              "mr-2 flex items-center justify-center flex-shrink-0",
+              isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
+            )}>
+              {internalValue === option.value ? (
+                <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
+              ) : (
+                getOptionIcon(option)
+              )}
+            </span>
+            <span className="truncate">{option.label}</span>
+          </div>
+        ))}
+      </>
+    );
+  }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon]);
+
   return (
     <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
+      {/* Button that opens the combobox */}
       <Button
         variant="outline"
         role="combobox"
@@ -308,80 +384,73 @@ export function Combobox({
         )} />
       </Button>
       
-      {open && (
+      {/* Desktop dropdown view */}
+      {open && !isMobile && (
         <div 
-          className={cn(
-            "z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg combobox-popover",
-            isMobile ? 
-              "fixed left-0 right-0 max-h-[60vh] w-full mx-auto my-0 top-auto bottom-0 rounded-b-none shadow-[0_-2px_10px_rgba(0,0,0,0.1)]" : 
-              "absolute top-full left-0 w-full"
-          )}
+          className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg combobox-popover"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
             <div className="flex items-center border-b px-3 sticky top-0 bg-white z-10">
-              <Search className={cn(
-                "mr-2 shrink-0 opacity-50",
-                isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icon on mobile
-              )} />
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <input
                 ref={inputRef}
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 placeholder={placeholder}
-                className={cn(
-                  "flex w-full rounded-md bg-transparent py-3 text-sm outline-none combobox-input",
-                  "placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50",
-                  internalValue && "font-medium text-blue-800",
-                  isMobile ? "h-12 text-base py-4" : "h-10" // Taller input on mobile with larger text
-                )}
+                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
                 autoComplete="off"
               />
             </div>
-            <div className={cn(
-              "overflow-auto p-1",
-              isMobile ? "max-h-[50vh]" : "max-h-[300px]"
-            )}>
-              {loading && (
-                <div className="py-6 px-3 text-sm text-gray-500 text-center">
-                  <div className="inline-block animate-spin mr-2">⏳</div>
-                  Зареждане...
-                </div>
-              )}
-              
-              {!loading && options.length === 0 && (
-                <div className="py-6 px-3 text-sm text-gray-500 text-center flex items-center justify-center">
-                  <Search className="mr-2 h-4 w-4 opacity-50" />
-                  {emptyText}
-                </div>
-              )}
-              
-              {options.map((option) => (
-                <div
-                  key={option.value}
-                  onClick={() => handleSelect(option.value)}
-                  className={cn(
-                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 outline-none",
-                    "transition-colors duration-150",
-                    "hover:bg-gray-100 hover:text-gray-900",
-                    internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
-                    isMobile ? "py-3 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
-                  )}
+            <div className="max-h-[300px] overflow-auto p-1">
+              {renderOptionsList()}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Mobile fullscreen search view */}
+      {open && isMobile && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen">
+          {/* Mobile header */}
+          <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-10">
+            <button 
+              onClick={() => setOpen(false)}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
+              aria-label="Back"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-700" />
+            </button>
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-2 flex items-center">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                ref={mobileInputRef}
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={placeholder}
+                className="w-full h-10 pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
+                autoComplete="off"
+              />
+              {searchValue && (
+                <button
+                  onClick={() => handleSearchChange("")}
+                  className="absolute inset-y-0 right-1 p-2 text-gray-400"
+                  aria-label="Clear search"
                 >
-                  <span className={cn(
-                    "mr-2 flex items-center justify-center flex-shrink-0",
-                    isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
-                  )}>
-                    {internalValue === option.value ? (
-                      <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
-                    ) : (
-                      getOptionIcon(option)
-                    )}
-                  </span>
-                  <span className="truncate">{option.label}</span>
-                </div>
-              ))}
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Mobile search results */}
+          <div className="flex-1 overflow-auto">
+            {/* No results message or loading spinner */}
+            <div className="divide-y divide-gray-100">
+              {renderOptionsList()}
             </div>
           </div>
         </div>
