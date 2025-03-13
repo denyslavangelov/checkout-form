@@ -49,7 +49,16 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const mobileInputRef = React.useRef<HTMLInputElement>(null)
   const isFirstRender = React.useRef(true)
-  const lastSearchTerm = React.useRef("")
+  
+  // Debug search activity with timestamps
+  const logSearchActivity = (action: string, value: string) => {
+    console.log(`${new Date().toISOString()} - ${action}:`, { 
+      value, 
+      isMobile, 
+      type,
+      open
+    });
+  }
   
   // Manage body scroll when mobile fullscreen search is open
   React.useEffect(() => {
@@ -176,16 +185,13 @@ export function Combobox({
         } else {
           setSearchValue("")
         }
-        
-        // Reset last search term when opening
-        lastSearchTerm.current = ""
       }
     }
   }, [open, disabled, isMobile, internalValue, options])
   
   // When search changes, keep dropdown open
   const handleSearchChange = React.useCallback((value: string) => {
-    console.log('Search changed:', {value, isMobile, lastSearchTerm: lastSearchTerm.current});
+    logSearchActivity('Search input changed', value);
     setSearchValue(value);
     
     // Don't clear selection on mobile when typing
@@ -200,35 +206,30 @@ export function Combobox({
       setOpen(true);
     }
     
-    // Always trigger search callback on mobile, but only if the value has changed
-    // This prevents duplicate searches for the same term
-    if (isMobile) {
-      if (value !== lastSearchTerm.current) {
-        lastSearchTerm.current = value;
-        if (onSearch) {
-          console.log('Triggering mobile search for:', value);
-          onSearch(value);
-        }
-      }
-    } else if (onSearch) {
-      // Desktop behavior remains the same
+    // Always call onSearch when the text input changes if the callback exists
+    if (onSearch && value.length >= 2) {
+      logSearchActivity('Triggering search callback for', value);
       onSearch(value);
+    } else if (value.length < 2) {
+      logSearchActivity('Search term too short, not triggering search', value);
     }
   }, [onSearch, open, onChange, internalValue, isMobile]);
   
+  // Handle Enter key to trigger search explicitly
+  const handleInputKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchValue.length >= 2 && onSearch) {
+      e.preventDefault();
+      logSearchActivity('Enter key pressed, triggering search for', searchValue);
+      onSearch(searchValue);
+    }
+  }, [searchValue, onSearch]);
+  
   const handleSelect = React.useCallback((optionValue: string) => {
-    console.log('handleSelect called with:', {
-      optionValue,
-      currentValue: internalValue,
-      options: options.length,
-      type,
-      isMobile
-    })
+    logSearchActivity('Option selected', optionValue);
 
     const selectedOption = options.find(opt => opt.value === optionValue)
     
     if (selectedOption) {
-      console.log('Found selected option:', selectedOption)
       setSearchValue(selectedOption.label.split(':')[0]) // Only use the main label part
       setInternalValue(optionValue)
       onChange(optionValue)
@@ -237,7 +238,7 @@ export function Combobox({
     }
     
     setOpen(false)
-  }, [onChange, options, internalValue, type, isMobile])
+  }, [onChange, options, internalValue, type, isMobile]);
 
   // Initialize search value with selected value
   React.useEffect(() => {
@@ -252,13 +253,6 @@ export function Combobox({
   const displayValue = React.useMemo(() => {
     // If we have a selected value, show it with its icon
     const selectedOption = options.find(option => option.value === internalValue)
-    console.log('Calculating display value:', {
-      internalValue,
-      selectedOption,
-      optionsCount: options.length,
-      type,
-      isMobile
-    })
     
     if (selectedOption) {
       const optionType = selectedOption.type || type
@@ -308,7 +302,7 @@ export function Combobox({
   const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
     // Stop event propagation to prevent the dropdown from opening
     e.stopPropagation();
-    console.log('Clearing selection');
+    logSearchActivity('Selection cleared', '');
     setInternalValue('');
     setSearchValue('');
     onChange('');
@@ -327,42 +321,52 @@ export function Combobox({
           </div>
         )}
         
-        {!loading && options.length === 0 && (
+        {!loading && options.length === 0 && searchValue.length >= 2 && (
           <div className="py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center">
             <Search className={`${isMobile ? "h-6 w-6 mb-2" : "h-4 w-4 mr-2"} opacity-50`} />
             <span className={isMobile ? "text-base" : "text-sm"}>{emptyText}</span>
           </div>
         )}
         
-        {!loading && options.length > 0 && options.map((option) => (
-          <div
-            key={option.value}
-            onClick={() => handleSelect(option.value)}
-            className={cn(
-              "relative flex cursor-pointer select-none items-center rounded-sm px-3 outline-none",
-              "transition-colors duration-150",
-              "hover:bg-gray-100 hover:text-gray-900",
-              "active:bg-gray-200",
-              internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
-              isMobile ? "py-4 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
-            )}
-          >
-            <span className={cn(
-              "mr-3 flex items-center justify-center flex-shrink-0",
-              isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
-            )}>
-              {internalValue === option.value ? (
-                <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
-              ) : (
-                getOptionIcon(option)
-              )}
-            </span>
-            <span className="truncate flex-1">{option.label}</span>
+        {!loading && searchValue.length < 2 && (
+          <div className="py-6 px-3 text-gray-500 text-center">
+            <span className={isMobile ? "text-base" : "text-sm"}>Въведете поне 2 символа...</span>
           </div>
-        ))}
+        )}
+        
+        {!loading && options.length > 0 && (
+          <div className={isMobile ? "pb-safe-area-bottom" : ""}>
+            {options.map((option) => (
+              <div
+                key={option.value}
+                onClick={() => handleSelect(option.value)}
+                className={cn(
+                  "relative flex cursor-pointer select-none items-center rounded-sm px-3 outline-none",
+                  "transition-colors duration-150",
+                  "hover:bg-gray-100 hover:text-gray-900",
+                  "active:bg-gray-200",
+                  internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
+                  isMobile ? "py-4 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
+                )}
+              >
+                <span className={cn(
+                  "mr-3 flex items-center justify-center flex-shrink-0",
+                  isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
+                )}>
+                  {internalValue === option.value ? (
+                    <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
+                  ) : (
+                    getOptionIcon(option)
+                  )}
+                </span>
+                <span className="truncate flex-1">{option.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </>
     );
-  }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon]);
+  }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon, searchValue]);
 
   return (
     <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
@@ -424,6 +428,7 @@ export function Combobox({
                 ref={inputRef}
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleInputKeyDown}
                 onClick={(e) => e.stopPropagation()}
                 placeholder={placeholder}
                 className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
@@ -458,9 +463,11 @@ export function Combobox({
                 ref={mobileInputRef}
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleInputKeyDown}
                 placeholder={placeholder}
                 className="w-full h-10 pl-9 pr-9 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
+                inputMode="search"
               />
               {searchValue && (
                 <button
