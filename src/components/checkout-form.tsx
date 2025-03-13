@@ -77,7 +77,15 @@ interface CitySearchResult {
 }
 
 export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
-  console.log('CheckoutForm rendered with props:', { open, cartData });
+  // Enhanced debug logging for cart data
+  console.log('CheckoutForm rendered with props:', { 
+    open, 
+    cartData, 
+    hasCartData: !!cartData,
+    cartDataType: cartData ? typeof cartData : 'null/undefined',
+    cartItemsCount: cartData?.items?.length || 0,
+    componentOrigin: 'CheckoutForm component'
+  });
 
   // Create a default test cart for development/testing
   const defaultTestCart = {
@@ -118,20 +126,84 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
   // Use the defaultTestCart when cartData is null/undefined and we're in development
   const [localCartData, setLocalCartData] = useState<typeof cartData>(() => {
+    console.log('Initializing localCartData', {
+      hasCartData: !!cartData,
+      usingTestCart: !cartData && process.env.NODE_ENV === 'development',
+      environment: process.env.NODE_ENV
+    });
+    
+    // Helper function to normalize cart data to ensure it has the expected structure
+    const normalizeCartData = (data: any) => {
+      if (!data) return null;
+      
+      // Check if the data has the expected structure
+      if (!data.items || !Array.isArray(data.items)) {
+        console.warn('Cart data has invalid format, missing items array', data);
+        return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+      }
+      
+      // If the data is valid, return it
+      return data;
+    };
+    
     // If running in development and no cart data provided, use test cart
     if (!cartData && process.env.NODE_ENV === 'development') {
       console.log('Using default test cart for development');
       return defaultTestCart;
     }
+    
+    if (cartData) {
+      const normalizedData = normalizeCartData(cartData);
+      if (normalizedData) {
+        console.log('Using provided cart data', { 
+          itemCount: normalizedData.items?.length || 0
+        });
+        return normalizedData;
+      } else {
+        console.warn('Provided cart data was invalid, using fallback');
+        return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+      }
+    }
+    
     return cartData;
   });
   
   // Update local cart data when prop changes
   useEffect(() => {
+    // Helper function to normalize cart data to ensure it has the expected structure
+    const normalizeCartData = (data: any) => {
+      if (!data) return null;
+      
+      // Check if the data has the expected structure
+      if (!data.items || !Array.isArray(data.items)) {
+        console.warn('Cart data has invalid format, missing items array', data);
+        return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+      }
+      
+      // If the data is valid, return it
+      return data;
+    };
+    
+    console.log('cartData prop changed', { 
+      hasCartData: !!cartData,
+      previousCartItems: localCartData?.items?.length || 0,
+      newCartItems: cartData?.items?.length || 0
+    });
+    
     if (cartData) {
-      setLocalCartData(cartData);
+      const normalizedData = normalizeCartData(cartData);
+      if (normalizedData) {
+        console.log('Updating localCartData with new cartData');
+        setLocalCartData(normalizedData);
+      } else {
+        console.warn('Updated cart data was invalid, using fallback');
+        if (process.env.NODE_ENV === 'development') {
+          setLocalCartData(defaultTestCart);
+        }
+      }
     } else if (process.env.NODE_ENV === 'development') {
       // In development, if cartData becomes null, use test cart instead of showing loading
+      console.log('Using test cart as fallback in development');
       setLocalCartData(defaultTestCart);
     }
   }, [cartData]);
@@ -407,19 +479,53 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   };
 
   const renderCartSummary = () => {
-    console.log('renderCartSummary called with localCartData:', localCartData);
+    console.log('renderCartSummary called with localCartData:', { 
+      hasData: !!localCartData,
+      itemCount: localCartData?.items?.length || 0,
+      dataType: typeof localCartData
+    });
     
     if (!localCartData) {
       console.log('No localCartData available');
-      return <div>Зареждане на данните...</div>;
+      return (
+        <div className="space-y-2">
+          <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+          <div className="flex items-center justify-center py-4 text-gray-500">
+            <span>Зареждане на данните...</span>
+          </div>
+          <div className="text-xs text-gray-400 mt-2 text-center">
+            Проверка на статуса: проблем с данните на кошницата. Моля, опитайте да добавите продукти отново.
+          </div>
+        </div>
+      );
+    }
+    
+    if (!localCartData.items || !Array.isArray(localCartData.items)) {
+      console.error('Invalid cart data structure - missing items array', localCartData);
+      return (
+        <div className="space-y-2">
+          <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+          <div className="flex items-center justify-center py-4 text-gray-500">
+            <span>Невалидни данни на кошницата</span>
+          </div>
+          <div className="text-xs text-gray-400 mt-2 text-center">
+            Възникна проблем с данните на кошницата. Моля, опитайте отново.
+          </div>
+        </div>
+      );
     }
     
     if (localCartData.items.length === 0) {
       console.log('Cart is empty');
-      return <div className="text-center py-4">Кошницата е празна</div>;
-  }
+      return (
+        <div className="space-y-2">
+          <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+          <div className="text-center py-4">Кошницата е празна</div>
+        </div>
+      );
+    }
 
-  return (
+    return (
       <div className="space-y-2">
         <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
         
@@ -435,7 +541,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
               ) : (
                 <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
                   <span className="text-gray-500 text-xs">Няма изображение</span>
-              </div>
+                </div>
               )}
               
               <div className="flex-1 min-w-0">
