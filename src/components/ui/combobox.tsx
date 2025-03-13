@@ -49,6 +49,7 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const mobileInputRef = React.useRef<HTMLInputElement>(null)
   const isFirstRender = React.useRef(true)
+  const isTyping = React.useRef(false)
   
   // Debug search activity with timestamps
   const logSearchActivity = (action: string, value: string, extra?: any) => {
@@ -57,6 +58,7 @@ export function Combobox({
       isMobile, 
       type,
       open,
+      isTyping: isTyping.current,
       ...(extra || {})
     });
   }
@@ -107,6 +109,12 @@ export function Combobox({
       return
     }
 
+    // Skip sync if user is currently typing
+    if (isTyping.current) {
+      logSearchActivity('Skipping value sync during typing', value);
+      return;
+    }
+
     logSearchActivity('Value prop changed', value, {
       from: internalValue,
       hasOptions: options.length > 0
@@ -118,13 +126,13 @@ export function Combobox({
       if (valueExists) {
         setInternalValue(value)
         
-        // Update search value to match selection
-        if (value) {
+        // Update search value to match selection, but only if not currently typing
+        if (value && !isTyping.current) {
           const selectedOption = options.find(opt => opt.value === value)
           if (selectedOption) {
             setSearchValue(selectedOption.label.split(':')[0])
           }
-        } else {
+        } else if (!value && !isTyping.current) {
           setSearchValue("")
         }
       } else {
@@ -139,6 +147,7 @@ export function Combobox({
       // Only close if the click is outside the container and dropdown
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
+        isTyping.current = false;
       }
     }
     
@@ -174,6 +183,9 @@ export function Combobox({
         }
       }, 10);
       return () => clearTimeout(timer);
+    } else {
+      // Reset typing state when dropdown closes
+      isTyping.current = false;
     }
   }, [open, internalValue, searchValue, onSearch, isMobile]);
   
@@ -205,6 +217,11 @@ export function Combobox({
   // Unified search handler for both mobile and desktop
   const handleSearchChange = React.useCallback((value: string) => {
     logSearchActivity('Search input changed', value);
+    
+    // Set typing state to true when user is entering text
+    isTyping.current = true;
+    
+    // Always update the search value when typing
     setSearchValue(value);
     
     // Clear the selection if value is cleared (for both mobile and desktop)
@@ -226,6 +243,11 @@ export function Combobox({
     } else if (value.length < 2) {
       logSearchActivity('Search term too short, not triggering search', value);
     }
+    
+    // Clear typing state after a delay
+    setTimeout(() => {
+      isTyping.current = false;
+    }, 500);
   }, [onSearch, open, onChange, internalValue]);
   
   // Handle Enter key to trigger search explicitly
@@ -239,6 +261,9 @@ export function Combobox({
   
   const handleSelect = React.useCallback((optionValue: string) => {
     logSearchActivity('Option selected', optionValue);
+    
+    // Clear typing state when an option is selected
+    isTyping.current = false;
 
     const selectedOption = options.find(opt => opt.value === optionValue)
     
@@ -258,6 +283,10 @@ export function Combobox({
     // Stop event propagation to prevent the dropdown from opening
     e.stopPropagation();
     logSearchActivity('Selection cleared', '');
+    
+    // Clear typing state when selection is cleared
+    isTyping.current = false;
+    
     setInternalValue('');
     setSearchValue('');
     onChange('');
@@ -471,7 +500,10 @@ export function Combobox({
                 className="w-full h-10 pl-9 pr-9 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
                 inputMode="search"
-                onFocus={() => logSearchActivity('Mobile input focused', searchValue)}
+                onFocus={() => {
+                  logSearchActivity('Mobile input focused', searchValue);
+                  isTyping.current = true;
+                }}
               />
               {searchValue && (
                 <button
