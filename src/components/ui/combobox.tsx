@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -48,13 +48,30 @@ export function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
+  const inputRef = React.useRef<HTMLInputElement>(null)
   
   console.log("Combobox render state:", { open, value, disabled, optionsCount: options.length })
+  
+  // When the popover opens, focus the input and clear previous search
+  React.useEffect(() => {
+    if (open) {
+      // Use a small timeout to ensure the popover is fully rendered
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          console.log("Focusing input element")
+          inputRef.current.focus()
+        }
+      }, 50)
+      return () => clearTimeout(timer)
+    } else {
+      setSearchValue("")
+    }
+  }, [open])
   
   const handleButtonClick = React.useCallback(() => {
     console.log("Button clicked, current open state:", open)
     if (!disabled) {
-      setOpen(!open)
+      setOpen(true)
     }
   }, [open, disabled])
   
@@ -71,13 +88,6 @@ export function Combobox({
     onChange(currentValue)
     setOpen(false)
   }, [onChange])
-  
-  // Reset search when closed
-  React.useEffect(() => {
-    if (!open) {
-      setSearchValue("")
-    }
-  }, [open])
 
   const displayValue = React.useMemo(() => {
     if (!value) return placeholder
@@ -112,19 +122,28 @@ export function Combobox({
           align="start"
           sideOffset={4}
           style={{ zIndex: 50 }}
+          onOpenAutoFocus={(e) => {
+            // Prevent default autofocus behavior
+            e.preventDefault()
+          }}
         >
-          <Command>
-            <CommandInput 
-              placeholder={placeholder}
-              value={searchValue}
-              onValueChange={handleSearchChange}
-              className="h-9"
-              autoFocus
-            />
-            <CommandEmpty className="py-2 px-3 text-sm text-gray-500">
-              {loading ? "Зареждане..." : emptyText}
-            </CommandEmpty>
+          <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
+            <div className="flex items-center border-b px-3">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              <input
+                ref={inputRef}
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={placeholder}
+                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+                autoComplete="off"
+              />
+            </div>
             <CommandGroup className="max-h-[200px] overflow-auto">
+              {loading && <div className="py-2 px-3 text-sm text-gray-500 text-center">Зареждане...</div>}
+              {!loading && options.length === 0 && (
+                <div className="py-2 px-3 text-sm text-gray-500 text-center">{emptyText}</div>
+              )}
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
@@ -142,7 +161,7 @@ export function Combobox({
                 </CommandItem>
               ))}
             </CommandGroup>
-          </Command>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
