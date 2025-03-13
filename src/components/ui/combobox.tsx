@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search, MapPin, Building, X, ArrowLeft } from "lucide-react"
+import { Check, ChevronsUpDown, Search, MapPin, Building, X, ArrowLeft, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,7 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const mobileInputRef = React.useRef<HTMLInputElement>(null)
   const isFirstRender = React.useRef(true)
+  const lastSearchTerm = React.useRef("")
   
   // Manage body scroll when mobile fullscreen search is open
   React.useEffect(() => {
@@ -75,14 +76,16 @@ export function Combobox({
     console.log('Combobox mounted with:', {
       initialValue: value,
       type,
-      optionsCount: options.length
+      optionsCount: options.length,
+      isMobile
     })
     
     return () => {
       console.log('Combobox unmounting with:', {
         finalValue: internalValue,
         type,
-        optionsCount: options.length
+        optionsCount: options.length,
+        isMobile
       })
     }
   }, [])
@@ -99,7 +102,7 @@ export function Combobox({
       to: value,
       hasOptions: options.length > 0,
       type,
-      stack: new Error().stack 
+      isMobile
     })
     
     // Only update internal value if we have options and the new value exists in options
@@ -107,6 +110,14 @@ export function Combobox({
       const valueExists = value === '' || options.some(opt => opt.value === value)
       if (valueExists) {
         setInternalValue(value)
+        
+        // Update search value to match selection
+        if (value) {
+          const selectedOption = options.find(opt => opt.value === value)
+          if (selectedOption) {
+            setSearchValue(selectedOption.label.split(':')[0])
+          }
+        }
       } else {
         console.warn('Attempted to set value that does not exist in options:', value)
       }
@@ -153,16 +164,28 @@ export function Combobox({
     if (!disabled) {
       setOpen(!open)
       
-      // Clear search value when opening on mobile
+      // Initialize search value when opening on mobile
       if (isMobile && !open) {
-        setSearchValue(internalValue ? options.find(opt => opt.value === internalValue)?.label || "" : "");
+        if (internalValue) {
+          const selectedOption = options.find(opt => opt.value === internalValue)
+          if (selectedOption) {
+            setSearchValue(selectedOption.label.split(':')[0])
+          } else {
+            setSearchValue("")
+          }
+        } else {
+          setSearchValue("")
+        }
+        
+        // Reset last search term when opening
+        lastSearchTerm.current = ""
       }
     }
   }, [open, disabled, isMobile, internalValue, options])
   
   // When search changes, keep dropdown open
   const handleSearchChange = React.useCallback((value: string) => {
-    console.log('Search changed:', value);
+    console.log('Search changed:', {value, isMobile, lastSearchTerm: lastSearchTerm.current});
     setSearchValue(value);
     
     // Don't clear selection on mobile when typing
@@ -177,7 +200,18 @@ export function Combobox({
       setOpen(true);
     }
     
-    if (onSearch) {
+    // Always trigger search callback on mobile, but only if the value has changed
+    // This prevents duplicate searches for the same term
+    if (isMobile) {
+      if (value !== lastSearchTerm.current) {
+        lastSearchTerm.current = value;
+        if (onSearch) {
+          console.log('Triggering mobile search for:', value);
+          onSearch(value);
+        }
+      }
+    } else if (onSearch) {
+      // Desktop behavior remains the same
       onSearch(value);
     }
   }, [onSearch, open, onChange, internalValue, isMobile]);
@@ -187,14 +221,15 @@ export function Combobox({
       optionValue,
       currentValue: internalValue,
       options: options.length,
-      type
+      type,
+      isMobile
     })
 
     const selectedOption = options.find(opt => opt.value === optionValue)
     
     if (selectedOption) {
       console.log('Found selected option:', selectedOption)
-      setSearchValue(selectedOption.label)
+      setSearchValue(selectedOption.label.split(':')[0]) // Only use the main label part
       setInternalValue(optionValue)
       onChange(optionValue)
     } else {
@@ -202,7 +237,7 @@ export function Combobox({
     }
     
     setOpen(false)
-  }, [onChange, options, internalValue, type])
+  }, [onChange, options, internalValue, type, isMobile])
 
   // Initialize search value with selected value
   React.useEffect(() => {
@@ -221,7 +256,8 @@ export function Combobox({
       internalValue,
       selectedOption,
       optionsCount: options.length,
-      type
+      type,
+      isMobile
     })
     
     if (selectedOption) {
@@ -240,21 +276,9 @@ export function Combobox({
     
     // If no selection, show placeholder
     return <span className="text-gray-500">{placeholder}</span>
-  }, [internalValue, options, placeholder, type])
+  }, [internalValue, options, placeholder, type, isMobile])
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('Combobox State:', {
-      value,
-      searchValue,
-      open,
-      disabled,
-      optionsCount: options.length,
-      selectedOption: options.find(opt => opt.value === value),
-      type
-    })
-  }, [value, searchValue, open, disabled, options, type])
-
+  // Get icon for option based on type
   const getOptionIcon = (option: ComboboxOption) => {
     if (option.icon) {
       return option.icon
@@ -296,32 +320,35 @@ export function Combobox({
       <>
         {loading && (
           <div className="py-6 px-3 text-sm text-gray-500 text-center">
-            <div className="inline-block animate-spin mr-2">⏳</div>
-            Зареждане...
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className={`${isMobile ? "h-5 w-5" : "h-4 w-4"} animate-spin text-gray-500`} />
+              <span className={isMobile ? "text-base" : "text-sm"}>Зареждане...</span>
+            </div>
           </div>
         )}
         
         {!loading && options.length === 0 && (
-          <div className="py-6 px-3 text-sm text-gray-500 text-center flex items-center justify-center">
-            <Search className="mr-2 h-4 w-4 opacity-50" />
-            {emptyText}
+          <div className="py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center">
+            <Search className={`${isMobile ? "h-6 w-6 mb-2" : "h-4 w-4 mr-2"} opacity-50`} />
+            <span className={isMobile ? "text-base" : "text-sm"}>{emptyText}</span>
           </div>
         )}
         
-        {options.map((option) => (
+        {!loading && options.length > 0 && options.map((option) => (
           <div
             key={option.value}
             onClick={() => handleSelect(option.value)}
             className={cn(
-              "relative flex cursor-pointer select-none items-center rounded-sm px-2 outline-none",
+              "relative flex cursor-pointer select-none items-center rounded-sm px-3 outline-none",
               "transition-colors duration-150",
               "hover:bg-gray-100 hover:text-gray-900",
+              "active:bg-gray-200",
               internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
               isMobile ? "py-4 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
             )}
           >
             <span className={cn(
-              "mr-2 flex items-center justify-center flex-shrink-0",
+              "mr-3 flex items-center justify-center flex-shrink-0",
               isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
             )}>
               {internalValue === option.value ? (
@@ -330,7 +357,7 @@ export function Combobox({
                 getOptionIcon(option)
               )}
             </span>
-            <span className="truncate">{option.label}</span>
+            <span className="truncate flex-1">{option.label}</span>
           </div>
         ))}
       </>
@@ -412,18 +439,19 @@ export function Combobox({
       
       {/* Mobile fullscreen search view */}
       {open && isMobile && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen">
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col combobox-fullscreen">
           {/* Mobile header */}
           <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-10">
             <button 
               onClick={() => setOpen(false)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
               aria-label="Back"
+              type="button"
             >
               <ArrowLeft className="h-5 w-5 text-gray-700" />
             </button>
             <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-2 flex items-center">
+              <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
@@ -431,11 +459,12 @@ export function Combobox({
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full h-10 pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
+                className="w-full h-10 pl-9 pr-9 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
               />
               {searchValue && (
                 <button
+                  type="button"
                   onClick={() => handleSearchChange("")}
                   className="absolute inset-y-0 right-1 p-2 text-gray-400"
                   aria-label="Clear search"
@@ -448,7 +477,6 @@ export function Combobox({
           
           {/* Mobile search results */}
           <div className="flex-1 overflow-auto">
-            {/* No results message or loading spinner */}
             <div className="divide-y divide-gray-100">
               {renderOptionsList()}
             </div>
