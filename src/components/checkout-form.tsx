@@ -48,6 +48,13 @@ const formSchema = z.object({
   shippingMethod: z.string().default("speedy"),
 })
 
+// Shipping costs in cents (matching the cart data format)
+const SHIPPING_COSTS = {
+  speedy: 599,
+  econt: 699,
+  address: 899
+};
+
 interface CheckoutFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -71,6 +78,17 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   // Add state for cart data that can be modified
   const [localCartData, setLocalCartData] = useState(cartData);
   
+  // Track selected shipping method for calculating total
+  const [shippingCost, setShippingCost] = useState(SHIPPING_COSTS.speedy);
+  
+  // Watch for shipping method changes
+  const selectedShippingMethod = form.watch("shippingMethod");
+  
+  // Update shipping cost when shipping method changes
+  useEffect(() => {
+    setShippingCost(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS]);
+  }, [selectedShippingMethod]);
+  
   // Update local cart data when prop changes
   useEffect(() => {
     setLocalCartData(cartData);
@@ -90,7 +108,15 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   }, [localCartData, onOpenChange]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log({ ...values, cart: localCartData })
+    console.log({ 
+      ...values, 
+      cart: localCartData,
+      shipping: {
+        method: values.shippingMethod,
+        cost: shippingCost
+      },
+      totalWithShipping: (localCartData?.total_price || 0) + shippingCost
+    });
     // Handle form submission here
   }
   
@@ -144,95 +170,107 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     }
     
     if (localCartData.items.length === 0) {
-      return <div className="text-center py-8">Кошницата е празна</div>;
+      return <div className="text-center py-4">Кошницата е празна</div>;
     }
     
     return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Резюме на поръчката</h3>
+      <div className="space-y-2">
+        <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
         
-        {localCartData.items.map((item: any, index: number) => (
-          <div key={index} className="flex items-start gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-            {item.image ? (
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-16 h-16 object-cover rounded-lg"
-              />
-            ) : (
-              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500">Няма изображение</span>
-              </div>
-            )}
-            
-            <div className="flex-1">
-              <h4 className="font-medium">{item.title}</h4>
-              <div className="text-sm text-gray-500">
-                {item.variant_title && <p>{item.variant_title}</p>}
+        <div className="max-h-[30vh] overflow-y-auto pb-2">
+          {localCartData.items.map((item: any, index: number) => (
+            <div key={index} className="flex items-start gap-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100 mb-2">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-12 h-12 object-cover rounded-md flex-shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
+                  <span className="text-gray-500 text-xs">Няма изображение</span>
+                </div>
+              )}
+              
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-sm truncate">{item.title}</h4>
+                {item.variant_title && <p className="text-xs text-gray-500 truncate">{item.variant_title}</p>}
                 
-                {/* Quantity Selector */}
-                <div className="flex items-center mt-2">
-                  <span className="mr-2">Количество:</span>
-                  <div className="flex items-center border rounded">
-                    <button 
+                <div className="flex items-center mt-1 justify-between">
+                  <div className="flex items-center">
+                    <div className="flex items-center border rounded text-sm">
+                      <button 
+                        type="button"
+                        className="px-1.5 py-0 text-gray-600 hover:bg-gray-100"
+                        onClick={() => updateQuantity(index, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <span className="px-1.5 py-0 text-center w-6">{item.quantity}</span>
+                      <button 
+                        type="button"
+                        className="px-1.5 py-0 text-gray-600 hover:bg-gray-100"
+                        onClick={() => updateQuantity(index, item.quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    
+                    <button
                       type="button"
-                      className="px-2 py-0.5 text-gray-600 hover:bg-gray-100"
-                      onClick={() => updateQuantity(index, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                      onClick={() => removeItem(index)}
+                      title="Премахни продукта"
                     >
-                      -
-                    </button>
-                    <span className="px-2 py-0.5 text-center w-8">{item.quantity}</span>
-                    <button 
-                      type="button"
-                      className="px-2 py-0.5 text-gray-600 hover:bg-gray-100"
-                      onClick={() => updateQuantity(index, item.quantity + 1)}
-                    >
-                      +
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   
-                  {/* Delete Button */}
-                  <button
-                    type="button"
-                    className="ml-3 text-red-500 hover:text-red-700"
-                    onClick={() => removeItem(index)}
-                    title="Премахни продукта"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="text-right">
+                    <p className="font-medium text-sm">{formatMoney(item.line_price)}</p>
+                    {item.original_line_price !== item.line_price && (
+                      <p className="text-xs text-gray-500 line-through">
+                        {formatMoney(item.original_line_price)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="text-right">
-              <p className="font-medium">{formatMoney(item.line_price)}</p>
-              {item.original_line_price !== item.line_price && (
-                <p className="text-sm text-gray-500 line-through">
-                  {formatMoney(item.original_line_price)}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+    );
+  };
+  
+  const renderOrderSummary = () => {
+    if (!localCartData) return null;
+    
+    const totalWithShipping = localCartData.total_price + shippingCost;
+    
+    return (
+      <div className="border-t border-b py-3 space-y-2">
+        <div className="flex justify-between text-sm">
+          <span>Междинна сума</span>
+          <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+        </div>
         
-        <div className="border-t pt-4">
-          <div className="flex justify-between mb-2">
-            <span>Междинна сума</span>
-            <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+        {localCartData.total_discount > 0 && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>Отстъпка</span>
+            <span>-{formatMoney(localCartData.total_discount)}</span>
           </div>
-          
-          {localCartData.total_discount > 0 && (
-            <div className="flex justify-between mb-2 text-green-600">
-              <span>Отстъпка</span>
-              <span>-{formatMoney(localCartData.total_discount)}</span>
-            </div>
-          )}
-          
-          <div className="flex justify-between font-bold text-lg">
-            <span>Общо</span>
-            <span>{formatMoney(localCartData.total_price)}</span>
-          </div>
+        )}
+        
+        <div className="flex justify-between text-sm">
+          <span>Доставка</span>
+          <span>{formatMoney(shippingCost)}</span>
+        </div>
+        
+        <div className="flex justify-between font-bold text-base pt-1">
+          <span>Общо</span>
+          <span>{formatMoney(totalWithShipping)}</span>
         </div>
       </div>
     );
@@ -248,19 +286,19 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col">
-        <DialogHeader className="p-6 pb-2 border-b shrink-0">
+        <DialogHeader className="p-4 pb-2 border-b shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-medium tracking-tight text-black">
+            <DialogTitle className="text-lg font-medium tracking-tight text-black">
               Поръчайте с наложен платеж
             </DialogTitle>
-            <DialogClose className="h-8 w-8 hover:bg-gray-100 rounded-full flex items-center justify-center">
+            <DialogClose className="h-7 w-7 hover:bg-gray-100 rounded-full flex items-center justify-center">
               <X className="h-4 w-4" />
               <span className="sr-only">Затвори</span>
             </DialogClose>
           </div>
         </DialogHeader>
 
-        <div className="overflow-y-auto p-6 pt-4 space-y-6">
+        <div className="overflow-y-auto px-4 py-3 space-y-4">
           {/* Cart Summary */}
           {renderCartSummary()}
 
@@ -268,14 +306,14 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
             <Form {...form}>
               <form 
                 onSubmit={form.handleSubmit(onSubmit)} 
-                className="space-y-6" 
+                className="space-y-4" 
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck="false"
               >
                 {/* Shipping Method */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-black">Изберете метод за доставка</h3>
+                <div className="space-y-2">
+                  <h3 className="font-medium text-black text-sm">Изберете метод за доставка</h3>
                   <FormField
                     control={form.control}
                     name="shippingMethod"
@@ -285,36 +323,36 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                           <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="flex flex-col gap-2"
+                            className="flex flex-col gap-1.5"
                           >
-                            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                              <div className="flex items-center gap-2">
                                 <RadioGroupItem value="speedy" id="speedy" />
-                                <label htmlFor="speedy" className="cursor-pointer font-medium text-black">
+                                <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
                                   Офис на Спиди
                                 </label>
                               </div>
-                              <span className="text-black">5.99 лв.</span>
+                              <span className="text-black text-sm">5.99 лв.</span>
                             </div>
                             
-                            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                              <div className="flex items-center gap-2">
                                 <RadioGroupItem value="econt" id="econt" />
-                                <label htmlFor="econt" className="cursor-pointer font-medium text-black">
+                                <label htmlFor="econt" className="cursor-pointer font-medium text-black text-sm">
                                   Офис на Еконт
                                 </label>
                               </div>
-                              <span className="text-black">6.99 лв.</span>
+                              <span className="text-black text-sm">6.99 лв.</span>
                             </div>
                             
-                            <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                              <div className="flex items-center gap-2">
                                 <RadioGroupItem value="address" id="address" />
-                                <label htmlFor="address" className="cursor-pointer font-medium text-black">
+                                <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
                                   Личен адрес
                                 </label>
                               </div>
-                              <span className="text-black">8.99 лв.</span>
+                              <span className="text-black text-sm">8.99 лв.</span>
                             </div>
                           </RadioGroup>
                         </FormControl>
@@ -322,20 +360,23 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                     )}
                   />
                 </div>
+                
+                {/* Order Summary (moved after shipping methods) */}
+                {renderOrderSummary()}
 
                 <div>
-                  <h3 className="text-center font-medium text-black mb-4">
+                  <h3 className="text-center font-medium text-black mb-3 text-sm">
                     Въведете вашия адрес за доставка
                   </h3>
 
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={form.control}
                         name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-black">
+                            <FormLabel className="text-black text-xs">
                               Първо име<span className="text-red-500 ml-0.5">*</span>
                             </FormLabel>
                             <FormControl>
@@ -345,10 +386,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 autoCorrect="off"
                                 spellCheck="false"
                                 {...field}
-                                className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70"
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
                             </FormControl>
-                            <FormMessage className="text-red-500" />
+                            <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
                       />
@@ -358,7 +399,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                         name="lastName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-black">
+                            <FormLabel className="text-black text-xs">
                               Фамилия<span className="text-red-500 ml-0.5">*</span>
                             </FormLabel>
                             <FormControl>
@@ -368,10 +409,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 autoCorrect="off"
                                 spellCheck="false"
                                 {...field}
-                                className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70"
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
                             </FormControl>
-                            <FormMessage className="text-red-500" />
+                            <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
                       />
@@ -382,7 +423,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-black">
+                          <FormLabel className="text-black text-xs">
                             Телефон<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
@@ -393,10 +434,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                               autoCorrect="off"
                               spellCheck="false"
                               {...field}
-                              className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70"
+                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                             />
                           </FormControl>
-                          <FormMessage className="text-red-500" />
+                          <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
                       )}
                     />
@@ -406,7 +447,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-black">
+                          <FormLabel className="text-black text-xs">
                             Адрес<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
@@ -416,21 +457,21 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                               autoCorrect="off"
                               spellCheck="false"
                               {...field}
-                              className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70"
+                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                             />
                           </FormControl>
-                          <FormMessage className="text-red-500" />
+                          <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
                       )}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={form.control}
                         name="city"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-black">
+                            <FormLabel className="text-black text-xs">
                               Град<span className="text-red-500 ml-0.5">*</span>
                             </FormLabel>
                             <FormControl>
@@ -440,10 +481,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 autoCorrect="off"
                                 spellCheck="false"
                                 {...field}
-                                className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70"
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
                             </FormControl>
-                            <FormMessage className="text-red-500" />
+                            <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
                       />
@@ -453,7 +494,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                         name="postalCode"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-black">
+                            <FormLabel className="text-black text-xs">
                               Пощенски код<span className="text-red-500 ml-0.5">*</span>
                             </FormLabel>
                             <FormControl>
@@ -463,10 +504,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 autoCorrect="off"
                                 spellCheck="false"
                                 {...field}
-                                className="rounded-xl border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70"
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
                             </FormControl>
-                            <FormMessage className="text-red-500" />
+                            <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
                       />
@@ -476,9 +517,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
                 <Button
                   type="submit"
-                  className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-xl h-12 font-medium"
+                  className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-lg h-10 font-medium"
                 >
-                  Завършете покупката си {localCartData ? `- ${formatMoney(localCartData.total_price)}` : ''}
+                  Завършете покупката
                 </Button>
               </form>
             </Form>
