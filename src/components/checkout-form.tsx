@@ -135,11 +135,12 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       }
       
       const data = await response.json();
+      console.log('Search response:', data); // Add logging for debugging
       
       if (data.sites) {
         const options: ComboboxOption[] = data.sites.map((site: CitySearchResult) => ({
-          value: site.value,
-          label: site.label
+          value: `${site.name}|${site.postCode}|${site.id}`,
+          label: site.postCode ? `${site.name} (${site.postCode})` : site.name
         }));
         
         setCitySuggestions(options);
@@ -192,7 +193,11 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   // Debounced search function to avoid too many API calls
   const debouncedSearchCities = useCallback(
     debounce((term: string) => {
-      searchCities(term);
+      if (term.length >= 2) {
+        searchCities(term);
+      } else {
+        setCitySuggestions([]);
+      }
     }, 300),
     [searchCities]
   );
@@ -638,20 +643,17 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                               <FormLabel className="text-black text-xs">
                                 Град<span className="text-red-500 ml-0.5">*</span>
                               </FormLabel>
-                              <div className="flex items-center gap-2">
-                                {getShippingMethodIcon(selectedShippingMethod)}
-                                <div className="flex-1">
-                                  <Combobox
-                                    options={citySuggestions}
-                                    value={field.value ?? ""}
-                                    onChange={(value) => handleCitySelected(value, 'officeCity')}
-                                    onSearch={debouncedSearchCities}
-                                    placeholder="Търсете населено място"
-                                    loading={loadingCities}
-                                    emptyText="Няма намерени резултати"
-                                    className="border-gray-200 focus:border-gray-400"
-                                  />
-                                </div>
+                              <div className="flex-1">
+                                <Combobox
+                                  options={citySuggestions}
+                                  value={field.value ?? ""}
+                                  onChange={(value) => handleCitySelected(value, 'officeCity')}
+                                  onSearch={debouncedSearchCities}
+                                  placeholder="Търсете населено място"
+                                  loading={loadingCities}
+                                  emptyText="Няма намерени резултати"
+                                  className="border-gray-200 focus:border-gray-400"
+                                />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
                             </FormItem>
@@ -697,20 +699,17 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 <FormLabel className="text-black text-xs">
                                   Град<span className="text-red-500 ml-0.5">*</span>
                                 </FormLabel>
-                                <div className="flex items-center gap-2">
-                                  {getShippingMethodIcon("address")}
-                                  <div className="flex-1">
-                                    <Combobox
-                                      options={citySuggestions}
-                                      value={field.value}
-                                      onChange={(value) => handleCitySelected(value, 'city')}
-                                      onSearch={debouncedSearchCities}
-                                      placeholder="Търсете населено място"
-                                      loading={loadingCities}
-                                      emptyText="Няма намерени резултати"
-                                      className="border-gray-200 focus:border-gray-400"
-                                    />
-                                  </div>
+                                <div className="flex-1">
+                                  <Combobox
+                                    options={citySuggestions}
+                                    value={field.value ?? ""}
+                                    onChange={(value) => handleCitySelected(value, 'city')}
+                                    onSearch={debouncedSearchCities}
+                                    placeholder="Търсете населено място"
+                                    loading={loadingCities}
+                                    emptyText="Няма намерени резултати"
+                                    className="border-gray-200 focus:border-gray-400"
+                                  />
                                 </div>
                                 <FormMessage className="text-red-500 text-xs" />
                               </FormItem>
