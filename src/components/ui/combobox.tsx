@@ -111,15 +111,15 @@ export function Combobox({
     if (selectedOption) {
       const optionType = selectedOption.type || type
       const icon = optionType === 'city' ? 
-        <MapPin className="h-4 w-4 text-blue-500" /> : 
+        <MapPin className="h-4 w-4 text-blue-600" /> : 
         optionType === 'office' ? 
-          <Building className="h-4 w-4 text-blue-500" /> : 
+          <Building className="h-4 w-4 text-blue-600" /> : 
           null
       
       return (
         <div className="flex items-center w-full">
           <span className="mr-2 flex-shrink-0">{icon}</span>
-          <span className="font-medium truncate">{selectedOption.label}</span>
+          <span className="font-medium text-blue-800 truncate">{selectedOption.label}</span>
         </div>
       )
     }
@@ -159,7 +159,7 @@ export function Combobox({
           "border-gray-200 bg-gray-50/50 text-left font-normal",
           "flex items-center transition-colors duration-200",
           "hover:bg-gray-100/50",
-          value && "bg-blue-50/50 border-blue-200", // Highlight when value is selected
+          value && "bg-blue-50/80 border-blue-200", // Make the highlight stronger
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}
@@ -167,7 +167,7 @@ export function Combobox({
       >
         {displayValue}
         <ChevronsUpDown className={cn(
-          "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200",
+          "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 flex-shrink-0",
           open && "transform rotate-180"
         )} />
       </Button>
@@ -184,7 +184,11 @@ export function Combobox({
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={placeholder}
-                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className={cn(
+                  "flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none",
+                  "placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50",
+                  value && "font-medium text-blue-800" // Highlight selected value in input
+                )}
                 autoComplete="off"
               />
             </div>
@@ -225,21 +229,6 @@ export function Combobox({
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Display selected city name when dropdown is closed */}
-      {!open && value && (
-        <div className="absolute top-0 left-0 w-full h-full flex items-center pointer-events-none">
-          <div className="flex items-center w-full pl-3">
-            {options.find(option => option.value === value)?.type === 'city' || type === 'city' ? 
-              <MapPin className="h-4 w-4 text-blue-500 mr-2" /> : 
-              options.find(option => option.value === value)?.type === 'office' || type === 'office' ? 
-                <Building className="h-4 w-4 text-blue-500 mr-2" /> : null}
-            <span className="text-blue-900 font-medium">
-              {options.find(option => option.value === value)?.label || ""}
-            </span>
           </div>
         </div>
       )}
