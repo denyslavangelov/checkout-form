@@ -95,9 +95,23 @@ export function Combobox({
   
   const handleSelect = React.useCallback((optionValue: string) => {
     console.log("Item selected:", optionValue)
+    const selectedOption = options.find(opt => opt.value === optionValue)
+    if (selectedOption) {
+      setSearchValue(selectedOption.label)
+    }
     onChange(optionValue)
     setOpen(false)
-  }, [onChange])
+  }, [onChange, options])
+
+  // Update search value when value prop changes
+  React.useEffect(() => {
+    const selectedOption = options.find(opt => opt.value === value)
+    if (selectedOption) {
+      setSearchValue(selectedOption.label)
+    } else {
+      setSearchValue("")
+    }
+  }, [value, options])
 
   const displayValue = React.useMemo(() => {
     if (!value) return placeholder
@@ -141,22 +155,26 @@ export function Combobox({
         className={cn(
           "w-full justify-between h-9 px-3 text-sm rounded-lg",
           "border-gray-200 bg-gray-50/50 text-left font-normal",
-          "flex items-center",
+          "flex items-center transition-colors duration-200",
+          "hover:bg-gray-100/50",
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}
         disabled={disabled}
       >
         {displayValue}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        <ChevronsUpDown className={cn(
+          "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200",
+          open && "transform rotate-180"
+        )} />
       </Button>
       
       {open && (
         <div 
-          className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg"
+          className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg transition-opacity duration-200"
         >
           <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
-            <div className="flex items-center border-b px-3">
+            <div className="flex items-center border-b px-3 sticky top-0 bg-white z-10">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <input
                 ref={inputRef}
@@ -167,22 +185,35 @@ export function Combobox({
                 autoComplete="off"
               />
             </div>
-            <div className="max-h-[200px] overflow-auto p-1">
-              {loading && <div className="py-2 px-3 text-sm text-gray-500 text-center">Зареждане...</div>}
+            <div className="max-h-[300px] overflow-auto p-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+              {loading && (
+                <div className="py-6 px-3 text-sm text-gray-500 text-center">
+                  <div className="inline-block animate-spin mr-2">⏳</div>
+                  Зареждане...
+                </div>
+              )}
               
               {!loading && options.length === 0 && (
-                <div className="py-2 px-3 text-sm text-gray-500 text-center">{emptyText}</div>
+                <div className="py-6 px-3 text-sm text-gray-500 text-center flex items-center justify-center">
+                  <Search className="mr-2 h-4 w-4 opacity-50" />
+                  {emptyText}
+                </div>
               )}
               
               {options.map((option) => (
                 <div
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
-                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-gray-100 hover:text-gray-900"
+                  className={cn(
+                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none",
+                    "transition-colors duration-150",
+                    "hover:bg-gray-100 hover:text-gray-900",
+                    value === option.value && "bg-gray-100/80"
+                  )}
                 >
                   <span className="mr-2 h-4 w-4 flex items-center justify-center">
                     {value === option.value ? (
-                      <Check className="h-4 w-4" />
+                      <Check className="h-4 w-4 text-blue-500" />
                     ) : (
                       getOptionIcon(option)
                     )}
