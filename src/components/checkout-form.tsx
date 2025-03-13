@@ -432,7 +432,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     });
     // Handle form submission here
   }
-  
+
   // Handle quantity changes
   const updateQuantity = (itemIndex: number, newQuantity: number) => {
     if (!localCartData || newQuantity < 1) return;
@@ -541,7 +541,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     if (!localCartData.items || !Array.isArray(localCartData.items)) {
       console.error('Invalid cart data structure - missing items array', localCartData);
-      return (
+  return (
         <div className="space-y-2">
           <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
           <div className="flex items-center justify-center py-4 text-gray-500">
@@ -580,7 +580,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               ) : (
                 <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
                   <span className="text-gray-500 text-xs">Няма изображение</span>
-                </div>
+              </div>
               )}
               
               <div className="flex-1 min-w-0">
@@ -867,24 +867,24 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           />
                         </FormControl>
                           <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
+                      </FormItem>
+                    )}
+                  />
 
                     {selectedShippingMethod !== "address" ? (
                       <>
                         {form.watch('officeCity') && (
-                          <FormField
-                            control={form.control}
+                  <FormField
+                    control={form.control}
                             name="officePostalCode"
-                            render={({ field }) => (
-                              <FormItem>
+                    render={({ field }) => (
+                      <FormItem>
                                 <FormLabel className="text-black text-xs">
                                   Пощенски код
-                                </FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    {...field}
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field}
                                     disabled
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                   />
@@ -927,9 +927,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                      </FormItem>
+                    )}
+                  />
 
                         <FormField
                           control={form.control}
@@ -970,14 +970,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       </>
                     ) : (
                       <>
-                        <FormField
-                          control={form.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
                               <FormLabel className="text-black text-xs">
-                                Град<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
+                            Град<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
                               <div className="flex-1">
                                 <Combobox
                                   options={citySuggestions}
@@ -1003,26 +1003,26 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                        
+                        </FormItem>
+                      )}
+                    />
+
                         {form.watch('city') && (
-                          <FormField
-                            control={form.control}
-                            name="postalCode"
-                            render={({ field }) => (
-                              <FormItem>
+                    <FormField
+                      control={form.control}
+                      name="postalCode"
+                      render={({ field }) => (
+                        <FormItem>
                                 <FormLabel className="text-black text-xs">
-                                  Пощенски код<span className="text-red-500 ml-0.5">*</span>
-                                </FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Пощенски код" 
-                                    autoComplete="new-password"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    {...field}
+                            Пощенски код<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Пощенски код" 
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              spellCheck="false"
+                              {...field}
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                   />
                                 </FormControl>
