@@ -3,8 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { X, Trash2, Building2, Truck, Home } from "lucide-react"
+import { X, Trash2, Home } from "lucide-react"
 import { useState, useEffect } from "react"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -186,9 +187,25 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   const getShippingMethodIcon = (method: string) => {
     switch (method) {
       case "speedy":
-        return <Building2 className="h-5 w-5 text-red-500" />;
+        return (
+          <Image
+            src="/iframe/assets/logo-speedy-red.svg"
+            alt="Speedy"
+            width={20}
+            height={20}
+            className="h-5 w-auto"
+          />
+        );
       case "econt":
-        return <Building2 className="h-5 w-5 text-blue-500" />;
+        return (
+          <Image
+            src="/iframe/assets/logo-econt-blue.svg"
+            alt="Econt"
+            width={20}
+            height={20}
+            className="h-5 w-auto"
+          />
+        );
       case "address":
         return <Home className="h-5 w-5 text-gray-500" />;
       default:
