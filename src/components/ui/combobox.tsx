@@ -95,23 +95,21 @@ export function Combobox({
   
   const handleSelect = React.useCallback((optionValue: string) => {
     console.log("Item selected:", optionValue)
-    const selectedOption = options.find(opt => opt.value === optionValue)
-    if (selectedOption) {
-      setSearchValue(selectedOption.label)
-    }
     onChange(optionValue)
     setOpen(false)
-  }, [onChange, options])
+  }, [onChange])
 
-  // Update search value when value prop changes
+  // Update search value when value prop changes, but only when dropdown is closed
   React.useEffect(() => {
-    const selectedOption = options.find(opt => opt.value === value)
-    if (selectedOption) {
-      setSearchValue(selectedOption.label)
-    } else {
-      setSearchValue("")
+    if (!open) {
+      const selectedOption = options.find(opt => opt.value === value)
+      if (selectedOption) {
+        setSearchValue(selectedOption.label)
+      } else {
+        setSearchValue("")
+      }
     }
-  }, [value, options])
+  }, [value, options, open])
 
   const displayValue = React.useMemo(() => {
     if (!value) return placeholder
