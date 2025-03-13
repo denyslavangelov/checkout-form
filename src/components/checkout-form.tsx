@@ -662,12 +662,16 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 <Combobox
                                   options={citySuggestions}
                                   value={field.value ?? ""}
-                                  onChange={(value) => handleCitySelected(value, 'officeCity')}
+                                  onChange={(value) => {
+                                    console.log("City selected:", value);
+                                    handleCitySelected(value, 'officeCity');
+                                  }}
                                   onSearch={(value) => {
+                                    console.log("City search term:", value);
                                     if (value.length >= 2) {
-                                      debouncedSearchCities(value)
+                                      debouncedSearchCities(value);
                                     } else {
-                                      setCitySuggestions([])
+                                      setCitySuggestions([]);
                                     }
                                   }}
                                   placeholder="Търсете населено място"
@@ -695,7 +699,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   <Combobox
                                     options={officeSuggestions}
                                     value={field.value ?? ""}
-                                    onChange={handleOfficeSelected}
+                                    onChange={(value) => {
+                                      console.log("Office selected:", value);
+                                      handleOfficeSelected(value);
+                                    }}
                                     placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
                                     loading={loadingOffices}
                                     emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
@@ -723,13 +730,17 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 <div className="flex-1">
                                   <Combobox
                                     options={citySuggestions}
-                                    value={field.value}
-                                    onChange={(value) => handleCitySelected(value, 'city')}
+                                    value={field.value ?? ""}
+                                    onChange={(value) => {
+                                      console.log("Personal address city selected:", value);
+                                      handleCitySelected(value, 'city');
+                                    }}
                                     onSearch={(value) => {
+                                      console.log("Personal address city search term:", value);
                                       if (value.length >= 2) {
-                                        debouncedSearchCities(value)
+                                        debouncedSearchCities(value);
                                       } else {
-                                        setCitySuggestions([])
+                                        setCitySuggestions([]);
                                       }
                                     }}
                                     placeholder="Търсете населено място"
