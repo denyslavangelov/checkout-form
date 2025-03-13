@@ -79,6 +79,7 @@ export function Combobox({
   }, [open, disabled])
   
   const handleSearchChange = React.useCallback((value: string) => {
+    debugger;
     setSearchValue(value)
     if (onSearch) {
       onSearch(value)
@@ -86,6 +87,7 @@ export function Combobox({
   }, [onSearch])
   
   const handleSelect = React.useCallback((optionValue: string) => {
+    debugger;
     const selectedOption = options.find(opt => opt.value === optionValue)
     if (selectedOption) {
       // Update the search value to show the selected city
@@ -125,6 +127,7 @@ export function Combobox({
     }
     
     // If no selection, show placeholder
+    debugger;
     return <span className="text-gray-500">{placeholder}</span>
   }, [value, options, placeholder, type])
 
