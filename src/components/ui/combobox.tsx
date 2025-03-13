@@ -71,10 +71,8 @@ export function Combobox({
           console.log("Focusing input element")
           inputRef.current.focus()
         }
-      }, 50)
+      }, 10) // Reduced timeout for better responsiveness
       return () => clearTimeout(timer)
-    } else {
-      setSearchValue("")
     }
   }, [open])
   
@@ -82,6 +80,10 @@ export function Combobox({
     console.log("Button clicked, current open state:", open)
     if (!disabled) {
       setOpen(!open)
+      // When opening, clear search to start fresh
+      if (!open) {
+        setSearchValue("")
+      }
     }
   }, [open, disabled])
   
@@ -95,21 +97,25 @@ export function Combobox({
   
   const handleSelect = React.useCallback((optionValue: string) => {
     console.log("Item selected:", optionValue)
+    // Immediately set the search value to match the selected option
+    const selectedOption = options.find(opt => opt.value === optionValue)
+    if (selectedOption) {
+      setSearchValue(selectedOption.label)
+    }
     onChange(optionValue)
     setOpen(false)
-  }, [onChange])
+  }, [onChange, options])
 
-  // Update search value when value prop changes, but only when dropdown is closed
+  // We'll keep the effect but make sure it updates correctly
   React.useEffect(() => {
-    if (!open) {
-      const selectedOption = options.find(opt => opt.value === value)
-      if (selectedOption) {
-        setSearchValue(selectedOption.label)
-      } else {
-        setSearchValue("")
-      }
+    // Always update search value when value changes, not just when closed
+    const selectedOption = options.find(opt => opt.value === value)
+    if (selectedOption) {
+      setSearchValue(selectedOption.label)
+    } else {
+      setSearchValue("")
     }
-  }, [value, options, open])
+  }, [value, options])
 
   const getDisplayText = (option: ComboboxOption) => {
     if (option.type === 'city' || type === 'city') {
@@ -124,16 +130,26 @@ export function Combobox({
   }
 
   const displayValue = React.useMemo(() => {
-    if (!value) return placeholder
-    const option = options.find(option => option.value === value)
-    if (!option) return placeholder
+    // If we have a selected value, show it with its icon
+    const selectedOption = options.find(option => option.value === value)
+    if (selectedOption) {
+      const optionType = selectedOption.type || type
+      const icon = optionType === 'city' ? 
+        <MapPin className="h-4 w-4 text-blue-500" /> : 
+        optionType === 'office' ? 
+          <Building className="h-4 w-4 text-blue-500" /> : 
+          null
+      
+      return (
+        <div className="flex items-center w-full">
+          <span className="mr-2 flex-shrink-0">{icon}</span>
+          <span className="font-medium truncate">{selectedOption.label}</span>
+        </div>
+      )
+    }
     
-    return (
-      <div className="flex items-center">
-        <span className="mr-2">{getOptionIcon(option)}</span>
-        <span>{getDisplayText(option)}</span>
-      </div>
-    )
+    // If no selection, show placeholder
+    return <span className="text-gray-500">{placeholder}</span>
   }, [value, options, placeholder, type])
 
   // Update input placeholder based on selection
@@ -178,6 +194,7 @@ export function Combobox({
           "border-gray-200 bg-gray-50/50 text-left font-normal",
           "flex items-center transition-colors duration-200",
           "hover:bg-gray-100/50",
+          value && "bg-blue-50/50 border-blue-200", // Highlight when value is selected
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}
@@ -229,7 +246,7 @@ export function Combobox({
                     "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none",
                     "transition-colors duration-150",
                     "hover:bg-gray-100 hover:text-gray-900",
-                    value === option.value && "bg-gray-100/80"
+                    value === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent"
                   )}
                 >
                   <span className="mr-2 h-4 w-4 flex items-center justify-center">
