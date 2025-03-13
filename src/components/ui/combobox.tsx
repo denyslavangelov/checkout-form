@@ -25,6 +25,7 @@ interface ComboboxProps {
   loading?: boolean
   type?: 'city' | 'office' | 'default'
   courier?: 'speedy' | 'econt'
+  isMobile?: boolean
 }
 
 export function Combobox({
@@ -39,6 +40,7 @@ export function Combobox({
   loading = false,
   type,
   courier = 'econt',
+  isMobile = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [internalValue, setInternalValue] = React.useState(value)
@@ -261,7 +263,7 @@ export function Combobox({
   }, [onChange]);
 
   return (
-    <div className="relative w-full" ref={containerRef}>
+    <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
       <Button
         variant="outline"
         role="combobox"
@@ -269,12 +271,13 @@ export function Combobox({
         type="button"
         onClick={handleButtonClick}
         className={cn(
-          "w-full justify-between h-9 px-3 text-sm rounded-lg",
+          "w-full justify-between px-3 text-sm rounded-lg",
           "border-gray-200 bg-gray-50/50 text-left font-normal",
           "flex items-center transition-colors duration-200",
           "hover:bg-gray-100/50",
           internalValue && "bg-blue-50/80 border-blue-200",
           disabled && "opacity-50 cursor-not-allowed",
+          isMobile ? "h-11 text-base" : "h-9", // Larger height on mobile
           className
         )}
         disabled={disabled}
@@ -286,26 +289,41 @@ export function Combobox({
           <button
             type="button"
             onClick={handleClearSelection}
-            className="p-1 rounded-full hover:bg-gray-200 mr-1 focus:outline-none"
+            className={cn(
+              "rounded-full hover:bg-gray-200 mr-1 focus:outline-none",
+              isMobile ? "p-2" : "p-1" // Larger touch target on mobile
+            )}
             aria-label="Clear selection"
           >
-            <X className="h-3 w-3 text-gray-500" />
+            <X className={cn(
+              "text-gray-500",
+              isMobile ? "h-4 w-4" : "h-3 w-3" // Larger icon on mobile
+            )} />
           </button>
         )}
         <ChevronsUpDown className={cn(
-          "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 flex-shrink-0",
+          "ml-2 shrink-0 opacity-50 transition-transform duration-200 flex-shrink-0",
+          isMobile ? "h-5 w-5" : "h-4 w-4", // Larger icon on mobile
           open && "transform rotate-180"
         )} />
       </Button>
       
       {open && (
         <div 
-          className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg"
+          className={cn(
+            "z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg combobox-popover",
+            isMobile ? 
+              "fixed left-0 right-0 max-h-[60vh] w-full mx-auto my-0 top-auto bottom-0 rounded-b-none shadow-[0_-2px_10px_rgba(0,0,0,0.1)]" : 
+              "absolute top-full left-0 w-full"
+          )}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
             <div className="flex items-center border-b px-3 sticky top-0 bg-white z-10">
-              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              <Search className={cn(
+                "mr-2 shrink-0 opacity-50",
+                isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icon on mobile
+              )} />
               <input
                 ref={inputRef}
                 value={searchValue}
@@ -313,14 +331,18 @@ export function Combobox({
                 onClick={(e) => e.stopPropagation()}
                 placeholder={placeholder}
                 className={cn(
-                  "flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none",
+                  "flex w-full rounded-md bg-transparent py-3 text-sm outline-none combobox-input",
                   "placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50",
-                  internalValue && "font-medium text-blue-800"
+                  internalValue && "font-medium text-blue-800",
+                  isMobile ? "h-12 text-base py-4" : "h-10" // Taller input on mobile with larger text
                 )}
                 autoComplete="off"
               />
             </div>
-            <div className="max-h-[300px] overflow-auto p-1">
+            <div className={cn(
+              "overflow-auto p-1",
+              isMobile ? "max-h-[50vh]" : "max-h-[300px]"
+            )}>
               {loading && (
                 <div className="py-6 px-3 text-sm text-gray-500 text-center">
                   <div className="inline-block animate-spin mr-2">⏳</div>
@@ -340,15 +362,19 @@ export function Combobox({
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
                   className={cn(
-                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none",
+                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 outline-none",
                     "transition-colors duration-150",
                     "hover:bg-gray-100 hover:text-gray-900",
-                    internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent"
+                    internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
+                    isMobile ? "py-3 text-base" : "py-2 text-sm" // Taller options with larger text on mobile
                   )}
                 >
-                  <span className="mr-2 h-4 w-4 flex items-center justify-center flex-shrink-0">
+                  <span className={cn(
+                    "mr-2 flex items-center justify-center flex-shrink-0",
+                    isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
+                  )}>
                     {internalValue === option.value ? (
-                      <Check className="h-4 w-4 text-blue-500" />
+                      <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
                     ) : (
                       getOptionIcon(option)
                     )}

@@ -65,6 +65,7 @@ interface CheckoutFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   cartData: any | null
+  isMobile?: boolean
 }
 
 // City search interface
@@ -76,7 +77,7 @@ interface CitySearchResult {
   label: string;
 }
 
-export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
+export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
   // Enhanced debug logging for cart data
   console.log('CheckoutForm rendered with props:', { 
     open, 
@@ -84,6 +85,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     hasCartData: !!cartData,
     cartDataType: cartData ? typeof cartData : 'null/undefined',
     cartItemsCount: cartData?.items?.length || 0,
+    isMobile,
     componentOrigin: 'CheckoutForm component'
   });
 
@@ -700,7 +702,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col"
+        className={`sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col
+          ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
         aria-describedby="checkout-form-description"
       >
         <DialogHeader className="p-4 pb-2 border-b shrink-0">
@@ -721,7 +724,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
           <Form {...form}>
             <form 
               onSubmit={form.handleSubmit(onSubmit)} 
-                className="space-y-4" 
+              className="space-y-4" 
               autoComplete="off"
               autoCorrect="off"
               spellCheck="false"
@@ -789,12 +792,14 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                 {renderOrderSummary()}
 
               <div>
-                  <h3 className="text-center font-medium text-black mb-3 text-sm">
-                       Данни за доставка
-                  </h3>
+                <h3 className="text-center font-medium text-black mb-3 text-sm">
+                  {selectedShippingMethod === "address" 
+                    ? "Въведете вашия адрес за доставка"
+                    : `Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                </h3>
 
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
+                  <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
                     <FormField
                       control={form.control}
                       name="firstName"
@@ -918,6 +923,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   emptyText="Няма намерени резултати"
                                   className="border-gray-200 focus:border-gray-400"
                                   type="city"
+                                  isMobile={isMobile}
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
@@ -953,6 +959,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     className="border-gray-200 focus:border-gray-400"
                                     type="office"
                                     courier={selectedShippingMethod as 'speedy' | 'econt'}
+                                    isMobile={isMobile}
                                   />
                                 </div>
                               </div>
@@ -992,6 +999,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   emptyText="Няма намерени резултати"
                                   className="border-gray-200 focus:border-gray-400"
                                   type="city"
+                                  isMobile={isMobile}
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
@@ -1074,12 +1082,13 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                 </div>
               </div>
 
-                {/* Submit Button */}
+                {/* Submit Button - make it larger on mobile */}
               <Button
                 type="submit"
-                  className="w-full bg-black hover:bg-black/90 text-white font-medium py-2.5"
+                className={`w-full bg-black hover:bg-black/90 text-white font-medium py-2.5 
+                  ${isMobile ? 'text-base py-3 mt-4' : ''}`}
               >
-                  Завършете поръчката си
+                Завършете поръчката си
               </Button>
             </form>
           </Form>

@@ -54,7 +54,83 @@ export default function IframePage() {
   const [cartData, setCartData] = useState<CartData | null>(null)
   const [dataReceived, setDataReceived] = useState(false)
   const [loadingRetries, setLoadingRetries] = useState(0)
-  const [isLoading, setIsLoading] = useState(true) // New loading state
+  const [isLoading, setIsLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+  
+  // Set appropriate viewport meta tags for mobile
+  useEffect(() => {
+    // Check URL parameters for mobile indicators
+    const urlParams = new URLSearchParams(window.location.search);
+    const mobileParam = urlParams.get('isMobile');
+    const viewportWidth = urlParams.get('viewportWidth');
+    const pixelRatio = urlParams.get('pixelRatio');
+    
+    // Set mobile state based on URL parameters or screen size
+    const isMobileDevice = 
+      mobileParam === 'true' || 
+      (typeof window !== 'undefined' && window.innerWidth < 768);
+    
+    setIsMobile(isMobileDevice);
+    
+    // Set appropriate viewport meta tag for better mobile display
+    if (isMobileDevice) {
+      // Get existing viewport meta tag or create a new one
+      let viewportMeta = document.querySelector('meta[name="viewport"]');
+      if (!viewportMeta) {
+        viewportMeta = document.createElement('meta');
+        viewportMeta.setAttribute('name', 'viewport');
+        document.head.appendChild(viewportMeta);
+      }
+      
+      // Set content attribute - using width=device-width for most mobile devices
+      // but with a larger initial-scale to prevent zooming too far in
+      viewportMeta.setAttribute(
+        'content', 
+        `width=device-width, initial-scale=0.95, maximum-scale=1.2, user-scalable=yes`
+      );
+      
+      // Add some mobile-specific styles
+      const mobileStyle = document.createElement('style');
+      mobileStyle.textContent = `
+        body {
+          /* Prevent overscroll bouncing on iOS */
+          position: fixed;
+          width: 100%;
+          height: 100%;
+          overflow: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: none;
+        }
+        
+        /* Make input fields more mobile-friendly */
+        input, button, select, .combobox-input {
+          font-size: 16px !important; /* Prevent iOS zoom on focus */
+          min-height: 44px !important; /* Larger touch targets */
+          line-height: 1.3 !important;
+        }
+        
+        /* Add extra padding to list items for better touch targets */
+        .combobox-popover ul li {
+          padding: 10px 8px !important;
+        }
+        
+        /* Fix search inputs to be more mobile-friendly */
+        .combobox-container {
+          position: relative !important;
+        }
+        
+        .combobox-popover {
+          position: fixed !important;
+          z-index: 100;
+          left: 5% !important;
+          right: 5% !important;
+          width: 90% !important;
+          max-height: 50vh !important;
+        }
+      `;
+      document.head.appendChild(mobileStyle);
+    }
+  }, []);
   
   // Effect to notify parent when checkout is ready
   useEffect(() => {
@@ -260,13 +336,14 @@ export default function IframePage() {
   }
 
   return (
-    <div className={`${styles.container} ${styles.globalStyles}`}>
+    <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
       {isLoading && <LoadingSpinner />}
       
       <CheckoutForm 
         open={isOpen} 
         onOpenChange={handleOpenChange} 
-        cartData={cartData} 
+        cartData={cartData}
+        isMobile={isMobile}
       />
     </div>
   )

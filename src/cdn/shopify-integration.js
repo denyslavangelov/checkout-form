@@ -245,11 +245,41 @@ function openCustomCheckout() {
         const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
         iframeUrl.searchParams.append('hasCart', 'true');
         
-        // For mobile devices
+        // Enhanced mobile styling
         if (window.innerWidth < 768) {
-          iframe.style.maxWidth = '95%';
-          iframe.style.maxHeight = '85vh';
+          // Full width on very small screens
+          iframe.style.maxWidth = '100%';
+          iframe.style.maxHeight = '100%';
+          iframe.style.height = '100%';
+          iframe.style.borderRadius = '0';
+          
+          // Add a parameter to tell the iframe it's on mobile
+          iframeUrl.searchParams.append('isMobile', 'true');
+          
+          // Make sure the modal takes up full screen on mobile
+          modal.style.padding = '0';
+          
+          // Position the close button for better mobile access
+          closeButton.style.top = '10px';
+          closeButton.style.right = '10px';
+          closeButton.style.width = '36px';
+          closeButton.style.height = '36px';
+          closeButton.style.fontSize = '28px';
+          closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+          closeButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+        } else if (window.innerWidth < 992) {
+          // Medium screens (tablets)
+          iframe.style.maxWidth = '90%';
+          iframe.style.maxHeight = '95vh';
+          
+          // Add a parameter for tablet size
+          iframeUrl.searchParams.append('isTablet', 'true');
         }
+        
+        // Add meta viewport instructions for better mobile rendering
+        const metaTag = document.createElement('meta');
+        iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
+        iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
         
         // Pre-stringify cart data for more reliable storage
         try {
