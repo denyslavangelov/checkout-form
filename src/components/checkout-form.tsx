@@ -784,6 +784,14 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                     )}
                   </div>
                 </div>
+
+                {/* Submit Button */}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-black hover:bg-black/90 text-white font-medium py-2.5"
+                >
+                  Завършете поръчката си
+                </Button>
               </form>
             </Form>
           )}

@@ -27,24 +27,24 @@ interface ComboboxProps {
   options: ComboboxOption[]
   value: string
   onChange: (value: string) => void
+  onSearch?: (value: string) => void
   placeholder?: string
   emptyText?: string
   className?: string
   disabled?: boolean
   loading?: boolean
-  onSearch?: (value: string) => void
 }
 
 export function Combobox({
   options,
   value,
   onChange,
+  onSearch,
   placeholder = "Изберете...",
   emptyText = "Няма намерени резултати.",
   className,
   disabled = false,
   loading = false,
-  onSearch,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -63,6 +63,13 @@ export function Combobox({
     return options.find(option => option.value === value)
   }, [options, value])
 
+  // Reset search term when popover closes
+  React.useEffect(() => {
+    if (!open) {
+      setSearchTerm("")
+    }
+  }, [open])
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -76,18 +83,24 @@ export function Combobox({
             className
           )}
           disabled={disabled}
+          onClick={() => {
+            if (!disabled) {
+              setOpen(true)
+            }
+          }}
         >
           {selectedOption ? selectedOption.label : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-full min-w-[200px] max-w-[400px]">
+      <PopoverContent className="p-0 w-full min-w-[200px] max-w-[400px]" align="start">
         <Command shouldFilter={false}>
           <CommandInput 
             placeholder={placeholder} 
             value={searchTerm}
             onValueChange={handleSearch}
             className="h-9"
+            autoFocus
           />
           <CommandEmpty className="py-2 px-3 text-sm text-gray-500">
             {loading ? "Зареждане..." : emptyText}
