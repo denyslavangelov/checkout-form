@@ -62,25 +62,22 @@ export function Combobox({
     }
   }, [open])
   
-  // When the dropdown opens, focus the input and clear previous search
+  // When the dropdown opens, focus the input
   React.useEffect(() => {
     if (open) {
-      // Use a small timeout to ensure the dropdown is fully rendered
       const timer = setTimeout(() => {
         if (inputRef.current) {
-          console.log("Focusing input element")
           inputRef.current.focus()
         }
-      }, 10) // Reduced timeout for better responsiveness
+      }, 10)
       return () => clearTimeout(timer)
     }
   }, [open])
   
   const handleButtonClick = React.useCallback(() => {
-    console.log("Button clicked, current open state:", open)
     if (!disabled) {
       setOpen(!open)
-      // When opening, clear search to start fresh
+      // Only clear search when opening
       if (!open) {
         setSearchValue("")
       }
@@ -88,7 +85,6 @@ export function Combobox({
   }, [open, disabled])
   
   const handleSearchChange = React.useCallback((value: string) => {
-    console.log("Search changed:", value)
     setSearchValue(value)
     if (onSearch) {
       onSearch(value)
@@ -96,26 +92,9 @@ export function Combobox({
   }, [onSearch])
   
   const handleSelect = React.useCallback((optionValue: string) => {
-    console.log("Item selected:", optionValue)
-    // Immediately set the search value to match the selected option
-    const selectedOption = options.find(opt => opt.value === optionValue)
-    if (selectedOption) {
-      setSearchValue(selectedOption.label)
-    }
     onChange(optionValue)
     setOpen(false)
-  }, [onChange, options])
-
-  // We'll keep the effect but make sure it updates correctly
-  React.useEffect(() => {
-    // Always update search value when value changes, not just when closed
-    const selectedOption = options.find(opt => opt.value === value)
-    if (selectedOption) {
-      setSearchValue(selectedOption.label)
-    } else {
-      setSearchValue("")
-    }
-  }, [value, options])
+  }, [onChange])
 
   const getDisplayText = (option: ComboboxOption) => {
     if (option.type === 'city' || type === 'city') {
@@ -152,16 +131,10 @@ export function Combobox({
     return <span className="text-gray-500">{placeholder}</span>
   }, [value, options, placeholder, type])
 
-  // Update input placeholder based on selection
+  // Simplified input placeholder
   const inputPlaceholder = React.useMemo(() => {
-    if (value) {
-      const option = options.find(opt => opt.value === value)
-      if (option) {
-        return getDisplayText(option)
-      }
-    }
     return placeholder
-  }, [value, options, placeholder])
+  }, [placeholder])
 
   const getOptionIcon = (option: ComboboxOption) => {
     if (option.icon) {
