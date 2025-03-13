@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { X, Trash2 } from "lucide-react"
+import { X, Trash2, Building2, Truck, Home } from "lucide-react"
 import { useState, useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,8 @@ const formSchema = z.object({
     message: "Моля, въведете валиден пощенски код.",
   }),
   shippingMethod: z.string().default("speedy"),
+  officeAddress: z.string().optional(),
+  officeCity: z.string().optional(),
 })
 
 // Shipping costs in cents (matching the cart data format)
@@ -72,6 +74,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       city: "",
       postalCode: "",
       shippingMethod: "speedy",
+      officeAddress: "",
+      officeCity: "",
     },
   })
 
@@ -162,6 +166,34 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     updatedCart.item_count -= itemToRemove.quantity;
     
     setLocalCartData(updatedCart);
+  };
+
+  // Get shipping method label
+  const getShippingMethodLabel = (method: string) => {
+    switch (method) {
+      case "speedy":
+        return "Офис на Спиди";
+      case "econt":
+        return "Офис на Еконт";
+      case "address":
+        return "Личен адрес";
+      default:
+        return "";
+    }
+  };
+
+  // Get shipping method icon
+  const getShippingMethodIcon = (method: string) => {
+    switch (method) {
+      case "speedy":
+        return <Building2 className="h-5 w-5 text-red-500" />;
+      case "econt":
+        return <Building2 className="h-5 w-5 text-blue-500" />;
+      case "address":
+        return <Home className="h-5 w-5 text-gray-500" />;
+      default:
+        return null;
+    }
   };
 
   const renderCartSummary = () => {
@@ -328,9 +360,12 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                             <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="speedy" id="speedy" />
-                                <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
-                                  Офис на Спиди
-                                </label>
+                                <div className="flex items-center gap-2">
+                                  {getShippingMethodIcon("speedy")}
+                                  <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
+                                    Офис на Спиди
+                                  </label>
+                                </div>
                               </div>
                               <span className="text-black text-sm">5.99 лв.</span>
                             </div>
@@ -338,9 +373,12 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                             <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="econt" id="econt" />
-                                <label htmlFor="econt" className="cursor-pointer font-medium text-black text-sm">
-                                  Офис на Еконт
-                                </label>
+                                <div className="flex items-center gap-2">
+                                  {getShippingMethodIcon("econt")}
+                                  <label htmlFor="econt" className="cursor-pointer font-medium text-black text-sm">
+                                    Офис на Еконт
+                                  </label>
+                                </div>
                               </div>
                               <span className="text-black text-sm">6.99 лв.</span>
                             </div>
@@ -348,9 +386,12 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                             <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="address" id="address" />
-                                <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
-                                  Личен адрес
-                                </label>
+                                <div className="flex items-center gap-2">
+                                  {getShippingMethodIcon("address")}
+                                  <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
+                                    Личен адрес
+                                  </label>
+                                </div>
                               </div>
                               <span className="text-black text-sm">8.99 лв.</span>
                             </div>
@@ -366,7 +407,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
                 <div>
                   <h3 className="text-center font-medium text-black mb-3 text-sm">
-                    Въведете вашия адрес за доставка
+                    {selectedShippingMethod === "address" 
+                      ? "Въведете вашия адрес за доставка"
+                      : `Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
                   </h3>
 
                   <div className="space-y-3">
@@ -442,76 +485,128 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-black text-xs">
-                            Адрес<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Адрес" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                              {...field}
-                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
+                    {selectedShippingMethod === "address" ? (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Адрес<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Адрес" 
+                                  autoComplete="new-password"
+                                  autoCorrect="off"
+                                  spellCheck="false"
+                                  {...field}
+                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Град<span className="text-red-500 ml-0.5">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Град" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-black text-xs">
+                                  Град<span className="text-red-500 ml-0.5">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Град" 
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-red-500 text-xs" />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="postalCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Пощенски код<span className="text-red-500 ml-0.5">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Пощенски код" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                          <FormField
+                            control={form.control}
+                            name="postalCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-black text-xs">
+                                  Пощенски код<span className="text-red-500 ml-0.5">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Пощенски код" 
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-red-500 text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="officeAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Изберете офис<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                                  autoComplete="new-password"
+                                  autoCorrect="off"
+                                  spellCheck="false"
+                                  {...field}
+                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="officeCity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Град<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Град" 
+                                  autoComplete="new-password"
+                                  autoCorrect="off"
+                                  spellCheck="false"
+                                  {...field}
+                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
 
