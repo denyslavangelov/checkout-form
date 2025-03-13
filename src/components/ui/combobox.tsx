@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search, MapPin, Building } from "lucide-react"
+import { Check, ChevronsUpDown, Search, MapPin, Building, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -134,6 +134,14 @@ export function Combobox({
   const handleSearchChange = React.useCallback((value: string) => {
     console.log('Search changed:', value);
     setSearchValue(value);
+    
+    // Clear the selection if the user deletes all text
+    if (value === '' && internalValue) {
+      console.log('Search field cleared, resetting selection');
+      setInternalValue('');
+      onChange('');
+    }
+    
     // Ensure dropdown stays open while searching
     if (!open) {
       setOpen(true);
@@ -141,9 +149,10 @@ export function Combobox({
     if (onSearch) {
       onSearch(value);
     }
-  }, [onSearch, open]);
+  }, [onSearch, open, onChange, internalValue]);
   
   const handleSelect = React.useCallback((optionValue: string) => {
+    debugger;
     console.log('handleSelect called with:', {
       optionValue,
       currentValue: internalValue,
@@ -152,6 +161,7 @@ export function Combobox({
     })
 
     const selectedOption = options.find(opt => opt.value === optionValue)
+    
     if (selectedOption) {
       console.log('Found selected option:', selectedOption)
       setSearchValue(selectedOption.label)
@@ -169,7 +179,7 @@ export function Combobox({
     if (internalValue) {
       const selectedOption = options.find(opt => opt.value === internalValue)
       if (selectedOption) {
-        setSearchValue(selectedOption.label)
+        setSearchValue(selectedOption.label.split(':')[0])
       }
     }
   }, [internalValue, options])
@@ -193,7 +203,7 @@ export function Combobox({
           {optionType === 'city' && (
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
-          <span className="font-medium text-blue-800 truncate overflow-hidden">{selectedOption.label}</span>
+          <span className="font-medium text-blue-800 truncate overflow-hidden">{selectedOption.label.split(':')[0]}</span>
         </div>
       )
     }
@@ -240,6 +250,16 @@ export function Combobox({
     return null
   }
 
+  // Add a function to handle clearing the selected value
+  const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
+    // Stop event propagation to prevent the dropdown from opening
+    e.stopPropagation();
+    console.log('Clearing selection');
+    setInternalValue('');
+    setSearchValue('');
+    onChange('');
+  }, [onChange]);
+
   return (
     <div className="relative w-full" ref={containerRef}>
       <Button
@@ -262,6 +282,16 @@ export function Combobox({
         <div className="flex-1 min-w-0">
           {displayValue}
         </div>
+        {internalValue && !disabled && (
+          <button
+            type="button"
+            onClick={handleClearSelection}
+            className="p-1 rounded-full hover:bg-gray-200 mr-1 focus:outline-none"
+            aria-label="Clear selection"
+          >
+            <X className="h-3 w-3 text-gray-500" />
+          </button>
+        )}
         <ChevronsUpDown className={cn(
           "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 flex-shrink-0",
           open && "transform rotate-180"

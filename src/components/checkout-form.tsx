@@ -226,6 +226,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       // For office selection, store the city ID for office search and set postal code
       if (fieldName === 'officeCity' && cityId) {
         setSelectedCityId(cityId);
+        // Always clear the office selection when changing city
         form.setValue('officeAddress', '');
         if (postalCode) {
           form.setValue('officePostalCode', postalCode);
@@ -234,15 +235,35 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
         // Fetch offices for this city
         searchOffices(cityId);
       }
+    } else {
+      // If the city was cleared, also clear related fields
+      if (fieldName === 'officeCity') {
+        form.setValue('officeAddress', '');
+        form.setValue('officePostalCode', '');
+        setSelectedCityId(null);
+        setOfficeSuggestions([]);
+        setFilteredOfficeSuggestions([]);
+      } else if (fieldName === 'city') {
+        form.setValue('postalCode', '');
+      }
+      form.setValue(fieldName as keyof z.infer<typeof formSchema>, '');
     }
   };
 
   const handleOfficeSelected = (officeValue: string) => {
     if (officeValue) {
-      const [officeId, officeName, officeAddress] = officeValue.split('|');
+      // Explicitly use index 1 to get the office name
+      const parts = officeValue.split('|');
+      const officeName = parts[1];
       
-      // Set the office address in the form
-      form.setValue('officeAddress', `${officeName}: ${officeAddress}`);
+      // Set only the office name as the value
+      form.setValue('officeAddress', officeName);
+      
+      // Log for debugging
+      console.log('Setting office address value:', {
+        originalValue: officeValue,
+        extractedOfficeName: officeName
+      });
     }
   };
 
@@ -597,9 +618,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
               <div>
                   <h3 className="text-center font-medium text-black mb-3 text-sm">
-                    {selectedShippingMethod === "address" 
-                      ? "Въведете вашия адрес за доставка"
-                      : `Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                  Въведете вашия адрес за доставка
                 </h3>
 
                   <div className="space-y-3">
@@ -677,6 +696,27 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
                     {selectedShippingMethod !== "address" ? (
                       <>
+                        {form.watch('officeCity') && (
+                          <FormField
+                            control={form.control}
+                            name="officePostalCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-black text-xs">
+                                  Пощенски код
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field}
+                                    disabled
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
                         <FormField
                           control={form.control}
                           name="officeCity"
@@ -709,30 +749,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                        {form.watch('officeCity') && (
-                  <FormField
-                    control={form.control}
-                            name="officePostalCode"
-                    render={({ field }) => (
-                      <FormItem>
-                                <FormLabel className="text-black text-xs">
-                                  Пощенски код
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field}
-                                    disabled
-                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        )}
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
                           control={form.control}
@@ -749,7 +768,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 <div className="flex-1 min-w-0">
                                   <Combobox
                                     options={filteredOfficeSuggestions}
-                                    value={field.value ?? ""}
+                                    value={field.value || ""}
                                     onChange={(value) => {
                                       console.log("Office selected in form:", value);
                                       handleOfficeSelected(value);
@@ -766,93 +785,72 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 </div>
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                        {form.watch('officeCity') && (
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Град<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <div className="flex-1">
+                                <Combobox
+                                  options={citySuggestions}
+                                  value={field.value || ""}
+                                  onChange={(value) => {
+                                    console.log("Personal address city selected in form:", value);
+                                    handleCitySelected(value, 'city');
+                                  }}
+                                  onSearch={(value) => {
+                                    console.log("Personal address city search term in form:", value);
+                                    if (value.length >= 2) {
+                                      debouncedSearchCities(value);
+                                    } else {
+                                      setCitySuggestions([]);
+                                    }
+                                  }}
+                                  placeholder="Търсете населено място"
+                                  loading={loadingCities}
+                                  emptyText="Няма намерени резултати"
+                                  className="border-gray-200 focus:border-gray-400"
+                                  type="city"
+                                />
+                              </div>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        {form.watch('city') && (
                           <FormField
                             control={form.control}
-                            name="note"
+                            name="postalCode"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="text-black text-xs">
-                                  Бележка
+                                  Пощенски код<span className="text-red-500 ml-0.5">*</span>
                                 </FormLabel>
                                 <FormControl>
                                   <Input 
+                                    placeholder="Пощенски код" 
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
                                     {...field}
-                                    placeholder="Бележка към поръчката"
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                   />
                                 </FormControl>
+                                <FormMessage className="text-red-500 text-xs" />
                               </FormItem>
                             )}
                           />
                         )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                                <FormLabel className="text-black text-xs">
-                            Град<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                                <div className="flex-1">
-                                  <Combobox
-                                    options={citySuggestions}
-                                    value={field.value ?? ""}
-                                    onChange={(value) => {
-                                      console.log("Personal address city selected in form:", value);
-                                      handleCitySelected(value, 'city');
-                                    }}
-                                    onSearch={(value) => {
-                                      console.log("Personal address city search term in form:", value);
-                                      if (value.length >= 2) {
-                                        debouncedSearchCities(value);
-                                      } else {
-                                        setCitySuggestions([]);
-                                      }
-                                    }}
-                                    placeholder="Търсете населено място"
-                                    loading={loadingCities}
-                                    emptyText="Няма намерени резултати"
-                                    className="border-gray-200 focus:border-gray-400"
-                                    type="city"
-                                  />
-                                </div>
-                                <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="postalCode"
-                      render={({ field }) => (
-                        <FormItem>
-                                <FormLabel className="text-black text-xs">
-                            Пощенски код<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Пощенски код" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                              {...field}
-                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-red-500 text-xs" />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
 
                         <FormField
                           control={form.control}
@@ -872,15 +870,35 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     spellCheck="false"
                                     {...field}
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
+                                  />
+                                </FormControl>
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
+
+                    {/* Note field - always visible regardless of shipping method */}
+                    <FormField
+                      control={form.control}
+                      name="note"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-black text-xs">
+                            Бележка
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field}
+                              placeholder="Бележка към поръчката"
+                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                            />
+                          </FormControl>
                         </FormItem>
                       )}
                     />
-                      </>
-                    )}
                 </div>
               </div>
 
