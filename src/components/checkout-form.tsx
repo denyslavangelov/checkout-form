@@ -741,51 +741,51 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                            className="flex flex-col gap-1.5"
-                          >
-                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                          className="flex flex-col gap-1.5"
+                        >
+                          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
                               <div className="flex items-center gap-2">
-                                <RadioGroupItem value="speedy" id="speedy" />
-                                <div className="flex items-center gap-2">
-                                  {getShippingMethodIcon("speedy")}
-                                  <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
-                                    Офис на Спиди
-                                  </label>
-                                </div>
+                                {getShippingMethodIcon("speedy")}
+                                <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
+                                  Офис на Спиди
+                                </label>
                               </div>
-                              <span className="text-black text-sm">5.99 лв.</span>
                             </div>
-                            
-                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                              <div className="flex items-center gap-2">
-                                <RadioGroupItem value="econt" id="econt" />
-                                <div className="flex items-center gap-2">
-                                  {getShippingMethodIcon("econt")}
-                                  <label htmlFor="econt" className="cursor-pointer font-medium text-black text-sm">
-                                    Офис на Еконт
-                              </label>
-                                </div>
-                              </div>
-                              <span className="text-black text-sm">6.99 лв.</span>
-                            </div>
-                            
-                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                              <div className="flex items-center gap-2">
-                                <RadioGroupItem value="address" id="address" />
-                                <div className="flex items-center gap-2">
-                                  {getShippingMethodIcon("address")}
-                                  <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
-                                    Личен адрес
-                                  </label>
-                                </div>
-                              </div>
-                              <span className="text-black text-sm">8.99 лв.</span>
+                            <span className="text-black text-sm">5.99 лв.</span>
                           </div>
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                          
+                          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="econt" id="econt" className="aspect-square w-4 h-4" />
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon("econt")}
+                                <label htmlFor="econt" className="cursor-pointer font-medium text-black text-sm">
+                                  Офис на Еконт
+                              </label>
+                              </div>
+                            </div>
+                            <span className="text-black text-sm">6.99 лв.</span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon("address")}
+                                <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
+                                  Личен адрес
+                                </label>
+                              </div>
+                            </div>
+                            <span className="text-black text-sm">8.99 лв.</span>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
               </div>
                 
                 {/* Order Summary (moved after shipping methods) */}

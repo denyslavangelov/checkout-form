@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search, MapPin, Building, X, ArrowLeft } from "lucide-react"
+import { Check, ChevronsUpDown, Search, MapPin, Building, X, ArrowLeft, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,7 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const mobileInputRef = React.useRef<HTMLInputElement>(null)
   const isFirstRender = React.useRef(true)
+  const listRef = React.useRef<HTMLDivElement>(null)
   
   // Manage body scroll when mobile fullscreen search is open
   React.useEffect(() => {
@@ -153,12 +154,19 @@ export function Combobox({
     if (!disabled) {
       setOpen(!open)
       
-      // Clear search value when opening on mobile
-      if (isMobile && !open) {
-        setSearchValue(internalValue ? options.find(opt => opt.value === internalValue)?.label || "" : "");
+      // Initialize search value with selected option's label when opening
+      if (!open) {
+        if (internalValue) {
+          const selectedOption = options.find(opt => opt.value === internalValue)
+          if (selectedOption) {
+            setSearchValue(selectedOption.label)
+          }
+        } else {
+          setSearchValue("")
+        }
       }
     }
-  }, [open, disabled, isMobile, internalValue, options])
+  }, [open, disabled, internalValue, options])
   
   // When search changes, keep dropdown open
   const handleSearchChange = React.useCallback((value: string) => {
@@ -296,19 +304,28 @@ export function Combobox({
       <>
         {loading && (
           <div className="py-6 px-3 text-sm text-gray-500 text-center">
-            <div className="inline-block animate-spin mr-2">⏳</div>
-            Зареждане...
+            {isMobile ? (
+              <div className="flex flex-col items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 text-blue-500 animate-spin mb-2" />
+                <div className="text-base">Зареждане...</div>
+              </div>
+            ) : (
+              <>
+                <div className="inline-block animate-spin mr-2">⏳</div>
+                Зареждане...
+              </>
+            )}
           </div>
         )}
         
         {!loading && options.length === 0 && (
-          <div className="py-6 px-3 text-sm text-gray-500 text-center flex items-center justify-center">
-            <Search className="mr-2 h-4 w-4 opacity-50" />
-            {emptyText}
+          <div className="py-6 px-3 text-sm text-gray-500 text-center flex flex-col items-center justify-center">
+            <Search className={isMobile ? "h-5 w-5 opacity-50 mb-1" : "h-4 w-4 opacity-50 mr-2"} />
+            <span className={isMobile ? "text-base" : "text-sm"}>{emptyText}</span>
           </div>
         )}
         
-        {options.map((option) => (
+        {!loading && options.length > 0 && options.map((option) => (
           <div
             key={option.value}
             onClick={() => handleSelect(option.value)}
@@ -414,7 +431,7 @@ export function Combobox({
       {open && isMobile && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen">
           {/* Mobile header */}
-          <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-10">
+          <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-10 shadow-sm">
             <button 
               onClick={() => setOpen(false)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
@@ -423,7 +440,7 @@ export function Combobox({
               <ArrowLeft className="h-5 w-5 text-gray-700" />
             </button>
             <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-2 flex items-center">
+              <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
@@ -447,8 +464,7 @@ export function Combobox({
           </div>
           
           {/* Mobile search results */}
-          <div className="flex-1 overflow-auto">
-            {/* No results message or loading spinner */}
+          <div className="flex-1 overflow-auto" ref={listRef}>
             <div className="divide-y divide-gray-100">
               {renderOptionsList()}
             </div>
