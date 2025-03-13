@@ -117,8 +117,9 @@ export function Combobox({
         optionType === 'office' ? 
           <Building className="h-4 w-4 text-blue-600" /> : 
           null
-      
+          debugger;
       return (
+        
         <div className="flex items-center w-full">
           <span className="mr-2 flex-shrink-0">{icon}</span>
           <span className="font-medium text-blue-800 truncate">{selectedOption.label}</span>
