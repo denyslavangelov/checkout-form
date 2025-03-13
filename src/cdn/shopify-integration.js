@@ -134,8 +134,7 @@ function openCustomCheckout() {
       
       // Create modal container if it doesn't exist
       let modal = document.getElementById('custom-checkout-modal');
-      
-      if (!modal) {
+
         modal = document.createElement('div');
         modal.id = 'custom-checkout-modal';
         modal.style.position = 'fixed';
@@ -222,10 +221,9 @@ function openCustomCheckout() {
             cart: cartData
           }, '*');
         };
-      }
     })
     .catch(error => {
       console.error('Error fetching cart data:', error);
-      alert('There was an error retrieving your cart information. Please try again.');
+      alert('Възникна грешка при зареждането на информацията за кошницата. Моля, опитайте отново.');
     });
 } 

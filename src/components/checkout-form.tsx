@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog"
 import {
   Form,
@@ -104,12 +105,12 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
   const renderCartSummary = () => {
     if (!localCartData) {
-      return <div>Loading cart data...</div>;
+      return <div>Зареждане на данните...</div>;
     }
     
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Order Summary</h3>
+        <h3 className="text-lg font-medium">Резюме на поръчката</h3>
         
         {localCartData.items.map((item: any, index: number) => (
           <div key={index} className="flex items-start gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
@@ -121,7 +122,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
               />
             ) : (
               <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500">No image</span>
+                <span className="text-gray-500">Няма изображение</span>
               </div>
             )}
             
@@ -132,7 +133,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                 
                 {/* Quantity Selector */}
                 <div className="flex items-center mt-2">
-                  <span className="mr-2">Quantity:</span>
+                  <span className="mr-2">Количество:</span>
                   <div className="flex items-center border rounded">
                     <button 
                       type="button"
@@ -168,19 +169,19 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
         
         <div className="border-t pt-4">
           <div className="flex justify-between mb-2">
-            <span>Subtotal</span>
+            <span>Междинна сума</span>
             <span>{formatMoney(localCartData.items_subtotal_price)}</span>
           </div>
           
           {localCartData.total_discount > 0 && (
             <div className="flex justify-between mb-2 text-green-600">
-              <span>Discount</span>
+              <span>Отстъпка</span>
               <span>-{formatMoney(localCartData.total_discount)}</span>
             </div>
           )}
           
           <div className="flex justify-between font-bold text-lg">
-            <span>Total</span>
+            <span>Общо</span>
             <span>{formatMoney(localCartData.total_price)}</span>
           </div>
         </div>
@@ -189,9 +190,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   };
   
   const formatMoney = (cents: number) => {
-    return (cents / 100).toLocaleString('en-US', {
+    return (cents / 100).toLocaleString('bg-BG', {
       style: 'currency',
-      currency: localCartData?.currency || cartData?.currency || 'USD'
+      currency: localCartData?.currency || cartData?.currency || 'BGN'
     });
   };
 
@@ -203,14 +204,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
             <DialogTitle className="text-xl font-medium tracking-tight text-black">
               Поръчайте с наложен платеж
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-gray-100 rounded-full"
-              onClick={() => onOpenChange(false)}
-            >
+            <DialogClose className="h-8 w-8 hover:bg-gray-100 rounded-full flex items-center justify-center">
               <X className="h-4 w-4" />
-            </Button>
+              <span className="sr-only">Затвори</span>
+            </DialogClose>
           </div>
         </DialogHeader>
 
