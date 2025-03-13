@@ -49,18 +49,11 @@ export function Combobox({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const mobileInputRef = React.useRef<HTMLInputElement>(null)
   const isFirstRender = React.useRef(true)
-  const isTyping = React.useRef(false)
+  const userInitiatedSearch = React.useRef(false)
   
-  // Debug search activity with timestamps
-  const logSearchActivity = (action: string, value: string, extra?: any) => {
-    console.log(`${new Date().toISOString()} - ${action}:`, { 
-      value, 
-      isMobile, 
-      type,
-      open,
-      isTyping: isTyping.current,
-      ...(extra || {})
-    });
+  // Debug function
+  const debug = (message: string, data?: any) => {
+    console.log(`[Combobox ${isMobile ? 'Mobile' : 'Desktop'}] ${message}`, data || '');
   }
   
   // Manage body scroll when mobile fullscreen search is open
@@ -83,152 +76,103 @@ export function Combobox({
     }
   }, [isMobile, open]);
   
-  // Debug mount/unmount
+  // Initial setup
   React.useEffect(() => {
-    console.log('Combobox mounted with:', {
-      initialValue: value,
-      type,
-      optionsCount: options.length,
-      isMobile
-    })
+    debug('Component mounted');
     
-    return () => {
-      console.log('Combobox unmounting with:', {
-        finalValue: internalValue,
-        type,
-        optionsCount: options.length,
-        isMobile
-      })
-    }
-  }, [])
-
-  // Sync internal value with prop value, but only after first render
-  React.useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
-
-    // Skip sync if user is currently typing
-    if (isTyping.current) {
-      logSearchActivity('Skipping value sync during typing', value);
-      return;
-    }
-
-    logSearchActivity('Value prop changed', value, {
-      from: internalValue,
-      hasOptions: options.length > 0
-    });
-    
-    // Only update internal value if we have options and the new value exists in options
-    if (options.length > 0) {
-      const valueExists = value === '' || options.some(opt => opt.value === value)
-      if (valueExists) {
-        setInternalValue(value)
-        
-        // Update search value to match selection, but only if not currently typing
-        if (value && !isTyping.current) {
-          const selectedOption = options.find(opt => opt.value === value)
-          if (selectedOption) {
-            setSearchValue(selectedOption.label.split(':')[0])
-          }
-        } else if (!value && !isTyping.current) {
-          setSearchValue("")
-        }
-      } else {
-        console.warn('Attempted to set value that does not exist in options:', value)
+    // Initialize search value from selected value
+    if (value) {
+      const selectedOption = options.find(opt => opt.value === value);
+      if (selectedOption) {
+        setSearchValue(selectedOption.label.split(':')[0]);
       }
     }
-  }, [value, options, type])
+    
+    return () => {
+      debug('Component unmounting');
+    };
+  }, []);
+  
+  // Update internal value when prop changes (but only when not from user actions)
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    // Only update if this wasn't triggered by the user's input
+    if (!userInitiatedSearch.current) {
+      debug('External value changed', { from: internalValue, to: value });
+      setInternalValue(value);
+      
+      // Update search field if external value changes and we're not in middle of user search
+      if (value) {
+        const selectedOption = options.find(opt => opt.value === value);
+        if (selectedOption) {
+          setSearchValue(selectedOption.label.split(':')[0]);
+        }
+      } else {
+        setSearchValue("");
+      }
+    }
+  }, [value, options]);
 
   // Handle clicks outside to close the dropdown
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Only close if the click is outside the container and dropdown
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        debug('Click outside, closing dropdown');
         setOpen(false);
-        isTyping.current = false;
+        userInitiatedSearch.current = false;
       }
-    }
+    };
     
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
     
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [open])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
   
-  // When the dropdown opens, focus the input and handle initial state
-  React.useEffect(() => {
-    if (open) {
-      // Use the appropriate input ref based on mobile state
-      const inputToFocus = isMobile ? mobileInputRef : inputRef;
-      
-      const timer = setTimeout(() => {
-        if (inputToFocus.current) {
-          inputToFocus.current.focus();
-          
-          // If we're opening and there's no selection, clear the search
-          if (!internalValue) {
-            setSearchValue("");
-          }
-          
-          // Trigger initial search if we have a search term already
-          if (searchValue.length >= 2 && onSearch) {
-            logSearchActivity('Initial search on open', searchValue);
-            onSearch(searchValue);
-          }
-        }
-      }, 10);
-      return () => clearTimeout(timer);
-    } else {
-      // Reset typing state when dropdown closes
-      isTyping.current = false;
-    }
-  }, [open, internalValue, searchValue, onSearch, isMobile]);
-  
+  // Button click handler - opens/closes the dropdown
   const handleButtonClick = React.useCallback(() => {
-    if (!disabled) {
-      logSearchActivity('Button clicked, toggling dropdown', 'n/a', {
-        currentlyOpen: open,
-        hasValue: !!internalValue
-      });
-      
-      setOpen(!open);
-      
-      // Initialize search value when opening
-      if (!open) {
-        if (internalValue) {
-          const selectedOption = options.find(opt => opt.value === internalValue)
-          if (selectedOption) {
-            setSearchValue(selectedOption.label.split(':')[0])
-          } else {
-            setSearchValue("")
-          }
-        } else {
-          setSearchValue("")
+    if (disabled) return;
+    
+    debug('Button clicked, toggling dropdown');
+    
+    if (!open) {
+      // Opening the dropdown - reset search to match selection if there is one
+      if (internalValue) {
+        const selectedOption = options.find(opt => opt.value === internalValue);
+        if (selectedOption) {
+          setSearchValue(selectedOption.label.split(':')[0]);
         }
+      } else {
+        setSearchValue("");
       }
     }
+    
+    setOpen(!open);
   }, [open, disabled, internalValue, options]);
   
-  // Unified search handler for both mobile and desktop
+  // Handle search input changes
   const handleSearchChange = React.useCallback((value: string) => {
-    logSearchActivity('Search input changed', value);
+    debug('Search input changed', { value });
     
-    // Set typing state to true when user is entering text
-    isTyping.current = true;
+    // Mark that user initiated this search - prevents prop changes from overriding
+    userInitiatedSearch.current = true;
     
     // Always update the search value when typing
     setSearchValue(value);
     
-    // Clear the selection if value is cleared (for both mobile and desktop)
+    // Clear the selection if search field is cleared
     if (value === '' && internalValue) {
-      logSearchActivity('Search field cleared, resetting selection', '');
+      debug('Search field cleared, resetting selection');
       setInternalValue('');
-      onChange('');
+      onChange(''); // Notify parent
+      userInitiatedSearch.current = false; // Reset after notifying parent
     }
     
     // Ensure dropdown stays open while searching
@@ -238,67 +182,64 @@ export function Combobox({
     
     // Trigger search when we have enough characters
     if (onSearch && value.length >= 2) {
-      logSearchActivity('Triggering search callback for', value);
+      debug('Triggering search callback', { term: value });
       onSearch(value);
-    } else if (value.length < 2) {
-      logSearchActivity('Search term too short, not triggering search', value);
     }
-    
-    // Clear typing state after a delay
-    setTimeout(() => {
-      isTyping.current = false;
-    }, 500);
   }, [onSearch, open, onChange, internalValue]);
   
   // Handle Enter key to trigger search explicitly
   const handleInputKeyDown = React.useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchValue.length >= 2 && onSearch) {
       e.preventDefault();
-      logSearchActivity('Enter key pressed, triggering search for', searchValue);
+      debug('Enter key pressed, triggering search', { term: searchValue });
       onSearch(searchValue);
     }
   }, [searchValue, onSearch]);
   
+  // Handle option selection
   const handleSelect = React.useCallback((optionValue: string) => {
-    logSearchActivity('Option selected', optionValue);
+    debug('Option selected', { optionValue });
     
-    // Clear typing state when an option is selected
-    isTyping.current = false;
-
-    const selectedOption = options.find(opt => opt.value === optionValue)
+    // Reset user search flag
+    userInitiatedSearch.current = false;
+    
+    const selectedOption = options.find(opt => opt.value === optionValue);
     
     if (selectedOption) {
-      setSearchValue(selectedOption.label.split(':')[0]) // Only use the main label part
-      setInternalValue(optionValue)
-      onChange(optionValue)
+      // Update internal state and notify parent
+      setSearchValue(selectedOption.label.split(':')[0]);
+      setInternalValue(optionValue);
+      onChange(optionValue);
     } else {
-      console.warn('Selected option not found in options list')
+      console.warn('Selected option not found in options list');
     }
     
-    setOpen(false)
+    // Close the dropdown
+    setOpen(false);
   }, [onChange, options]);
 
-  // Add a function to handle clearing the selected value
+  // Handle clearing the selected value
   const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
-    // Stop event propagation to prevent the dropdown from opening
-    e.stopPropagation();
-    logSearchActivity('Selection cleared', '');
+    e.stopPropagation(); // Prevent dropdown from opening
+    debug('Selection cleared');
     
-    // Clear typing state when selection is cleared
-    isTyping.current = false;
+    // Reset user search flag
+    userInitiatedSearch.current = false;
     
+    // Clear internal state and notify parent
     setInternalValue('');
     setSearchValue('');
     onChange('');
   }, [onChange]);
 
+  // Get display value for the button
   const displayValue = React.useMemo(() => {
     // If we have a selected value, show it with its icon
-    const selectedOption = options.find(option => option.value === internalValue)
+    const selectedOption = options.find(option => option.value === internalValue);
     
     if (selectedOption) {
-      const optionType = selectedOption.type || type
-      const icon = optionType === 'city' ? <MapPin className="h-4 w-4 text-blue-600" /> : null
+      const optionType = selectedOption.type || type;
+      const icon = optionType === 'city' ? <MapPin className="h-4 w-4 text-blue-600" /> : null;
       
       return (
         <div className="flex items-center w-full">
@@ -307,23 +248,23 @@ export function Combobox({
           )}
           <span className="font-medium text-blue-800 truncate overflow-hidden">{selectedOption.label.split(':')[0]}</span>
         </div>
-      )
+      );
     }
     
     // If no selection, show placeholder
-    return <span className="text-gray-500">{placeholder}</span>
+    return <span className="text-gray-500">{placeholder}</span>;
   }, [internalValue, options, placeholder, type]);
 
   // Get icon for option based on type
   const getOptionIcon = (option: ComboboxOption) => {
     if (option.icon) {
-      return option.icon
+      return option.icon;
     }
     
-    const optionType = option.type || type
+    const optionType = option.type || type;
     
     if (optionType === 'city') {
-      return <MapPin className="h-4 w-4 text-gray-500" />
+      return <MapPin className="h-4 w-4 text-gray-500" />;
     }
     
     if (optionType === 'office') {
@@ -334,11 +275,11 @@ export function Combobox({
           alt={courier === 'speedy' ? "Speedy" : "Econt"}
           className="h-4 w-auto"
         />
-      )
+      );
     }
     
-    return null
-  }
+    return null;
+  };
 
   // Render options list (shared between mobile and desktop views)
   const renderOptionsList = React.useCallback(() => {
@@ -500,10 +441,6 @@ export function Combobox({
                 className="w-full h-10 pl-9 pr-9 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
                 inputMode="search"
-                onFocus={() => {
-                  logSearchActivity('Mobile input focused', searchValue);
-                  isTyping.current = true;
-                }}
               />
               {searchValue && (
                 <button
