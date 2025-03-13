@@ -42,6 +42,34 @@ export function Combobox({
   const [searchValue, setSearchValue] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const previousValueRef = React.useRef(value)
+  
+  // Debug value changes
+  React.useEffect(() => {
+    if (value !== previousValueRef.current) {
+      console.log('Value changed:', {
+        from: previousValueRef.current,
+        to: value,
+        type,
+        optionsCount: options.length,
+        stack: new Error().stack
+      })
+      previousValueRef.current = value
+    }
+  }, [value, type, options])
+
+  // Preserve selected value if options change but value is still valid
+  React.useEffect(() => {
+    if (value && options.length > 0) {
+      const selectedOption = options.find(opt => opt.value === value)
+      if (!selectedOption) {
+        console.warn('Selected value not found in options:', {
+          value,
+          availableOptions: options.map(o => o.value)
+        })
+      }
+    }
+  }, [value, options])
   
   // Handle clicks outside to close the dropdown
   React.useEffect(() => {
