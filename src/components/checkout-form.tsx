@@ -790,10 +790,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
               <div>
                   <h3 className="text-center font-medium text-black mb-3 text-sm">
-                    {selectedShippingMethod === "address" 
-                      ? "Въведете вашия адрес за доставка"
-                      : `Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
-                </h3>
+                       Данни за доставка
+                  </h3>
 
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">

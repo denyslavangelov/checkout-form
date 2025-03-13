@@ -36,11 +36,34 @@ declare global {
   }
 }
 
+// Loading spinner component
+function LoadingSpinner() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
+        <div className="text-lg font-medium text-gray-700">Зареждане на кошницата...</div>
+        <div className="text-sm text-gray-500">Моля, изчакайте докато подготвим вашата поръчка</div>
+      </div>
+    </div>
+  );
+}
+
 export default function IframePage() {
   const [isOpen, setIsOpen] = useState(false)
   const [cartData, setCartData] = useState<CartData | null>(null)
   const [dataReceived, setDataReceived] = useState(false)
   const [loadingRetries, setLoadingRetries] = useState(0)
+  const [isLoading, setIsLoading] = useState(true) // New loading state
+  
+  // Effect to notify parent when checkout is ready
+  useEffect(() => {
+    // If we have cart data and are no longer loading, tell the parent we're ready
+    if (cartData && !isLoading) {
+      console.log('Checkout is ready, notifying parent window');
+      window.parent.postMessage('checkout-ready', '*');
+    }
+  }, [cartData, isLoading]);
   
   // Automatically open the form when the iframe loads
   useEffect(() => {
@@ -98,12 +121,19 @@ export default function IframePage() {
         
         setCartData(event.data.cart);
         setDataReceived(true);
+        setIsLoading(false); // Hide loading screen once data is received
       }
     }
     
     window.addEventListener('message', handleMessage)
     
-    // Request cart data from parent if needed
+    // Request cart data from parent immediately
+    if (hasCartParam === 'true') {
+      console.log(`Requesting cart data from parent immediately...`);
+      window.parent.postMessage('request-cart-data', '*');
+    }
+    
+    // Request cart data from parent again if needed (first retry faster)
     const requestCartData = () => {
       if (!dataReceived && hasCartParam === 'true') {
         console.log(`Requesting cart data from parent (attempt ${loadingRetries + 1})...`);
@@ -112,10 +142,10 @@ export default function IframePage() {
       }
     };
     
-    // Set up multiple attempts to request cart data
-    const requestTimeoutId = setTimeout(requestCartData, 500);
+    // Set up multiple attempts to request cart data - do first retry quicker
+    const requestTimeoutId = setTimeout(requestCartData, 200); // Faster first retry
     
-    // Check for cart data in various places if not received directly
+    // Check for cart data in various places if not received directly - also faster
     const fallbackTimeoutId = setTimeout(() => {
       if (!dataReceived) {
         console.log('No cart data received, checking alternatives...');
@@ -125,6 +155,7 @@ export default function IframePage() {
           console.log('Found cart data in window.cartData');
           setCartData(window.cartData);
           setDataReceived(true);
+          setIsLoading(false);
           return;
         }
         
@@ -132,6 +163,7 @@ export default function IframePage() {
           console.log('Found cart data in window.customCheckoutData.cartData');
           setCartData(window.customCheckoutData.cartData);
           setDataReceived(true);
+          setIsLoading(false);
           return;
         }
         
@@ -143,6 +175,7 @@ export default function IframePage() {
             console.log('Using cart data from localStorage');
             setCartData(parsedCartData);
             setDataReceived(true);
+            setIsLoading(false);
             return;
           }
           
@@ -153,6 +186,7 @@ export default function IframePage() {
             console.log('Using temporary cart data from localStorage');
             setCartData(parsedTempCartData);
             setDataReceived(true);
+            setIsLoading(false);
             
             // Store it as regular cart data for future use
             localStorage.setItem('cartData', tempCartData);
@@ -190,17 +224,30 @@ export default function IframePage() {
               currency: 'BGN'
             };
             setCartData(testCart);
+            setIsLoading(false);
+          } else {
+            // Still show form in production, but with error state
+            setIsLoading(false);
           }
         }
       }
-    }, 2000);
+    }, 800); // Reduced from 2000ms to 800ms for faster fallback checks
+    
+    // Set a final timeout to hide loading screen even if we can't get data
+    const loadingTimeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.warn('Forcing loading screen to hide after timeout');
+        setIsLoading(false);
+      }
+    }, 4000); // Force loading to end after 4 seconds max
     
     return () => {
       window.removeEventListener('message', handleMessage);
       clearTimeout(requestTimeoutId);
       clearTimeout(fallbackTimeoutId);
+      clearTimeout(loadingTimeoutId);
     }
-  }, [dataReceived, loadingRetries]);
+  }, [dataReceived, loadingRetries, isLoading]);
 
   // This function will communicate back to the parent window
   const handleOpenChange = (open: boolean) => {
@@ -214,6 +261,8 @@ export default function IframePage() {
 
   return (
     <div className={`${styles.container} ${styles.globalStyles}`}>
+      {isLoading && <LoadingSpinner />}
+      
       <CheckoutForm 
         open={isOpen} 
         onOpenChange={handleOpenChange} 

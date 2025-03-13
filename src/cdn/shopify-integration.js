@@ -126,6 +126,48 @@
 function openCustomCheckout() {
   console.log('Opening custom checkout...');
   
+  // Create a visual loading indicator immediately
+  const loadingOverlay = document.createElement('div');
+  loadingOverlay.style.position = 'fixed';
+  loadingOverlay.style.top = '0';
+  loadingOverlay.style.left = '0';
+  loadingOverlay.style.width = '100%';
+  loadingOverlay.style.height = '100%';
+  loadingOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  loadingOverlay.style.zIndex = '9998'; // Just below the modal
+  loadingOverlay.style.display = 'flex';
+  loadingOverlay.style.justifyContent = 'center';
+  loadingOverlay.style.alignItems = 'center';
+  
+  const loadingContent = document.createElement('div');
+  loadingContent.style.backgroundColor = 'white';
+  loadingContent.style.padding = '20px';
+  loadingContent.style.borderRadius = '8px';
+  loadingContent.style.textAlign = 'center';
+  loadingContent.style.maxWidth = '90%';
+  
+  const spinner = document.createElement('div');
+  spinner.style.width = '40px';
+  spinner.style.height = '40px';
+  spinner.style.margin = '0 auto 15px auto';
+  spinner.style.border = '4px solid #f3f3f3';
+  spinner.style.borderTop = '4px solid #3498db';
+  spinner.style.borderRadius = '50%';
+  spinner.style.animation = 'checkoutSpin 1s linear infinite';
+  
+  const spinnerStyle = document.createElement('style');
+  spinnerStyle.textContent = '@keyframes checkoutSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+  document.head.appendChild(spinnerStyle);
+  
+  const loadingText = document.createElement('div');
+  loadingText.textContent = 'Зареждане на кошницата...';
+  loadingText.style.fontWeight = 'bold';
+  
+  loadingContent.appendChild(spinner);
+  loadingContent.appendChild(loadingText);
+  loadingOverlay.appendChild(loadingContent);
+  document.body.appendChild(loadingOverlay);
+  
   // First, fetch the current cart data
   fetch('/cart.js')
     .then(response => response.json())
@@ -156,6 +198,37 @@ function openCustomCheckout() {
         modal.style.justifyContent = 'center';
         modal.style.alignItems = 'center';
         
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '×';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '15px';
+        closeButton.style.right = '15px';
+        closeButton.style.fontSize = '24px';
+        closeButton.style.background = 'white';
+        closeButton.style.border = 'none';
+        closeButton.style.borderRadius = '50%';
+        closeButton.style.width = '30px';
+        closeButton.style.height = '30px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.display = 'flex';
+        closeButton.style.alignItems = 'center';
+        closeButton.style.justifyContent = 'center';
+        closeButton.style.zIndex = '10000';
+        
+        closeButton.addEventListener('click', function() {
+          // Send message to iframe to close the checkout form
+          const iframe = document.getElementById('checkout-iframe');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage('close-checkout', '*');
+          }
+          
+          // Also close the modal
+          document.body.removeChild(modal);
+        });
+        
+        modal.appendChild(closeButton);
+        
         // Create iframe
         const iframe = document.createElement('iframe');
         iframe.id = 'checkout-iframe';
@@ -171,7 +244,6 @@ function openCustomCheckout() {
         // Add cart data as URL parameters to ensure it's available immediately
         const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
         iframeUrl.searchParams.append('hasCart', 'true');
-        iframe.src = iframeUrl.toString();
         
         // For mobile devices
         if (window.innerWidth < 768) {
@@ -179,33 +251,52 @@ function openCustomCheckout() {
           iframe.style.maxHeight = '85vh';
         }
         
-        modal.appendChild(iframe);
+        // Pre-stringify cart data for more reliable storage
+        try {
+          localStorage.setItem('tempCartData', JSON.stringify(cartData));
+          console.log('Cart data saved to localStorage as backup before iframe loads');
+        } catch (e) {
+          console.warn('Could not store cart data in localStorage', e);
+        }
         
-        // Listen for messages from the iframe
-        window.addEventListener('message', function(event) {
-          if (event.data === 'checkout-closed') {
-            // Remove the modal when checkout is closed
-            if (document.body.contains(modal)) {
-              document.body.removeChild(modal);
-            }
-          }
-          
+        // Set up a listener before loading the iframe
+        window.addEventListener('message', function cartDataHandler(event) {
           // Handle requests for cart data from the iframe
           if (event.data === 'request-cart-data') {
             console.log('Received request for cart data from iframe, sending data...');
-            iframe.contentWindow.postMessage({
-              type: 'cart-data',
-              cart: cartData,
-              metadata: {
-                timestamp: new Date().toISOString(),
-                shopUrl: window.location.hostname,
-                source: 'shopify-integration',
-                resent: true
-              }
-            }, '*');
+            if (iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'cart-data',
+                cart: cartData,
+                metadata: {
+                  timestamp: new Date().toISOString(),
+                  shopUrl: window.location.hostname,
+                  source: 'shopify-integration',
+                  resent: true
+                }
+              }, '*');
+            }
+          }
+          
+          // Remove loading overlay when checkout-ready message received
+          if (event.data === 'checkout-ready') {
+            if (document.body.contains(loadingOverlay)) {
+              document.body.removeChild(loadingOverlay);
+            }
+          }
+          
+          // Close the modal when checkout is closed
+          if (event.data === 'checkout-closed') {
+            if (document.body.contains(modal)) {
+              document.body.removeChild(modal);
+            }
+            window.removeEventListener('message', cartDataHandler);
           }
         });
         
+        // Now set the iframe source
+        iframe.src = iframeUrl.toString();
+        modal.appendChild(iframe);
         document.body.appendChild(modal);
         
         // Multiple approaches to ensure cart data is received:
@@ -214,12 +305,9 @@ function openCustomCheckout() {
         iframe.onload = function() {
           console.log('Iframe loaded, sending cart data...');
           
-          // Set data to localStorage as backup
-          try {
-            localStorage.setItem('tempCartData', JSON.stringify(cartData));
-            console.log('Cart data saved to localStorage as backup');
-          } catch (e) {
-            console.warn('Could not store cart data in localStorage', e);
+          // Remove the loading overlay once iframe has loaded
+          if (document.body.contains(loadingOverlay)) {
+            document.body.removeChild(loadingOverlay);
           }
           
           // Send the cart data via postMessage
@@ -257,11 +345,17 @@ function openCustomCheckout() {
                 resent: true
               }
             }, '*');
-          }, 1000);
+          }, 500); // Reduced from 1000ms to 500ms
         };
     })
     .catch(error => {
       console.error('Error fetching cart data:', error);
+      
+      // Remove loading overlay in case of error
+      if (document.body.contains(loadingOverlay)) {
+        document.body.removeChild(loadingOverlay);
+      }
+      
       alert('Възникна грешка при зареждането на информацията за кошницата. Моля, опитайте отново.');
     });
 } 
