@@ -63,20 +63,6 @@ interface CheckoutFormProps {
   cartData: any | null
 }
 
-// SVG components for logos
-const SpeedyLogo = () => (
-  <svg width="50" height="16" viewBox="0 0 50 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
-    <path d="M11.6395 7.83838L19.0395 5.83838L13.6395 13.8384L20.6395 13.8384" stroke="#DA291C" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const EcontLogo = () => (
-  <svg width="50" height="16" viewBox="0 0 50 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
-    <path d="M10 8H16M20 8H26M30 8H40" stroke="#071D49" strokeWidth="4" strokeLinecap="round"/>
-    <path d="M14 4V12" stroke="#071D49" strokeWidth="4" strokeLinecap="round"/>
-  </svg>
-);
-
 export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -201,15 +187,19 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     switch (method) {
       case "speedy":
         return (
-          <div className="flex items-center justify-center bg-red-50 rounded-md p-1 h-5 w-5">
-            <span className="text-red-600 font-bold text-xs">S</span>
-          </div>
+          <img 
+            src="/assets/logo-speedy-red.svg" 
+            alt="Speedy" 
+            className="h-5 w-auto"
+          />
         );
       case "econt":
         return (
-          <div className="flex items-center justify-center bg-blue-50 rounded-md p-1 h-5 w-5">
-            <span className="text-blue-600 font-bold text-xs">E</span>
-          </div>
+          <img 
+            src="/assets/logo-econt-blue.svg" 
+            alt="Econt" 
+            className="h-5 w-auto"
+          />
         );
       case "address":
         return <Home className="h-5 w-5 text-gray-500" />;
