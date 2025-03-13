@@ -5,11 +5,6 @@ import { Check, ChevronsUpDown, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 
 export type ComboboxOption = {
   value: string
@@ -42,13 +37,31 @@ export function Combobox({
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const containerRef = React.useRef<HTMLDivElement>(null)
   
   console.log("Combobox render state:", { open, value, disabled, optionsCount: options.length })
   
-  // When the popover opens, focus the input and clear previous search
+  // Handle clicks outside to close the dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [open])
+  
+  // When the dropdown opens, focus the input and clear previous search
   React.useEffect(() => {
     if (open) {
-      // Use a small timeout to ensure the popover is fully rendered
+      // Use a small timeout to ensure the dropdown is fully rendered
       const timer = setTimeout(() => {
         if (inputRef.current) {
           console.log("Focusing input element")
@@ -64,7 +77,7 @@ export function Combobox({
   const handleButtonClick = React.useCallback(() => {
     console.log("Button clicked, current open state:", open)
     if (!disabled) {
-      setOpen(true)
+      setOpen(!open)
     }
   }, [open, disabled])
   
@@ -89,36 +102,28 @@ export function Combobox({
   }, [value, options, placeholder])
 
   return (
-    <div className="relative w-full">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            type="button"
-            onClick={handleButtonClick}
-            className={cn(
-              "w-full justify-between h-9 px-3 text-sm rounded-lg",
-              "border-gray-200 bg-gray-50/50 text-left font-normal",
-              disabled && "opacity-50 cursor-not-allowed",
-              className
-            )}
-            disabled={disabled}
-          >
-            {displayValue}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-full p-0" 
-          align="start"
-          sideOffset={4}
-          style={{ zIndex: 50 }}
-          onOpenAutoFocus={(e) => {
-            // Prevent default autofocus behavior
-            e.preventDefault()
-          }}
+    <div className="relative w-full" ref={containerRef}>
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-expanded={open}
+        type="button"
+        onClick={handleButtonClick}
+        className={cn(
+          "w-full justify-between h-9 px-3 text-sm rounded-lg",
+          "border-gray-200 bg-gray-50/50 text-left font-normal",
+          disabled && "opacity-50 cursor-not-allowed",
+          className
+        )}
+        disabled={disabled}
+      >
+        {displayValue}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+      
+      {open && (
+        <div 
+          className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg"
         >
           <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
             <div className="flex items-center border-b px-3">
@@ -153,8 +158,8 @@ export function Combobox({
               ))}
             </div>
           </div>
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
     </div>
   )
 } 
