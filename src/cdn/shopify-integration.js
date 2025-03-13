@@ -156,37 +156,6 @@ function openCustomCheckout() {
         modal.style.justifyContent = 'center';
         modal.style.alignItems = 'center';
         
-        // Add close button
-        const closeButton = document.createElement('button');
-        closeButton.textContent = '×';
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '15px';
-        closeButton.style.right = '15px';
-        closeButton.style.fontSize = '24px';
-        closeButton.style.background = 'white';
-        closeButton.style.border = 'none';
-        closeButton.style.borderRadius = '50%';
-        closeButton.style.width = '30px';
-        closeButton.style.height = '30px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.style.display = 'flex';
-        closeButton.style.alignItems = 'center';
-        closeButton.style.justifyContent = 'center';
-        closeButton.style.zIndex = '10000';
-        
-        closeButton.addEventListener('click', function() {
-          // Send message to iframe to close the checkout form
-          const iframe = document.getElementById('checkout-iframe');
-          if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage('close-checkout', '*');
-          }
-          
-          // Also close the modal
-          document.body.removeChild(modal);
-        });
-        
-        modal.appendChild(closeButton);
-        
         // Create iframe
         const iframe = document.createElement('iframe');
         iframe.id = 'checkout-iframe';
@@ -199,14 +168,16 @@ function openCustomCheckout() {
         iframe.style.backgroundColor = 'white';
         iframe.style.margin = 'auto';
         
+        // Add cart data as URL parameters to ensure it's available immediately
+        const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
+        iframeUrl.searchParams.append('hasCart', 'true');
+        iframe.src = iframeUrl.toString();
+        
         // For mobile devices
         if (window.innerWidth < 768) {
           iframe.style.maxWidth = '95%';
           iframe.style.maxHeight = '85vh';
         }
-        
-        // Set the URL of your Next.js iframe page
-        iframe.src = 'https://checkout-form-zeta.vercel.app/iframe';
         
         modal.appendChild(iframe);
         
@@ -218,12 +189,40 @@ function openCustomCheckout() {
               document.body.removeChild(modal);
             }
           }
+          
+          // Handle requests for cart data from the iframe
+          if (event.data === 'request-cart-data') {
+            console.log('Received request for cart data from iframe, sending data...');
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
+              cart: cartData,
+              metadata: {
+                timestamp: new Date().toISOString(),
+                shopUrl: window.location.hostname,
+                source: 'shopify-integration',
+                resent: true
+              }
+            }, '*');
+          }
         });
         
         document.body.appendChild(modal);
         
-        // Wait for iframe to load, then send cart data
+        // Multiple approaches to ensure cart data is received:
+        
+        // 1. Wait for iframe to load, then send cart data
         iframe.onload = function() {
+          console.log('Iframe loaded, sending cart data...');
+          
+          // Set data to localStorage as backup
+          try {
+            localStorage.setItem('tempCartData', JSON.stringify(cartData));
+            console.log('Cart data saved to localStorage as backup');
+          } catch (e) {
+            console.warn('Could not store cart data in localStorage', e);
+          }
+          
+          // Send the cart data via postMessage
           iframe.contentWindow.postMessage({
             type: 'cart-data',
             cart: cartData,
@@ -244,6 +243,21 @@ function openCustomCheckout() {
               quantity: item.quantity
             }))
           });
+          
+          // Send data again after a short delay as backup
+          setTimeout(() => {
+            console.log('Sending cart data again after delay to ensure receipt...');
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
+              cart: cartData,
+              metadata: {
+                timestamp: new Date().toISOString(),
+                shopUrl: window.location.hostname,
+                source: 'shopify-integration',
+                resent: true
+              }
+            }, '*');
+          }, 1000);
         };
     })
     .catch(error => {
