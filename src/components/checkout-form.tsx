@@ -499,29 +499,6 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
                     {selectedShippingMethod === "address" ? (
                       <>
-                        <FormField
-                          control={form.control}
-                          name="address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-black text-xs">
-                                Адрес<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Адрес" 
-                                  autoComplete="new-password"
-                                  autoCorrect="off"
-                                  spellCheck="false"
-                                  {...field}
-                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                />
-                              </FormControl>
-                              <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
-
                         <div className="grid grid-cols-2 gap-3">
                           <FormField
                             control={form.control}
@@ -569,32 +546,35 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                             )}
                           />
                         </div>
-                      </>
-                    ) : (
-                      <>
+
                         <FormField
                           control={form.control}
-                          name="officeAddress"
+                          name="address"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-black text-xs">
-                                Изберете офис<span className="text-red-500 ml-0.5">*</span>
+                                Адрес<span className="text-red-500 ml-0.5">*</span>
                               </FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
-                                  autoComplete="new-password"
-                                  autoCorrect="off"
-                                  spellCheck="false"
-                                  {...field}
-                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                />
-                              </FormControl>
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon("address")}
+                                <FormControl className="flex-1">
+                                  <Input 
+                                    placeholder="Адрес" 
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                              </div>
                               <FormMessage className="text-red-500 text-xs" />
                             </FormItem>
                           )}
                         />
-
+                      </>
+                    ) : (
+                      <>
                         <FormField
                           control={form.control}
                           name="officeCity"
@@ -613,6 +593,32 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                 />
                               </FormControl>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="officeAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Изберете офис<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon(selectedShippingMethod)}
+                                <FormControl className="flex-1">
+                                  <Input 
+                                    placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                              </div>
                               <FormMessage className="text-red-500 text-xs" />
                             </FormItem>
                           )}
