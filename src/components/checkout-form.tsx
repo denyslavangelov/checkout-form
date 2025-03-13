@@ -50,6 +50,8 @@ const formSchema = z.object({
   shippingMethod: z.string().default("speedy"),
   officeAddress: z.string().optional(),
   officeCity: z.string().optional(),
+  officePostalCode: z.string().optional(),
+  note: z.string().optional(),
 })
 
 // Shipping costs in cents (matching the cart data format)
@@ -89,6 +91,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       shippingMethod: "speedy",
       officeAddress: "",
       officeCity: "",
+      officePostalCode: "",
+      note: "",
     },
   })
 
@@ -97,6 +101,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   
   // Update local cart data when prop changes
   useEffect(() => {
+    
     if (cartData) {
       setLocalCartData(cartData);
     }
@@ -178,8 +183,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
       
       if (data.offices && data.offices.length > 0) {
         const options: ComboboxOption[] = data.offices.map((office: any) => ({
-          value: office.value,
-          label: office.label
+          value: `${office.id}|${office.name}|${office.address.fullAddressString}`,
+          label: `${office.name}: ${office.address.fullAddressString}`
         }));
         
         setOfficeSuggestions(options);
@@ -218,10 +223,13 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
         form.setValue('postalCode', postalCode);
       }
       
-      // For office selection, store the city ID for office search
+      // For office selection, store the city ID for office search and set postal code
       if (fieldName === 'officeCity' && cityId) {
         setSelectedCityId(cityId);
         form.setValue('officeAddress', '');
+        if (postalCode) {
+          form.setValue('officePostalCode', postalCode);
+        }
         
         // Fetch offices for this city
         searchOffices(cityId);
@@ -359,9 +367,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     if (localCartData.items.length === 0) {
       console.log('Cart is empty');
       return <div className="text-center py-4">Кошницата е празна</div>;
-    }
-    
-    return (
+  }
+
+  return (
       <div className="space-y-2">
         <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
         
@@ -377,7 +385,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
               ) : (
                 <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
                   <span className="text-gray-500 text-xs">Няма изображение</span>
-                </div>
+              </div>
               )}
               
               <div className="flex-1 min-w-0">
@@ -403,7 +411,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                       >
                         +
                       </button>
-                    </div>
+              </div>
                     
                     <button
                       type="button"
@@ -413,8 +421,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                  </div>
-                  
+            </div>
+
                   <div className="text-right">
                     <p className="font-medium text-sm">{formatMoney(item.line_price)}</p>
                     {item.original_line_price !== item.line_price && (
@@ -422,8 +430,8 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                         {formatMoney(item.original_line_price)}
                       </p>
                     )}
-                  </div>
-                </div>
+              </div>
+              </div>
               </div>
             </div>
           ))}
@@ -471,6 +479,31 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     });
   };
 
+  // Add a state for filtered office suggestions
+  const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);
+
+  // Update effect to initialize filtered suggestions when original suggestions change
+  useEffect(() => {
+    setFilteredOfficeSuggestions(officeSuggestions);
+  }, [officeSuggestions]);
+
+  // Add a function to handle office search
+  const handleOfficeSearch = useCallback((searchTerm: string) => {
+    console.log("Office search term:", searchTerm);
+    
+    if (!searchTerm || searchTerm.length < 2) {
+      setFilteredOfficeSuggestions(officeSuggestions);
+      return;
+    }
+    
+    // Filter offices based on search term
+    const filtered = officeSuggestions.filter(office => 
+      office.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    setFilteredOfficeSuggestions(filtered);
+  }, [officeSuggestions]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -478,15 +511,9 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
         aria-describedby="checkout-form-description"
       >
         <DialogHeader className="p-4 pb-2 border-b shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-medium tracking-tight text-black">
-              Поръчайте с наложен платеж
-            </DialogTitle>
-            <DialogClose className="h-7 w-7 hover:bg-gray-100 rounded-full flex items-center justify-center">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Затвори</span>
-            </DialogClose>
-          </div>
+          <DialogTitle className="text-lg font-medium tracking-tight text-black">
+            Поръчайте с наложен платеж
+          </DialogTitle>
         </DialogHeader>
 
         <div id="checkout-form-description" className="sr-only">
@@ -498,26 +525,26 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
           {renderCartSummary()}
 
           {localCartData && localCartData.items && localCartData.items.length > 0 && (
-            <Form {...form}>
-              <form 
-                onSubmit={form.handleSubmit(onSubmit)} 
+          <Form {...form}>
+            <form 
+              onSubmit={form.handleSubmit(onSubmit)} 
                 className="space-y-4" 
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-              >
-                {/* Shipping Method */}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
+            >
+              {/* Shipping Method */}
                 <div className="space-y-2">
                   <h3 className="font-medium text-black text-sm">Изберете метод за доставка</h3>
-                  <FormField
-                    control={form.control}
-                    name="shippingMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
+                <FormField
+                  control={form.control}
+                  name="shippingMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
                             className="flex flex-col gap-1.5"
                           >
                             <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
@@ -540,7 +567,7 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   {getShippingMethodIcon("econt")}
                                   <label htmlFor="econt" className="cursor-pointer font-medium text-black text-sm">
                                     Офис на Еконт
-                                  </label>
+                              </label>
                                 </div>
                               </div>
                               <span className="text-black text-sm">6.99 лв.</span>
@@ -557,92 +584,92 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 </div>
                               </div>
                               <span className="text-black text-sm">8.99 лв.</span>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
                 
                 {/* Order Summary (moved after shipping methods) */}
                 {renderOrderSummary()}
 
-                <div>
+              <div>
                   <h3 className="text-center font-medium text-black mb-3 text-sm">
                     {selectedShippingMethod === "address" 
                       ? "Въведете вашия адрес за доставка"
                       : `Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
-                  </h3>
+                </h3>
 
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Първо име<span className="text-red-500 ml-0.5">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Първо име" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Фамилия<span className="text-red-500 ml-0.5">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Фамилия" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
                     <FormField
                       control={form.control}
-                      name="phone"
+                      name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-black text-xs">
-                            Телефон<span className="text-red-500 ml-0.5">*</span>
+                            <FormLabel className="text-black text-xs">
+                            Първо име<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="Телефон" 
-                              type="tel" 
+                              placeholder="Първо име" 
                               autoComplete="new-password"
                               autoCorrect="off"
                               spellCheck="false"
                               {...field}
-                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                             />
                           </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-black text-xs">
+                            Фамилия<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Фамилия" 
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              spellCheck="false"
+                              {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                            />
+                          </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                          <FormLabel className="text-black text-xs">
+                          Телефон<span className="text-red-500 ml-0.5">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Телефон" 
+                            type="tel" 
+                            autoComplete="new-password"
+                            autoCorrect="off"
+                            spellCheck="false"
+                            {...field}
+                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                          />
+                        </FormControl>
                           <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
                       )}
@@ -682,9 +709,30 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 />
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                      </FormItem>
+                    )}
+                  />
+
+                        {form.watch('officeCity') && (
+                  <FormField
+                    control={form.control}
+                            name="officePostalCode"
+                    render={({ field }) => (
+                      <FormItem>
+                                <FormLabel className="text-black text-xs">
+                                  Пощенски код
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field}
+                                    disabled
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <FormField
                           control={form.control}
@@ -694,41 +742,66 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                               <FormLabel className="text-black text-xs">
                                 Изберете офис<span className="text-red-500 ml-0.5">*</span>
                               </FormLabel>
-                              <div className="flex items-center gap-2">
-                                {getShippingMethodIcon(selectedShippingMethod)}
-                                <div className="flex-1">
+                              <div className="flex items-center gap-2 w-full">
+                                <div className="flex-shrink-0">
+                                  {getShippingMethodIcon(selectedShippingMethod)}
+                                </div>
+                                <div className="flex-1 min-w-0">
                                   <Combobox
-                                    options={officeSuggestions}
+                                    options={filteredOfficeSuggestions}
                                     value={field.value ?? ""}
                                     onChange={(value) => {
                                       console.log("Office selected in form:", value);
                                       handleOfficeSelected(value);
                                     }}
+                                    onSearch={handleOfficeSearch}
                                     placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
                                     loading={loadingOffices}
                                     emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
                                     disabled={!selectedCityId}
                                     className="border-gray-200 focus:border-gray-400"
                                     type="office"
+                                    courier={selectedShippingMethod as 'speedy' | 'econt'}
                                   />
                                 </div>
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                      </FormItem>
+                    )}
+                  />
+
+                        {form.watch('officeCity') && (
+                          <FormField
+                            control={form.control}
+                            name="note"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-black text-xs">
+                                  Бележка
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field}
+                                    placeholder="Бележка към поръчката"
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
                       </>
                     ) : (
                       <>
                         <div className="grid grid-cols-2 gap-3">
-                          <FormField
-                            control={form.control}
-                            name="city"
-                            render={({ field }) => (
-                              <FormItem>
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
                                 <FormLabel className="text-black text-xs">
-                                  Град<span className="text-red-500 ml-0.5">*</span>
-                                </FormLabel>
+                            Град<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
                                 <div className="flex-1">
                                   <Combobox
                                     options={citySuggestions}
@@ -753,25 +826,25 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                   />
                                 </div>
                                 <FormMessage className="text-red-500 text-xs" />
-                              </FormItem>
-                            )}
-                          />
+                        </FormItem>
+                      )}
+                    />
 
-                          <FormField
-                            control={form.control}
-                            name="postalCode"
-                            render={({ field }) => (
-                              <FormItem>
+                    <FormField
+                      control={form.control}
+                      name="postalCode"
+                      render={({ field }) => (
+                        <FormItem>
                                 <FormLabel className="text-black text-xs">
-                                  Пощенски код<span className="text-red-500 ml-0.5">*</span>
-                                </FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Пощенски код" 
-                                    autoComplete="new-password"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    {...field}
+                            Пощенски код<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Пощенски код" 
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              spellCheck="false"
+                              {...field}
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                   />
                                 </FormControl>
@@ -799,30 +872,30 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                     spellCheck="false"
                                     {...field}
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
+                            />
+                          </FormControl>
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                        </FormItem>
+                      )}
+                    />
                       </>
                     )}
-                  </div>
                 </div>
+              </div>
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
+              <Button
+                type="submit"
                   className="w-full bg-black hover:bg-black/90 text-white font-medium py-2.5"
-                >
+              >
                   Завършете поръчката си
-                </Button>
-              </form>
-            </Form>
+              </Button>
+            </form>
+          </Form>
           )}
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+} 

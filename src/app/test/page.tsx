@@ -27,12 +27,14 @@ const testCart = {
 };
 
 export default function TestPage() {
+    
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [cartData, setCartData] = useState(testCart);
 
   // Only mount the form after initial render to avoid SSR issues
   useEffect(() => {
+    debugger;
     setMounted(true);
     // Open the form after mounting
     setOpen(true);
