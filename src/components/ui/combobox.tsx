@@ -51,12 +51,13 @@ export function Combobox({
   const isFirstRender = React.useRef(true)
   
   // Debug search activity with timestamps
-  const logSearchActivity = (action: string, value: string) => {
+  const logSearchActivity = (action: string, value: string, extra?: any) => {
     console.log(`${new Date().toISOString()} - ${action}:`, { 
       value, 
       isMobile, 
       type,
-      open
+      open,
+      ...(extra || {})
     });
   }
   
@@ -106,13 +107,10 @@ export function Combobox({
       return
     }
 
-    console.log('Value prop changed:', { 
-      from: internalValue, 
-      to: value,
-      hasOptions: options.length > 0,
-      type,
-      isMobile
-    })
+    logSearchActivity('Value prop changed', value, {
+      from: internalValue,
+      hasOptions: options.length > 0
+    });
     
     // Only update internal value if we have options and the new value exists in options
     if (options.length > 0) {
@@ -126,6 +124,8 @@ export function Combobox({
           if (selectedOption) {
             setSearchValue(selectedOption.label.split(':')[0])
           }
+        } else {
+          setSearchValue("")
         }
       } else {
         console.warn('Attempted to set value that does not exist in options:', value)
@@ -133,48 +133,61 @@ export function Combobox({
     }
   }, [value, options, type])
 
-  // Handle clicks outside to close the dropdown (desktop only)
+  // Handle clicks outside to close the dropdown
   React.useEffect(() => {
-    if (!isMobile) {
-      const handleClickOutside = (event: MouseEvent) => {
-        // Only close if the click is outside the container and dropdown
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-          setOpen(false);
-        }
-      }
-      
-      if (open) {
-        document.addEventListener("mousedown", handleClickOutside)
-      }
-      
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside)
+    const handleClickOutside = (event: MouseEvent) => {
+      // Only close if the click is outside the container and dropdown
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
       }
     }
-  }, [open, isMobile])
+    
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [open])
   
-  // When the dropdown opens, focus the input and reset search if it's not a value (desktop only)
+  // When the dropdown opens, focus the input and handle initial state
   React.useEffect(() => {
-    if (open && !isMobile) {
+    if (open) {
+      // Use the appropriate input ref based on mobile state
+      const inputToFocus = isMobile ? mobileInputRef : inputRef;
+      
       const timer = setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
+        if (inputToFocus.current) {
+          inputToFocus.current.focus();
+          
           // If we're opening and there's no selection, clear the search
           if (!internalValue) {
             setSearchValue("");
+          }
+          
+          // Trigger initial search if we have a search term already
+          if (searchValue.length >= 2 && onSearch) {
+            logSearchActivity('Initial search on open', searchValue);
+            onSearch(searchValue);
           }
         }
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [open, internalValue, isMobile]);
+  }, [open, internalValue, searchValue, onSearch, isMobile]);
   
   const handleButtonClick = React.useCallback(() => {
     if (!disabled) {
-      setOpen(!open)
+      logSearchActivity('Button clicked, toggling dropdown', 'n/a', {
+        currentlyOpen: open,
+        hasValue: !!internalValue
+      });
       
-      // Initialize search value when opening on mobile
-      if (isMobile && !open) {
+      setOpen(!open);
+      
+      // Initialize search value when opening
+      if (!open) {
         if (internalValue) {
           const selectedOption = options.find(opt => opt.value === internalValue)
           if (selectedOption) {
@@ -187,33 +200,33 @@ export function Combobox({
         }
       }
     }
-  }, [open, disabled, isMobile, internalValue, options])
+  }, [open, disabled, internalValue, options]);
   
-  // When search changes, keep dropdown open
+  // Unified search handler for both mobile and desktop
   const handleSearchChange = React.useCallback((value: string) => {
     logSearchActivity('Search input changed', value);
     setSearchValue(value);
     
-    // Don't clear selection on mobile when typing
-    if (!isMobile && value === '' && internalValue) {
-      console.log('Search field cleared, resetting selection');
+    // Clear the selection if value is cleared (for both mobile and desktop)
+    if (value === '' && internalValue) {
+      logSearchActivity('Search field cleared, resetting selection', '');
       setInternalValue('');
       onChange('');
     }
     
     // Ensure dropdown stays open while searching
-    if (!open && !isMobile) {
+    if (!open) {
       setOpen(true);
     }
     
-    // Always call onSearch when the text input changes if the callback exists
+    // Trigger search when we have enough characters
     if (onSearch && value.length >= 2) {
       logSearchActivity('Triggering search callback for', value);
       onSearch(value);
     } else if (value.length < 2) {
       logSearchActivity('Search term too short, not triggering search', value);
     }
-  }, [onSearch, open, onChange, internalValue, isMobile]);
+  }, [onSearch, open, onChange, internalValue]);
   
   // Handle Enter key to trigger search explicitly
   const handleInputKeyDown = React.useCallback((e: React.KeyboardEvent) => {
@@ -238,17 +251,17 @@ export function Combobox({
     }
     
     setOpen(false)
-  }, [onChange, options, internalValue, type, isMobile]);
+  }, [onChange, options]);
 
-  // Initialize search value with selected value
-  React.useEffect(() => {
-    if (internalValue) {
-      const selectedOption = options.find(opt => opt.value === internalValue)
-      if (selectedOption) {
-        setSearchValue(selectedOption.label.split(':')[0])
-      }
-    }
-  }, [internalValue, options])
+  // Add a function to handle clearing the selected value
+  const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
+    // Stop event propagation to prevent the dropdown from opening
+    e.stopPropagation();
+    logSearchActivity('Selection cleared', '');
+    setInternalValue('');
+    setSearchValue('');
+    onChange('');
+  }, [onChange]);
 
   const displayValue = React.useMemo(() => {
     // If we have a selected value, show it with its icon
@@ -270,7 +283,7 @@ export function Combobox({
     
     // If no selection, show placeholder
     return <span className="text-gray-500">{placeholder}</span>
-  }, [internalValue, options, placeholder, type, isMobile])
+  }, [internalValue, options, placeholder, type]);
 
   // Get icon for option based on type
   const getOptionIcon = (option: ComboboxOption) => {
@@ -297,16 +310,6 @@ export function Combobox({
     
     return null
   }
-
-  // Add a function to handle clearing the selected value
-  const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
-    // Stop event propagation to prevent the dropdown from opening
-    e.stopPropagation();
-    logSearchActivity('Selection cleared', '');
-    setInternalValue('');
-    setSearchValue('');
-    onChange('');
-  }, [onChange]);
 
   // Render options list (shared between mobile and desktop views)
   const renderOptionsList = React.useCallback(() => {
@@ -335,7 +338,7 @@ export function Combobox({
         )}
         
         {!loading && options.length > 0 && (
-          <div className={isMobile ? "pb-safe-area-bottom" : ""}>
+          <div>
             {options.map((option) => (
               <div
                 key={option.value}
@@ -468,6 +471,7 @@ export function Combobox({
                 className="w-full h-10 pl-9 pr-9 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
                 inputMode="search"
+                onFocus={() => logSearchActivity('Mobile input focused', searchValue)}
               />
               {searchValue && (
                 <button
@@ -484,7 +488,7 @@ export function Combobox({
           
           {/* Mobile search results */}
           <div className="flex-1 overflow-auto">
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 p-1">
               {renderOptionsList()}
             </div>
           </div>
