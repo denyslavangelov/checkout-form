@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { X, Trash2, Home } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
+import { ComboboxOption, Combobox } from "@/components/ui/combobox"
+import { debounce } from "@/lib/utils"
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -63,6 +65,15 @@ interface CheckoutFormProps {
   cartData: any | null
 }
 
+// City search interface
+interface CitySearchResult {
+  id: string;
+  name: string;
+  postCode?: string;
+  value: string;
+  label: string;
+}
+
 export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -85,6 +96,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   // Track selected shipping method for calculating total
   const [shippingCost, setShippingCost] = useState(SHIPPING_COSTS.speedy);
   
+  // State for city search
+  const [citySuggestions, setCitySuggestions] = useState<ComboboxOption[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+  
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
   
@@ -97,6 +112,67 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   useEffect(() => {
     setLocalCartData(cartData);
   }, [cartData]);
+
+  // Search for cities/offices
+  const searchCities = useCallback(async (term: string) => {
+    if (!term || term.length < 2) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    setLoadingCities(true);
+    try {
+      // For simplicity, assuming we have credentials in environment variables in a production app
+      const username = "demo"; // Replace with your actual Speedy API credentials
+      const password = "demo"; // Replace with your actual Speedy API credentials
+      
+      const response = await fetch(`/api/speedy/search-site?term=${encodeURIComponent(term)}&username=${username}&password=${password}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      if (data.sites) {
+        const options: ComboboxOption[] = data.sites.map((site: CitySearchResult) => ({
+          value: site.value,
+          label: site.label
+        }));
+        
+        setCitySuggestions(options);
+      } else {
+        setCitySuggestions([]);
+      }
+    } catch (error) {
+      console.error('Error searching cities:', error);
+      setCitySuggestions([]);
+    } finally {
+      setLoadingCities(false);
+    }
+  }, []);
+  
+  // Debounced search function to avoid too many API calls
+  const debouncedSearchCities = useCallback(
+    debounce((term: string) => {
+      searchCities(term);
+    }, 300),
+    [searchCities]
+  );
+
+  const handleCitySelected = (cityValue: string, fieldName: string) => {
+    if (cityValue) {
+      const [cityName, postalCode] = cityValue.split('|');
+      
+      // Set city name in the appropriate field
+      form.setValue(fieldName as keyof z.infer<typeof formSchema>, cityName);
+      
+      // If this is for personal address, also set postal code if available
+      if (fieldName === 'city' && postalCode) {
+        form.setValue('postalCode', postalCode);
+      }
+    }
+  };
 
   // Check if cart is empty and close the form if it is
   useEffect(() => {
@@ -508,16 +584,21 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                                 <FormLabel className="text-black text-xs">
                                   Град<span className="text-red-500 ml-0.5">*</span>
                                 </FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Град" 
-                                    autoComplete="new-password"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    {...field}
-                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
+                                <div className="flex items-center gap-2">
+                                  {getShippingMethodIcon("address")}
+                                  <div className="flex-1">
+                                    <Combobox
+                                      options={citySuggestions}
+                                      value={field.value}
+                                      onChange={(value) => handleCitySelected(value, 'city')}
+                                      onSearch={debouncedSearchCities}
+                                      placeholder="Търсете населено място"
+                                      loading={loadingCities}
+                                      emptyText="Няма намерени резултати"
+                                      className="border-gray-200 focus:border-gray-400"
+                                    />
+                                  </div>
+                                </div>
                                 <FormMessage className="text-red-500 text-xs" />
                               </FormItem>
                             )}
@@ -583,16 +664,21 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
                               <FormLabel className="text-black text-xs">
                                 Град<span className="text-red-500 ml-0.5">*</span>
                               </FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Град" 
-                                  autoComplete="new-password"
-                                  autoCorrect="off"
-                                  spellCheck="false"
-                                  {...field}
-                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                />
-                              </FormControl>
+                              <div className="flex items-center gap-2">
+                                {getShippingMethodIcon(selectedShippingMethod)}
+                                <div className="flex-1">
+                                  <Combobox
+                                    options={citySuggestions}
+                                    value={field.value || ""}
+                                    onChange={(value) => handleCitySelected(value, 'officeCity')}
+                                    onSearch={debouncedSearchCities}
+                                    placeholder="Търсете населено място"
+                                    loading={loadingCities}
+                                    emptyText="Няма намерени резултати"
+                                    className="border-gray-200 focus:border-gray-400"
+                                  />
+                                </div>
+                              </div>
                               <FormMessage className="text-red-500 text-xs" />
                             </FormItem>
                           )}
