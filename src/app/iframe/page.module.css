@@ -8,13 +8,18 @@
   align-items: center;
 }
 
+/* Wrapper class for global styles */
+.globalStyles {
+  /* This class can be used in your component */
+}
+
 /* Remove any scrollbars and make sure iframe content is fully contained */
-:global(body) {
+.globalStyles :global(body) {
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
-:global(html) {
+.globalStyles :global(html) {
   overflow: hidden;
 } 

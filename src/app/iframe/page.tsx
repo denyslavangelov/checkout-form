@@ -36,7 +36,7 @@ export default function IframePage() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${styles.globalStyles}`}>
       <CheckoutForm open={isOpen} onOpenChange={handleOpenChange} />
     </div>
   )
