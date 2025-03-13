@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-
   const term = searchParams.get('term');
-  const postcode = searchParams.get('postcode');
 
-  // Get credentials from environment variables or use fallback for development
+  // Get credentials from environment variables
   const username = process.env.SPEEDY_USERNAME || "1904618";
   const password = process.env.SPEEDY_PASSWORD || "6661214521";
 
@@ -18,6 +16,8 @@ export async function GET(request: Request) {
   }
 
   try {
+    console.log('Searching for term:', term);
+    
     const response = await fetch('https://api.speedy.bg/v1/location/site', {
       method: 'POST',
       headers: {
@@ -27,14 +27,14 @@ export async function GET(request: Request) {
         userName: username,
         password: password,
         language: 'bg',
-        name: term || '',
-        postCode: postcode || '',
+        name: term,
         countryId: 100
       })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
+      console.error('Speedy API error:', errorData);
       throw new Error(
         errorData?.error?.message || 
         `HTTP error! status: ${response.status}`
@@ -44,12 +44,12 @@ export async function GET(request: Request) {
     const data = await response.json();
     console.log('Speedy API response:', data);
 
-    // Форматираме резултата за autocomplete с повече информация
+    // Format the sites for autocomplete
     const formattedSites = data.sites?.map((site: any) => ({
       id: site.id,
       name: site.name,
       postCode: site.postCode,
-      value: `${site.name}|${site.postCode}`,
+      value: `${site.name}|${site.postCode}|${site.id}`,
       label: `${site.name}${site.postCode ? ` (${site.postCode})` : ''}`
     })) || [];
 

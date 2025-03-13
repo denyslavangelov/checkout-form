@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-
   const siteId = searchParams.get('siteId');
   
-  // Get credentials from environment variables or use fallback for development
+  // Get credentials from environment variables
   const username = process.env.SPEEDY_USERNAME || "1904618";
   const password = process.env.SPEEDY_PASSWORD || "6661214521";
 
@@ -17,7 +16,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Call Speedy API to get offices for the site
+    console.log('Searching for offices in site:', siteId);
+    
     const response = await fetch('https://api.speedy.bg/v1/location/office', {
       method: 'POST',
       headers: {
@@ -33,6 +33,7 @@ export async function GET(request: Request) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
+      console.error('Speedy API error:', errorData);
       throw new Error(
         errorData?.error?.message || 
         `HTTP error! status: ${response.status}`

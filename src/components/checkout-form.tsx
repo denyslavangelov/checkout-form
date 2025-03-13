@@ -75,6 +75,8 @@ interface CitySearchResult {
 }
 
 export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps) {
+  console.log('CheckoutForm rendered with props:', { open, cartData });
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -91,7 +93,14 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   })
 
   // Add state for cart data that can be modified
-  const [localCartData, setLocalCartData] = useState(cartData);
+  const [localCartData, setLocalCartData] = useState<typeof cartData>(() => cartData);
+  
+  // Update local cart data when prop changes
+  useEffect(() => {
+    if (cartData) {
+      setLocalCartData(cartData);
+    }
+  }, [cartData]);
   
   // Track selected shipping method for calculating total
   const [shippingCost, setShippingCost] = useState(SHIPPING_COSTS.speedy);
@@ -113,11 +122,6 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
     setShippingCost(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS]);
   }, [selectedShippingMethod]);
   
-  // Update local cart data when prop changes
-  useEffect(() => {
-    setLocalCartData(cartData);
-  }, [cartData]);
-
   // Search for cities/offices
   const searchCities = useCallback(async (term: string) => {
     if (!term || term.length < 2) {
@@ -345,11 +349,15 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
   };
 
   const renderCartSummary = () => {
+    console.log('renderCartSummary called with localCartData:', localCartData);
+    
     if (!localCartData) {
+      console.log('No localCartData available');
       return <div>Зареждане на данните...</div>;
     }
     
     if (localCartData.items.length === 0) {
+      console.log('Cart is empty');
       return <div className="text-center py-4">Кошницата е празна</div>;
     }
     
@@ -465,7 +473,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col">
+      <DialogContent 
+        className="sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col"
+        aria-describedby="checkout-form-description"
+      >
         <DialogHeader className="p-4 pb-2 border-b shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-medium tracking-tight text-black">
@@ -477,6 +488,10 @@ export function CheckoutForm({ open, onOpenChange, cartData }: CheckoutFormProps
             </DialogClose>
           </div>
         </DialogHeader>
+
+        <div id="checkout-form-description" className="sr-only">
+          Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
+        </div>
 
         <div className="overflow-y-auto px-4 py-3 space-y-4">
           {/* Cart Summary */}
