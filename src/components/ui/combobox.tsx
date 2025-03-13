@@ -6,13 +6,6 @@ import { Check, ChevronsUpDown, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command"
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -83,9 +76,9 @@ export function Combobox({
     }
   }, [onSearch])
   
-  const handleSelect = React.useCallback((currentValue: string) => {
-    console.log("Item selected:", currentValue)
-    onChange(currentValue)
+  const handleSelect = React.useCallback((optionValue: string) => {
+    console.log("Item selected:", optionValue)
+    onChange(optionValue)
     setOpen(false)
   }, [onChange])
 
@@ -139,28 +132,26 @@ export function Combobox({
                 autoComplete="off"
               />
             </div>
-            <CommandGroup className="max-h-[200px] overflow-auto">
+            <div className="max-h-[200px] overflow-auto p-1">
               {loading && <div className="py-2 px-3 text-sm text-gray-500 text-center">Зареждане...</div>}
+              
               {!loading && options.length === 0 && (
                 <div className="py-2 px-3 text-sm text-gray-500 text-center">{emptyText}</div>
               )}
+              
               {options.map((option) => (
-                <CommandItem
+                <div
                   key={option.value}
-                  value={option.value}
-                  onSelect={handleSelect}
-                  className="cursor-pointer"
+                  onClick={() => handleSelect(option.value)}
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-gray-100 hover:text-gray-900"
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
+                  <span className="mr-2 h-4 w-4 flex items-center justify-center">
+                    {value === option.value && <Check className="h-4 w-4" />}
+                  </span>
                   {option.label}
-                </CommandItem>
+                </div>
               ))}
-            </CommandGroup>
+            </div>
           </div>
         </PopoverContent>
       </Popover>
