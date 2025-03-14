@@ -77,6 +77,37 @@ interface CitySearchResult {
   label: string;
 }
 
+// Add this array of hardcoded cities near the top of the component, before the searchCities function
+// Add after the state declarations, around line 180
+  
+// Hardcoded major cities for fallback
+const majorCities: ComboboxOption[] = [
+  {
+    value: 'София|1000|68134',
+    label: 'София (1000)'
+  },
+  {
+    value: 'Пловдив|4000|16673',
+    label: 'Пловдив (4000)'
+  },
+  {
+    value: 'Варна|9000|10172',
+    label: 'Варна (9000)'
+  },
+  {
+    value: 'Бургас|8000|35183',
+    label: 'Бургас (8000)'
+  },
+  {
+    value: 'Стара Загора|6000|67338',
+    label: 'Стара Загора (6000)'
+  },
+  {
+    value: 'Русе|7000|54654',
+    label: 'Русе (7000)'
+  }
+];
+
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
   // Enhanced debug logging for cart data
   console.log('CheckoutForm rendered with props:', { 
@@ -267,16 +298,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setShippingCost(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS]);
   }, [selectedShippingMethod]);
   
-  // Search for cities/offices
+  // Replace the searchCities function with this improved version
   const searchCities = useCallback(async (term: string) => {
     if (!term || term.length < 2) {
       setCitySuggestions([]);
       return;
     }
-
-    setLoadingCities(true);
     
-    // Log search attempt for debugging
     console.log('Searching cities with term:', {
       term,
       length: term.length,
@@ -284,21 +312,48 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       encodedTerm: encodeURIComponent(term)
     });
     
+    const normalizedTerm = term.toLowerCase().trim();
+    
+    // Direct check for София and other major cities before API call
+    if (normalizedTerm === 'софия' || normalizedTerm === 'sofia') {
+      console.log('Direct match for София, using hardcoded data');
+      setCitySuggestions([majorCities[0]]);
+      return;
+    }
+    
+    // Check if search term matches any major city
+    const matchingMajorCities = majorCities.filter(city => 
+      city.label.toLowerCase().includes(normalizedTerm)
+    );
+    
+    if (matchingMajorCities.length > 0) {
+      console.log('Found matching major cities in hardcoded data:', matchingMajorCities.length);
+      // Only use hardcoded data if we have a very close match, otherwise proceed to API
+      if (matchingMajorCities.some(city => city.label.toLowerCase().startsWith(normalizedTerm))) {
+        setCitySuggestions(matchingMajorCities);
+        return;
+      }
+    }
+    
+    setLoadingCities(true);
+    
     try {
-      // Properly encode URL parameters for all browsers, especially important for Cyrillic
+      // First try API for more complete results
       const encodedTerm = encodeURIComponent(term);
       const apiUrl = `/api/speedy/search-site?term=${encodedTerm}`;
       
       console.log('Fetching from API URL:', apiUrl);
       
-      // Use fetch with improved error handling
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store'
+          'Cache-Control': 'no-cache, no-store', 
+          'Pragma': 'no-cache'
         },
+        // Add a short timeout to fail fast if API is not responding
+        signal: AbortSignal.timeout(5000)
       });
       
       console.log('API response status:', response.status);
@@ -326,34 +381,39 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         firstSite: data?.sites?.[0] || 'none'
       });
       
-      if (data.sites) {
+      if (data.sites && data.sites.length > 0) {
         const options: ComboboxOption[] = data.sites.map((site: CitySearchResult) => ({
           value: `${site.name}|${site.postCode}|${site.id}`,
           label: site.postCode ? `${site.name} (${site.postCode})` : site.name
         }));
         
-        console.log('Mapped suggestions:', {
-          count: options.length,
-          examples: options.slice(0, 2)
-        });
-        
+        console.log('Mapped suggestions from API:', options.length);
         setCitySuggestions(options);
       } else {
-        console.log('No sites found in response, setting empty suggestions');
-        setCitySuggestions([]);
+        // If API returned empty results but we had major cities matching, use those
+        if (matchingMajorCities.length > 0) {
+          console.log('API returned no results, using matching major cities');
+          setCitySuggestions(matchingMajorCities);
+        } else {
+          console.log('No results from API or hardcoded data');
+          setCitySuggestions([]);
+        }
       }
     } catch (error) {
       console.error('Error searching cities:', error);
       
-      // Show fallback suggestions for София if the API fails
-      if (term.toLowerCase().includes('софия') || term.toLowerCase().includes('sofia')) {
-        console.log('Providing fallback data for София');
-        const fallbackOptions: ComboboxOption[] = [{
-          value: 'София|1000|68134',
-          label: 'София (1000)'
-        }];
-        setCitySuggestions(fallbackOptions);
-      } else {
+      // If term matches any major city, use that data as fallback
+      if (matchingMajorCities.length > 0) {
+        console.log('API error, using matching major cities as fallback');
+        setCitySuggestions(matchingMajorCities);
+      } 
+      // Special case for София with slightly fuzzy matching
+      else if (normalizedTerm.includes('соф') || normalizedTerm.includes('sof')) {
+        console.log('API error, term contains "соф"/"sof", using София as fallback');
+        setCitySuggestions([majorCities[0]]);
+      } 
+      else {
+        console.log('API error, no matching major cities for fallback');
         setCitySuggestions([]);
       }
     } finally {
@@ -399,8 +459,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Update the debounced search function to be more mobile-friendly
   const debouncedSearchCities = useCallback(
     debounce((term: string) => {
-      // On mobile, search with just 1 character, otherwise require 2
+      // On mobile, search with just 1 character for better responsiveness
       const minSearchLength = isMobile ? 1 : 2;
+      
+      // For mobile, directly check if this is a search for Sofia without minimum length
+      if (isMobile) {
+        const normalizedTerm = term.toLowerCase().trim();
+        // Check for direct Sofia searches even with 1 character
+        if (normalizedTerm === 'с' || normalizedTerm === 's' || 
+            normalizedTerm.startsWith('соф') || normalizedTerm.startsWith('sof')) {
+          console.log(`Mobile special case for Sofia search: ${term}`);
+          searchCities(term);
+          return;
+        }
+      }
       
       if (term.length >= minSearchLength) {
         console.log(`Term meets ${minSearchLength} char threshold, searching cities:`, term);
@@ -409,7 +481,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         console.log('Term too short, clearing suggestions');
         setCitySuggestions([]);
       }
-    }, isMobile ? 200 : 300), // Faster debounce on mobile for more responsiveness
+    }, isMobile ? 150 : 300), // Even faster debounce on mobile for more responsiveness
     [searchCities, setCitySuggestions, isMobile]
   );
 

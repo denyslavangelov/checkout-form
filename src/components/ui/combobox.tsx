@@ -186,18 +186,22 @@ export function Combobox({
     }
     
     if (onSearch) {
-      // For mobile, we want to trigger search with fewer characters to be more responsive
-      // and prevent empty results when people might type a bit slower
+      // For mobile, we want to trigger search with just 1 character to be more responsive
       const minimumLength = isMobile ? 1 : 2;
       
-      // If the value is long enough, trigger search
-      if (value.length >= minimumLength) {
-        console.log(`Search term meets ${minimumLength} char threshold, triggering search`);
-        onSearch(value);
-      } else if (value.length === 0) {
-        // If the search field is cleared, reset the search
-        console.log('Search field cleared, resetting search');
-        onSearch('');
+      try {
+        // If the value is long enough, trigger search
+        if (value.length >= minimumLength) {
+          console.log(`Search term meets ${minimumLength} char threshold, triggering search`);
+          onSearch(value);
+        } else if (value.length === 0) {
+          // If the search field is cleared, reset the search
+          console.log('Search field cleared, resetting search');
+          onSearch('');
+        }
+      } catch (error) {
+        console.error('Error in search handler:', error);
+        // Continue normally even if search fails - we'll show error UI in the results area
       }
     }
   }, [onSearch, open, onChange, internalValue, isMobile]);
@@ -335,17 +339,18 @@ export function Combobox({
           <div className={`py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'mt-4' : ''}`}>
             <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
             <span className={isMobile ? "text-base font-medium" : "text-sm"}>
-              {searchValue.length >= 3 ? 
+              {searchValue.length >= 2 ? 
                 `${emptyText} за "${searchValue}"` : 
                 emptyText}
             </span>
             {isMobile && searchValue.length > 0 && (
               <div className="text-sm text-gray-400 mt-2">
-                <p className="mb-1">Опитайте с друго търсене или проверете:</p>
+                <p className="mb-1">Опитайте едно от следните:</p>
                 <ul className="text-left list-disc pl-5 mt-1">
-                  <li>Интернет връзката</li>
-                  <li>Правописа на думата</li>
-                  <li>Използвайте по-кратко търсене</li>
+                  <li>За София, въведете "соф" или "sofia"</li>
+                  <li>Изпробвайте по-кратко търсене</li>
+                  <li>Проверете интернет връзката</li>
+                  <li>Проверете правописа</li>
                 </ul>
               </div>
             )}
