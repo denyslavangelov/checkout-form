@@ -345,12 +345,11 @@ export function Combobox({
             </span>
             {isMobile && searchValue.length > 0 && (
               <div className="text-sm text-gray-400 mt-2">
-                <p className="mb-1">Опитайте едно от следните:</p>
+                <p className="mb-1">Опитайте една от следните опции:</p>
                 <ul className="text-left list-disc pl-5 mt-1">
-                  <li>За София, въведете "соф" или "sofia"</li>
-                  <li>Изпробвайте по-кратко търсене</li>
+                  <li>Различно изписване</li>
+                  <li>По-кратко търсене</li>
                   <li>Проверете интернет връзката</li>
-                  <li>Проверете правописа</li>
                 </ul>
               </div>
             )}
