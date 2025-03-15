@@ -321,7 +321,7 @@ export function Combobox({
     return (
       <>
         {loading && (
-          <div className={`text-gray-500 text-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-2 px-2'}`}>
+          <div className={`text-gray-500 text-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-0 px-2'}`}>
             {isMobile ? (
               <div className="flex flex-col items-center justify-center py-6">
                 <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-3" />
@@ -338,7 +338,7 @@ export function Combobox({
         )}
         
         {!loading && options.length === 0 && (
-          <div className={`text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-2 px-2'}`}>
+          <div className={`text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-0 px-2'}`}>
             <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
             <span className={isMobile ? "text-base font-medium" : "text-sm"}>
               {searchValue.length >= 2 ? 
@@ -359,7 +359,7 @@ export function Combobox({
         )}
         
         {!loading && options.length > 0 && (
-          <div className={isMobile ? "pb-6 mt-6 w-full" : "py-0"}>
+          <div className={isMobile ? "pb-6 mt-6 w-full" : "py-0 m-0"}>
             {options.map((option) => (
               <div
                 key={option.value}
@@ -371,7 +371,7 @@ export function Combobox({
                   internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
                   isMobile ? 
                     "py-4 px-4 text-base border-b border-gray-100 active:bg-blue-50/50 w-full flex-wrap overflow-hidden" : 
-                    "py-2 px-2 text-sm rounded-sm"
+                    "py-0.5 px-2 text-sm rounded-sm"
                 )}
               >
                 <span className={cn(
@@ -447,7 +447,7 @@ export function Combobox({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
-            <div className="flex items-center border-b px-3 sticky top-0 bg-white z-10">
+            <div className="flex items-center border-b border-gray-100 px-3 sticky top-0 bg-white z-10 mb-0">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <input
                 ref={inputRef}
@@ -459,7 +459,7 @@ export function Combobox({
                 autoComplete="off"
               />
             </div>
-            <div className="max-h-[300px] overflow-auto p-0">
+            <div className="max-h-[300px] overflow-auto p-0 -mt-2">
               {renderOptionsList()}
             </div>
           </div>
