@@ -270,7 +270,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Update the searchCities function to respect the mobile/desktop minimum length difference
   const searchCities = useCallback(async (term: string) => {
     // Mobile allows 1-character searches, desktop requires 2
-    const minSearchLength = isMobile ? 1 : 2;
+    const minSearchLength = 1;
     
     if (!term || term.length < minSearchLength) {
       setCitySuggestions([]);
@@ -391,7 +391,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       });
 
       setCitySuggestions([]);
-      
+
     } finally {
       setLoadingCities(false);
     }
@@ -435,7 +435,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Update the debounced search function to remove Sofia special handling
   const debouncedSearchCities = useCallback(
     debounce((term: string) => {
-      const minSearchLength = isMobile ? 1 : 2;
+      const minSearchLength = 1;
       
       if (term.length >= minSearchLength) {
         console.log(`Term meets ${minSearchLength} char threshold, searching cities:`, term);
