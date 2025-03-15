@@ -50,6 +50,7 @@ const formSchema = z.object({
   district: z.string().optional(),
   building: z.string().optional(),
   entrance: z.string().optional(),
+  floor: z.string().optional(),
   apartment: z.string().optional(),
   city: z.string().min(2, {
     message: "Градът трябва да бъде поне 2 символа.",
@@ -168,6 +169,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       district: "",
       building: "",
       entrance: "",
+      floor: "",
       apartment: "",
       city: "",
       postalCode: "",
@@ -933,6 +935,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       form.setValue('district', '');
       form.setValue('building', '');
       form.setValue('entrance', '');
+      form.setValue('floor', '');
       form.setValue('apartment', '');
       setStreetSuggestions([]);
       setFilteredStreetSuggestions([]);
@@ -1320,7 +1323,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             </FormLabel>
                             <FormControl>
                               <Input 
-                                placeholder="Номер" 
+                                placeholder="№" 
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
@@ -1357,7 +1360,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       />
                     </div>
 
-                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-3`}>
+                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
                       <FormField
                         control={form.control}
                         name="building"
@@ -1368,7 +1371,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             </FormLabel>
                             <FormControl>
                               <Input 
-                                placeholder="Блок" 
+                                placeholder="Бл." 
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
@@ -1391,7 +1394,30 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             </FormLabel>
                             <FormControl>
                               <Input 
-                                placeholder="Вход" 
+                                placeholder="Вх." 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="floor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Етаж
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Ет." 
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
@@ -1414,7 +1440,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             </FormLabel>
                             <FormControl>
                               <Input 
-                                placeholder="Апартамент" 
+                                placeholder="Ап." 
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
