@@ -267,39 +267,55 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setShippingCost(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS]);
   }, [selectedShippingMethod]);
   
-  // Add a function to provide fallbacks for common cities near the Sofia fallback
+  // Improve the getCommonCityFallbacks function to handle more search variations
   const getCommonCityFallbacks = (searchTerm: string): ComboboxOption[] => {
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase().trim();
     
-    // Sofia fallback
-    if (term.includes('соф') || term.includes('sof')) {
+    // Sofia variations
+    if (term.includes('соф') || term.includes('sof') || term === 'софия' || term === 'sofia' || term.startsWith('с')) {
       return [{
         value: 'София|1000|68134',
         label: 'София (1000)'
       }];
     }
     
-    // Plovdiv fallback
-    if (term.includes('плов') || term.includes('plov')) {
+    // Plovdiv variations
+    if (term.includes('плов') || term.includes('plov') || term === 'пловдив' || term === 'plovdiv' || term.startsWith('п')) {
       return [{
         value: 'Пловдив|4000|16673',
         label: 'Пловдив (4000)'
       }];
     }
     
-    // Varna fallback
-    if (term.includes('вар') || term.includes('var')) {
+    // Varna variations
+    if (term.includes('вар') || term.includes('var') || term === 'варна' || term === 'varna' || term.startsWith('в')) {
       return [{
         value: 'Варна|9000|10172',
         label: 'Варна (9000)'
       }];
     }
     
-    // Burgas fallback
-    if (term.includes('бур') || term.includes('bur')) {
+    // Burgas variations
+    if (term.includes('бур') || term.includes('bur') || term === 'бургас' || term === 'burgas' || term.startsWith('б')) {
       return [{
         value: 'Бургас|8000|35183',
         label: 'Бургас (8000)'
+      }];
+    }
+    
+    // Stara Zagora
+    if (term.includes('стар') || term.includes('заг') || term.includes('star') || term.includes('zag')) {
+      return [{
+        value: 'Стара Загора|6000|67338',
+        label: 'Стара Загора (6000)'
+      }];
+    }
+    
+    // Ruse
+    if (term.includes('рус') || term.includes('rus') || term === 'русе' || term === 'ruse') {
+      return [{
+        value: 'Русе|7000|54654',
+        label: 'Русе (7000)'
       }];
     }
     
@@ -414,6 +430,23 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           term,
           examples: options.slice(0, 3)
         });
+        
+        // ALWAYS check if we need to add major city fallbacks
+        const fallbacks = getCommonCityFallbacks(term);
+        if (fallbacks.length > 0) {
+          // Check if the fallback city is already in the results
+          const fallbackCityName = fallbacks[0].label.split(' ')[0]; // Get just the city name part
+          const cityAlreadyInResults = options.some(opt => 
+            opt.label.toLowerCase().startsWith(fallbackCityName.toLowerCase())
+          );
+          
+          if (!cityAlreadyInResults) {
+            console.log(`Adding major city "${fallbackCityName}" to results because it wasn't found in API results`);
+            // Add the fallback at the beginning of the results
+            setCitySuggestions([...fallbacks, ...options]);
+            return;
+          }
+        }
         
         setCitySuggestions(options);
       } else {
