@@ -264,6 +264,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   
   // Update shipping cost when shipping method changes
   useEffect(() => {
+    // Update the shipping cost
     setShippingCost(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS]);
   }, [selectedShippingMethod]);
   
@@ -479,7 +480,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         form.setValue('officePostalCode', '');
         setSelectedCityId(null);
         setOfficeSuggestions([]);
-        setFilteredOfficeSuggestions([]);
       } else if (fieldName === 'city') {
         form.setValue('postalCode', '');
       }
@@ -795,6 +795,30 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     setFilteredOfficeSuggestions(filtered);
   }, [officeSuggestions]);
+
+  // Clear relevant address fields when shipping method changes
+  useEffect(() => {
+    // Clear relevant address fields when shipping method changes
+    // This ensures users start fresh with each shipping method
+    form.setValue('officeCity', '');
+    form.setValue('officeAddress', '');
+    form.setValue('officePostalCode', '');
+    
+    // Clear personal address fields if relevant
+    if (selectedShippingMethod !== 'address') {
+      form.setValue('city', '');
+      form.setValue('postalCode', '');
+      form.setValue('address', '');
+    }
+    
+    // Reset the selected city ID and suggestions
+    setSelectedCityId(null);
+    setOfficeSuggestions([]);
+    setCitySuggestions([]);
+    setFilteredOfficeSuggestions([]);
+    
+    console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
+  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
