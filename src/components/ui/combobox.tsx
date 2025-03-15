@@ -319,7 +319,7 @@ export function Combobox({
     return (
       <>
         {loading && (
-          <div className={`py-6 px-3 text-gray-500 text-center ${isMobile ? 'mt-4' : ''}`}>
+          <div className={`py-6 px-3 text-gray-500 text-center ${isMobile ? 'mt-8' : ''}`}>
             {isMobile ? (
               <div className="flex flex-col items-center justify-center py-6">
                 <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-3" />
@@ -336,7 +336,7 @@ export function Combobox({
         )}
         
         {!loading && options.length === 0 && (
-          <div className={`py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'mt-4' : ''}`}>
+          <div className={`py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'mt-8' : ''}`}>
             <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
             <span className={isMobile ? "text-base font-medium" : "text-sm"}>
               {searchValue.length >= 2 ? 
@@ -357,7 +357,7 @@ export function Combobox({
         )}
         
         {!loading && options.length > 0 && (
-          <div className={isMobile ? "pb-6" : ""}>
+          <div className={isMobile ? "pb-6 mt-6" : ""}>
             {options.map((option) => (
               <div
                 key={option.value}
@@ -468,7 +468,7 @@ export function Combobox({
       {open && isMobile && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen">
           {/* Mobile header */}
-          <div className="flex items-center bg-white border-b p-2 h-14 sticky top-0 z-20 shadow-sm">
+          <div className="flex items-center bg-white border-b p-2 h-16 sticky top-0 z-20 shadow-md">
             <button 
               onClick={() => setOpen(false)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
@@ -485,7 +485,7 @@ export function Combobox({
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full h-10 pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
+                className="w-full h-11 pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
               />
               {searchValue && (
@@ -500,8 +500,11 @@ export function Combobox({
             </div>
           </div>
           
+          {/* Add a divider after the header */}
+          <div className="h-2 bg-gray-50 border-b border-gray-100"></div>
+          
           {/* Mobile search results - add padding to ensure content doesn't start immediately under header */}
-          <div className="flex-1 overflow-auto pt-2" ref={listRef}>
+          <div className="flex-1 overflow-auto pt-6" ref={listRef}>
             <div className="divide-y divide-gray-100">
               {renderOptionsList()}
             </div>
