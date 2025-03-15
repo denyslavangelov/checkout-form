@@ -526,6 +526,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       street.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
+    console.log("Filtered street suggestions:", {
+      original: streetSuggestions.length,
+      filtered: filtered.length,
+      searchTerm
+    });
+    
     setFilteredStreetSuggestions(filtered);
   }, [streetSuggestions]);
 
