@@ -41,6 +41,16 @@ const formSchema = z.object({
   address: z.string().min(5, {
     message: "Адресът трябва да бъде поне 5 символа.",
   }),
+  street: z.string().min(2, {
+    message: "Улицата трябва да бъде поне 2 символа.",
+  }).optional(),
+  number: z.string().min(1, {
+    message: "Моля, въведете номер.",
+  }).optional(),
+  district: z.string().optional(),
+  building: z.string().optional(),
+  entrance: z.string().optional(),
+  apartment: z.string().optional(),
   city: z.string().min(2, {
     message: "Градът трябва да бъде поне 2 символа.",
   }),
@@ -153,6 +163,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       lastName: "",
       phone: "",
       address: "",
+      street: "",
+      number: "",
+      district: "",
+      building: "",
+      entrance: "",
+      apartment: "",
       city: "",
       postalCode: "",
       shippingMethod: "speedy",
@@ -809,6 +825,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       form.setValue('city', '');
       form.setValue('postalCode', '');
       form.setValue('address', '');
+      form.setValue('street', '');
+      form.setValue('number', '');
+      form.setValue('district', '');
+      form.setValue('building', '');
+      form.setValue('entrance', '');
+      form.setValue('apartment', '');
     }
     
     // Reset the selected city ID and suggestions
@@ -1148,31 +1170,147 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       )}
                     />
 
-                        <FormField
-                          control={form.control}
-                          name="address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-black text-xs">
-                                Адрес<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
-                              <div className="flex items-center gap-2">
-                                {getShippingMethodIcon("address")}
-                                <FormControl className="flex-1">
-                                  <Input 
-                                    placeholder="Адрес" 
-                                    autoComplete="new-password"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    {...field}
-                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
-                              </div>
-                              <FormMessage className="text-red-500 text-xs" />
-                            </FormItem>
-                          )}
-                        />
+                    <FormField
+                      control={form.control}
+                      name="street"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-black text-xs">
+                            Улица<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Улица" 
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              spellCheck="false"
+                              {...field}
+                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                      <FormField
+                        control={form.control}
+                        name="number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Номер<span className="text-red-500 ml-0.5">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Номер" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="district"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Квартал
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Квартал" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-3`}>
+                      <FormField
+                        control={form.control}
+                        name="building"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Блок
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Блок" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="entrance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Вход
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Вход" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="apartment"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Апартамент
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Апартамент" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                       </>
                     )}
 
