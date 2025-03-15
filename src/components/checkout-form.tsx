@@ -287,6 +287,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [filteredDistrictSuggestions, setFilteredDistrictSuggestions] = useState<ComboboxOption[]>([]);
   
+  // State for tracking search input values
+  const [searchCity, setSearchCity] = useState("");
+  const [searchStreet, setSearchStreet] = useState("");
+  const [searchDistrict, setSearchDistrict] = useState("");
+  
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
   
@@ -392,9 +397,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       });
       
       if (data.sites && data.sites.length > 0) {
-        const options: ComboboxOption[] = data.sites.map((site: CitySearchResult) => ({
-          value: `${site.name}|${site.postCode}|${site.id}`,
-          label: site.postCode ? `${site.name} (${site.postCode})` : site.name
+        // Use the label from the API that includes the prefix
+        const options: ComboboxOption[] = data.sites.map((site: any) => ({
+          value: site.value,
+          label: site.label
         }));
         
         console.log('Mapped suggestions from API:', {
@@ -512,11 +518,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       const data = await response.json();
       
       if (data.streets && data.streets.length > 0) {
+        // Use the label from the API that includes the prefix
         const options: ComboboxOption[] = data.streets.map((street: any) => ({
-          value: `${street.id}|${street.name}|${street.districtName || ''}`,
-          label: street.districtName 
-            ? `${street.name} (${street.districtName})` 
-            : street.name
+          value: street.value,
+          label: street.label
         }));
         
         console.log('Street search results:', {
@@ -644,9 +649,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       const data = await response.json();
       
       if (data.districts && data.districts.length > 0) {
+        // Use the label from the API that includes the prefix
         const options: ComboboxOption[] = data.districts.map((district: any) => ({
-          value: `${district.id}|${district.name}`,
-          label: district.name
+          value: district.value,
+          label: district.label
         }));
         
         console.log('District search results:', {
@@ -1125,6 +1131,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       form.setValue('apartment', '');
       setStreetSuggestions([]);
       setFilteredStreetSuggestions([]);
+      setDistrictSuggestions([]);
+      setFilteredDistrictSuggestions([]);
     }
     
     // Reset the selected city ID and suggestions
@@ -1132,9 +1140,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setOfficeSuggestions([]);
     setCitySuggestions([]);
     setFilteredOfficeSuggestions([]);
+    setSearchCity("");
+    setSearchStreet("");
+    setSearchDistrict("");
     
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
-  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
+  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions, setDistrictSuggestions, setFilteredDistrictSuggestions]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1351,10 +1362,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                     console.log("City search term in form:", value);
                                     // Already handled by debouncedSearchCities which is mobile-aware
                                     debouncedSearchCities(value);
+                                    setSearchCity(value);
                                   }}
                                   placeholder="Търсете населено място"
                                   loading={loadingCities}
-                                  emptyText={isMobile ? "Няма намерени градове" : "Няма намерени резултати"}
+                                  emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
                                   className="border-gray-200 focus:border-gray-400"
                                   type="city"
                                   isMobile={isMobile}
@@ -1450,10 +1462,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 console.log("Personal address city search term in form:", value);
                                 // Already handled by debouncedSearchCities which is mobile-aware
                                 debouncedSearchCities(value);
+                                setSearchCity(value);
                               }}
                               placeholder="Търсете населено място"
                               loading={loadingCities}
-                              emptyText={isMobile ? "Няма намерени градове" : "Няма намерени резултати"}
+                              emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
                               className="border-gray-200 focus:border-gray-400"
                               type="city"
                               isMobile={isMobile}
@@ -1488,10 +1501,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   filteredStreets: filteredStreetSuggestions.length
                                 });
                                 handleStreetSearch(value);
+                                setSearchStreet(value);
                               }}
                               placeholder="Търсете улица"
                               loading={loadingStreets}
-                              emptyText={selectedCityId ? "Няма намерени улици" : "Първо изберете град"}
+                              emptyText={!selectedCityId ? "Първо изберете град" : (!searchStreet ? "Започнете да пишете" : "Няма намерени улици")}
                               disabled={!selectedCityId}
                               className="border-gray-200 focus:border-gray-400"
                               type="default"
@@ -1551,10 +1565,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                     filteredDistricts: filteredDistrictSuggestions.length
                                   });
                                   handleDistrictSearch(value);
+                                  setSearchDistrict(value);
                                 }}
                                 placeholder="Търсете квартал"
                                 loading={loadingDistricts}
-                                emptyText={selectedCityId ? "Няма намерени квартали" : "Първо изберете град"}
+                                emptyText={!selectedCityId ? "Първо изберете град" : (!searchDistrict ? "Започнете да пишете" : "Няма намерени квартали")}
                                 disabled={!selectedCityId}
                                 className="border-gray-200 focus:border-gray-400"
                                 type="default"
