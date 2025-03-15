@@ -275,6 +275,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const [loadingOffices, setLoadingOffices] = useState(false);
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
   
+  // State for street search
+  const [streetSuggestions, setStreetSuggestions] = useState<ComboboxOption[]>([]);
+  const [loadingStreets, setLoadingStreets] = useState(false);
+  const [filteredStreetSuggestions, setFilteredStreetSuggestions] = useState<ComboboxOption[]>([]);
+  
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
   
@@ -465,6 +470,89 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     [searchCities, setCitySuggestions, isMobile]
   );
 
+  // Search for streets in a city
+  const searchStreets = useCallback(async (siteId: string) => {
+    if (!siteId) {
+      setStreetSuggestions([]);
+      return;
+    }
+
+    setLoadingStreets(true);
+    try {
+      const response = await fetch(`/api/speedy/search-street?siteId=${encodeURIComponent(siteId)}`);
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      if (data.streets && data.streets.length > 0) {
+        const options: ComboboxOption[] = data.streets.map((street: any) => ({
+          value: `${street.id}|${street.name}|${street.districtName || ''}`,
+          label: street.districtName 
+            ? `${street.name} (${street.districtName})` 
+            : street.name
+        }));
+        
+        setStreetSuggestions(options);
+        setFilteredStreetSuggestions(options);
+      } else {
+        setStreetSuggestions([]);
+        setFilteredStreetSuggestions([]);
+      }
+    } catch (error) {
+      console.error('Error searching streets:', error);
+      setStreetSuggestions([]);
+      setFilteredStreetSuggestions([]);
+    } finally {
+      setLoadingStreets(false);
+    }
+  }, []);
+
+  // Handle street search filtering
+  const handleStreetSearch = useCallback((searchTerm: string) => {
+    console.log("Street search term:", searchTerm);
+    
+    if (!searchTerm || searchTerm.length < 2) {
+      setFilteredStreetSuggestions(streetSuggestions);
+      return;
+    }
+    
+    // Filter streets based on search term
+    const filtered = streetSuggestions.filter(street => 
+      street.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    setFilteredStreetSuggestions(filtered);
+  }, [streetSuggestions]);
+
+  // Handle street selection
+  const handleStreetSelected = (streetValue: string) => {
+    if (streetValue) {
+      const [streetId, streetName, districtName] = streetValue.split('|');
+      
+      // Set street and district values
+      form.setValue('street', streetName);
+      
+      // If district is provided, set it
+      if (districtName) {
+        form.setValue('district', districtName);
+      }
+      
+      console.log('Setting street value:', {
+        originalValue: streetValue,
+        extractedStreetName: streetName,
+        extractedDistrictName: districtName
+      });
+    }
+  };
+
+  // Update effect to initialize filtered street suggestions when original suggestions change
+  useEffect(() => {
+    setFilteredStreetSuggestions(streetSuggestions);
+  }, [streetSuggestions]);
+
   const handleCitySelected = (cityValue: string, fieldName: string) => {
     if (cityValue) {
       const [cityName, postalCode, cityId] = cityValue.split('|');
@@ -475,6 +563,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       // If this is for personal address, also set postal code if available
       if (fieldName === 'city' && postalCode) {
         form.setValue('postalCode', postalCode);
+        
+        // If this is for personal address and we have a cityId, fetch streets
+        if (selectedShippingMethod === 'address' && cityId) {
+          setSelectedCityId(cityId);
+          
+          // Fetch streets for this city
+          searchStreets(cityId);
+        }
       }
       
       // For office selection, store the city ID for office search and set postal code
@@ -498,6 +594,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         setOfficeSuggestions([]);
       } else if (fieldName === 'city') {
         form.setValue('postalCode', '');
+        form.setValue('street', '');
+        form.setValue('district', '');
+        setStreetSuggestions([]);
+        setFilteredStreetSuggestions([]);
+        if (selectedShippingMethod === 'address') {
+          setSelectedCityId(null);
+        }
       }
       form.setValue(fieldName as keyof z.infer<typeof formSchema>, '');
     }
@@ -831,6 +934,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       form.setValue('building', '');
       form.setValue('entrance', '');
       form.setValue('apartment', '');
+      setStreetSuggestions([]);
+      setFilteredStreetSuggestions([]);
     }
     
     // Reset the selected city ID and suggestions
@@ -840,7 +945,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setFilteredOfficeSuggestions([]);
     
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
-  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions]);
+  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1178,16 +1283,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           <FormLabel className="text-black text-xs">
                             Улица<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Улица" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                              {...field}
-                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                          <div className="flex-1">
+                            <Combobox
+                              options={filteredStreetSuggestions}
+                              value={field.value || ""}
+                              onChange={(value) => {
+                                console.log("Street selected in form:", value);
+                                handleStreetSelected(value);
+                              }}
+                              onSearch={(value) => {
+                                console.log("Street search term in form:", value);
+                                handleStreetSearch(value);
+                              }}
+                              placeholder="Търсете улица"
+                              loading={loadingStreets}
+                              emptyText={selectedCityId ? "Няма намерени улици" : "Първо изберете град"}
+                              disabled={!selectedCityId}
+                              className="border-gray-200 focus:border-gray-400"
+                              type="default"
+                              isMobile={isMobile}
                             />
-                          </FormControl>
+                          </div>
                           <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
                       )}
