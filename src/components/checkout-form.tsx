@@ -1090,45 +1090,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       <>
                     <FormField
                       control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                              <FormLabel className="text-black text-xs">
-                            Град<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                              <div className="flex-1">
-                                <Combobox
-                                  options={citySuggestions}
-                                  value={field.value || ""}
-                                  onChange={(value) => {
-                                    console.log("Personal address city selected in form:", value);
-                                    handleCitySelected(value, 'city');
-                                  }}
-                                  onSearch={(value) => {
-                                    console.log("Personal address city search term in form:", value);
-                                    // Already handled by debouncedSearchCities which is mobile-aware
-                                    debouncedSearchCities(value);
-                                  }}
-                                  placeholder="Търсете населено място"
-                                  loading={loadingCities}
-                                  emptyText={isMobile ? "Няма намерени градове" : "Няма намерени резултати"}
-                                  className="border-gray-200 focus:border-gray-400"
-                                  type="city"
-                                  isMobile={isMobile}
-                                />
-                              </div>
-                              <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                        {form.watch('city') && (
-                    <FormField
-                      control={form.control}
                       name="postalCode"
                       render={({ field }) => (
                         <FormItem>
-                                <FormLabel className="text-black text-xs">
+                          <FormLabel className="text-black text-xs">
                             Пощенски код<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
                           <FormControl>
@@ -1137,15 +1102,49 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               autoComplete="new-password"
                               autoCorrect="off"
                               spellCheck="false"
+                              disabled
                               {...field}
-                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-red-500 text-xs" />
-                              </FormItem>
-                            )}
-                          />
-                        )}
+                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-black text-xs">
+                            Град<span className="text-red-500 ml-0.5">*</span>
+                          </FormLabel>
+                          <div className="flex-1">
+                            <Combobox
+                              options={citySuggestions}
+                              value={field.value || ""}
+                              onChange={(value) => {
+                                console.log("Personal address city selected in form:", value);
+                                handleCitySelected(value, 'city');
+                              }}
+                              onSearch={(value) => {
+                                console.log("Personal address city search term in form:", value);
+                                // Already handled by debouncedSearchCities which is mobile-aware
+                                debouncedSearchCities(value);
+                              }}
+                              placeholder="Търсете населено място"
+                              loading={loadingCities}
+                              emptyText={isMobile ? "Няма намерени градове" : "Няма намерени резултати"}
+                              className="border-gray-200 focus:border-gray-400"
+                              type="city"
+                              isMobile={isMobile}
+                            />
+                          </div>
+                          <FormMessage className="text-red-500 text-xs" />
+                        </FormItem>
+                      )}
+                    />
 
                         <FormField
                           control={form.control}
