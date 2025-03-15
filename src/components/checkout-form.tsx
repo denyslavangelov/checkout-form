@@ -1088,29 +1088,31 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       </>
                     ) : (
                       <>
-                    <FormField
-                      control={form.control}
-                      name="postalCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-black text-xs">
-                            Пощенски код<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Пощенски код" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                              disabled
-                              {...field}
-                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
+                    {form.watch('city') && (
+                      <FormField
+                        control={form.control}
+                        name="postalCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Пощенски код<span className="text-red-500 ml-0.5">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Пощенски код" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                disabled
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <FormField
                       control={form.control}
