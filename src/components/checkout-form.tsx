@@ -577,6 +577,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       return;
     }
     
+    // Only show suggestions when the user has typed something
+    if (!searchTerm) {
+      setFilteredStreetSuggestions([]);
+      return;
+    }
+    
     debouncedSearchStreets(selectedCityId, searchTerm);
   }, [selectedCityId, debouncedSearchStreets]);
 
@@ -611,8 +617,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Update effect to initialize filtered street suggestions when original suggestions change
   useEffect(() => {
     console.log(`Street suggestions updated: ${streetSuggestions.length} items`);
-    setFilteredStreetSuggestions(streetSuggestions);
-  }, [streetSuggestions]);
+    // Only show filtered suggestions when there's a search term
+    if (!searchStreet) {
+      setFilteredStreetSuggestions([]);
+    } else {
+      setFilteredStreetSuggestions(streetSuggestions);
+    }
+  }, [streetSuggestions, searchStreet]);
 
   // Search for districts in a city
   const searchDistricts = useCallback(async (siteId: string, term: string = '') => {
@@ -708,6 +719,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       return;
     }
     
+    // Only show suggestions when the user has typed something
+    if (!searchTerm) {
+      setFilteredDistrictSuggestions([]);
+      return;
+    }
+    
     debouncedSearchDistricts(selectedCityId, searchTerm);
   }, [selectedCityId, debouncedSearchDistricts]);
 
@@ -734,8 +751,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Update effect to initialize filtered district suggestions when original suggestions change
   useEffect(() => {
     console.log(`District suggestions updated: ${districtSuggestions.length} items`);
-    setFilteredDistrictSuggestions(districtSuggestions);
-  }, [districtSuggestions]);
+    // Only show filtered suggestions when there's a search term
+    if (!searchDistrict) {
+      setFilteredDistrictSuggestions([]);
+    } else {
+      setFilteredDistrictSuggestions(districtSuggestions);
+    }
+  }, [districtSuggestions, searchDistrict]);
 
   // Handle city selection
   const handleCitySelected = (cityValue: string, fieldName: string) => {
@@ -1532,6 +1554,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
+                                disabled={!selectedCityId}
                                 {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
@@ -1597,6 +1620,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
+                                disabled={!selectedCityId}
                                 {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
@@ -1620,6 +1644,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
+                                disabled={!selectedCityId}
                                 {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
@@ -1643,6 +1668,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
+                                disabled={!selectedCityId}
                                 {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
@@ -1666,6 +1692,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 autoComplete="new-password"
                                 autoCorrect="off"
                                 spellCheck="false"
+                                disabled={!selectedCityId}
                                 {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
