@@ -525,44 +525,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, []);
 
-  // Update the debounced search function to remove Sofia special handling
-  const debouncedSearchCities = useCallback(
-    debounce((term: string) => {
-      const minSearchLength = isMobile ? 1 : 2;
-      
-      // Special case for mobile - single letter searches for major cities
-      if (isMobile && term.length === 1) {
-        const firstChar = term.toLowerCase();
-        // Map of first letters to city prefixes
-        const cityInitials: Record<string, string> = {
-          'с': 'соф', // Sofia
-          's': 'sof', // Sofia (Latin)
-          'п': 'плов', // Plovdiv
-          'p': 'plov', // Plovdiv (Latin)
-          'в': 'вар', // Varna
-          'v': 'var', // Varna (Latin)
-          'б': 'бур', // Burgas
-          'b': 'bur'  // Burgas (Latin)
-        };
-        
-        if (cityInitials[firstChar]) {
-          console.log(`Mobile special case: First letter "${firstChar}" mapped to "${cityInitials[firstChar]}"`);
-          searchCities(cityInitials[firstChar]);
-          return;
-        }
-      }
-      
-      if (term.length >= minSearchLength) {
-        console.log(`Term meets ${minSearchLength} char threshold, searching cities:`, term);
-        searchCities(term);
-      } else {
-        console.log('Term too short, clearing suggestions');
-        setCitySuggestions([]);
-      }
-    }, isMobile ? 150 : 300),
-    [searchCities, setCitySuggestions, isMobile]
-  );
-
   const handleCitySelected = (cityValue: string, fieldName: string) => {
     if (cityValue) {
       const [cityName, postalCode, cityId] = cityValue.split('|');
@@ -1124,8 +1086,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   }}
                                   onSearch={(value) => {
                                     console.log("City search term in form:", value);
-                                    // Already handled by debouncedSearchCities which is mobile-aware
-                                    debouncedSearchCities(value);
                                   }}
                                   placeholder="Търсете населено място"
                                   loading={loadingCities}
@@ -1197,8 +1157,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   }}
                                   onSearch={(value) => {
                                     console.log("Personal address city search term in form:", value);
-                                    // Already handled by debouncedSearchCities which is mobile-aware
-                                    debouncedSearchCities(value);
                                   }}
                                   placeholder="Търсете населено място"
                                   loading={loadingCities}
