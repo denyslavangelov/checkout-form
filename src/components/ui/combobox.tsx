@@ -257,14 +257,16 @@ export function Combobox({
           {optionType === 'city' && (
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
-          <span className="font-medium text-blue-800 truncate overflow-hidden">{selectedOption.label.split(':')[0]}</span>
+          <span className={`font-medium text-blue-800 truncate overflow-hidden ${isMobile ? 'max-w-[75%]' : ''}`}>
+            {selectedOption.label.split(':')[0]}
+          </span>
         </div>
       )
     }
     
     // If no selection, show placeholder
     return <span className="text-gray-500">{placeholder}</span>
-  }, [internalValue, options, placeholder, type])
+  }, [internalValue, options, placeholder, type, isMobile])
 
   // Debug logging
   React.useEffect(() => {
@@ -319,7 +321,7 @@ export function Combobox({
     return (
       <>
         {loading && (
-          <div className={`py-6 px-3 text-gray-500 text-center ${isMobile ? 'mt-8' : ''}`}>
+          <div className={`text-gray-500 text-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-2 px-2'}`}>
             {isMobile ? (
               <div className="flex flex-col items-center justify-center py-6">
                 <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-3" />
@@ -336,7 +338,7 @@ export function Combobox({
         )}
         
         {!loading && options.length === 0 && (
-          <div className={`py-6 px-3 text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'mt-8' : ''}`}>
+          <div className={`text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-2 px-2'}`}>
             <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
             <span className={isMobile ? "text-base font-medium" : "text-sm"}>
               {searchValue.length >= 2 ? 
@@ -357,7 +359,7 @@ export function Combobox({
         )}
         
         {!loading && options.length > 0 && (
-          <div className={isMobile ? "pb-6 mt-6" : ""}>
+          <div className={isMobile ? "pb-6 mt-6 w-full" : "py-0"}>
             {options.map((option) => (
               <div
                 key={option.value}
@@ -368,7 +370,7 @@ export function Combobox({
                   "hover:bg-gray-100 hover:text-gray-900",
                   internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
                   isMobile ? 
-                    "py-4 px-4 text-base border-b border-gray-100 active:bg-blue-50/50" : 
+                    "py-4 px-4 text-base border-b border-gray-100 active:bg-blue-50/50 w-full flex-wrap overflow-hidden" : 
                     "py-2 px-2 text-sm rounded-sm"
                 )}
               >
@@ -382,7 +384,7 @@ export function Combobox({
                     getOptionIcon(option)
                   )}
                 </span>
-                <span className="truncate">{option.label}</span>
+                <span className={isMobile ? "truncate max-w-[80%] break-words" : "truncate"}>{option.label}</span>
               </div>
             ))}
           </div>
@@ -407,12 +409,12 @@ export function Combobox({
           "hover:bg-gray-100/50",
           internalValue && "bg-blue-50/80 border-blue-200",
           disabled && "opacity-50 cursor-not-allowed",
-          isMobile ? "h-11 text-base" : "h-9", // Larger height on mobile
+          isMobile ? "h-11 text-base min-h-[2.75rem] overflow-hidden" : "h-9", // Improved mobile handling
           className
         )}
         disabled={disabled}
       >
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {displayValue}
         </div>
         {internalValue && !disabled && (
@@ -457,7 +459,7 @@ export function Combobox({
                 autoComplete="off"
               />
             </div>
-            <div className="max-h-[300px] overflow-auto p-1">
+            <div className="max-h-[300px] overflow-auto p-0">
               {renderOptionsList()}
             </div>
           </div>
@@ -466,9 +468,9 @@ export function Combobox({
       
       {/* Mobile fullscreen search view */}
       {open && isMobile && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen">
+        <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen max-w-full overflow-hidden">
           {/* Mobile header */}
-          <div className="flex items-center bg-white border-b p-2 h-16 sticky top-0 z-20 shadow-md">
+          <div className="flex items-center bg-white border-b p-2 h-16 sticky top-0 z-20 shadow-md w-full">
             <button 
               onClick={() => setOpen(false)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
@@ -504,8 +506,8 @@ export function Combobox({
           <div className="h-2 bg-gray-50 border-b border-gray-100"></div>
           
           {/* Mobile search results - add padding to ensure content doesn't start immediately under header */}
-          <div className="flex-1 overflow-auto pt-6" ref={listRef}>
-            <div className="divide-y divide-gray-100">
+          <div className="flex-1 overflow-auto overflow-x-hidden pt-6 w-full" ref={listRef}>
+            <div className="divide-y divide-gray-100 w-full">
               {renderOptionsList()}
             </div>
           </div>
