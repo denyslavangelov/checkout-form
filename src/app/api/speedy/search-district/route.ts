@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       requestBody.name = term;
     }
 
-    const response = await fetch('https://api.speedy.bg/v1/location/quarter', {
+    const response = await fetch('https://api.speedy.bg/v1/location/complex', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -50,17 +50,17 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    console.log(`District search response for term "${term || '(empty)'}" returned ${data.quarters?.length || 0} results`);
+    console.log(`District search response for term "${term || '(empty)'}" returned ${data.complexes?.length || 0} results`);
 
     // Format districts for autocomplete
-    const districts = data.quarters?.map((quarter: any) => {
+    const districts = data.complexes?.map((complex: any) => {
       return {
-        id: quarter.id,
-        name: quarter.name,
-        siteId: quarter.siteId,
-        siteName: quarter.siteName,
-        value: `${quarter.id}|${quarter.name}`,
-        label: quarter.name
+        id: complex.id,
+        name: complex.name,
+        siteId: complex.siteId,
+        siteName: complex.siteName,
+        value: `${complex.id}|${complex.name}`,
+        label: complex.name
       };
     }) || [];
 
