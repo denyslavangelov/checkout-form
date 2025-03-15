@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const siteId = searchParams.get('siteId');
+  const term = searchParams.get('term') || '';
   
   // Get credentials from environment variables
   const username = process.env.SPEEDY_USERNAME || "1904618";
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log('Searching for streets in site:', siteId);
+    console.log('Searching for streets in site:', siteId, 'with term:', term);
     
     const response = await fetch('https://api.speedy.bg/v1/location/street', {
       method: 'POST',
@@ -28,7 +29,8 @@ export async function GET(request: Request) {
         password: password,
         language: 'bg',
         siteId: parseInt(siteId),
-        countryId: 100
+        countryId: 100,
+        name: term || undefined // Only include name if term is provided
       })
     });
     
@@ -42,7 +44,10 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    console.log('Speedy Streets API response:', data);
+    console.log('Speedy Streets API response:', {
+      term,
+      streetsCount: data.streets?.length || 0
+    });
 
     // Format the streets for autocomplete
     const formattedStreets = data.streets?.map((street: any) => ({

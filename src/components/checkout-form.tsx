@@ -282,6 +282,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const [loadingStreets, setLoadingStreets] = useState(false);
   const [filteredStreetSuggestions, setFilteredStreetSuggestions] = useState<ComboboxOption[]>([]);
   
+  // State for district search
+  const [districtSuggestions, setDistrictSuggestions] = useState<ComboboxOption[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [filteredDistrictSuggestions, setFilteredDistrictSuggestions] = useState<ComboboxOption[]>([]);
+  
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
   
@@ -473,15 +478,32 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   );
 
   // Search for streets in a city
-  const searchStreets = useCallback(async (siteId: string) => {
+  const searchStreets = useCallback(async (siteId: string, term: string = '') => {
     if (!siteId) {
       setStreetSuggestions([]);
+      setFilteredStreetSuggestions([]);
       return;
     }
 
     setLoadingStreets(true);
     try {
-      const response = await fetch(`/api/speedy/search-street?siteId=${encodeURIComponent(siteId)}`);
+      // Add the term parameter to the API call
+      const encodedTerm = encodeURIComponent(term);
+      const cacheBuster = `&_t=${Date.now()}`;
+      const requestUrl = `/api/speedy/search-street?siteId=${encodeURIComponent(siteId)}${term ? `&term=${encodedTerm}` : ''}${cacheBuster}`;
+      
+      console.log('Street search request URL:', requestUrl);
+      
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store', 
+          'Pragma': 'no-cache'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
       
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -497,9 +519,16 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             : street.name
         }));
         
+        console.log('Street search results:', {
+          term,
+          count: options.length,
+          firstStreet: options[0]?.label || 'none'
+        });
+        
         setStreetSuggestions(options);
         setFilteredStreetSuggestions(options);
       } else {
+        console.log('No streets found for search term:', term);
         setStreetSuggestions([]);
         setFilteredStreetSuggestions([]);
       }
@@ -512,43 +541,39 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, []);
 
-  // Handle street search filtering
+  // Use debounced search for streets
+  const debouncedSearchStreets = useCallback(
+    debounce((siteId: string, term: string) => {
+      const minSearchLength = isMobile ? 1 : 2;
+      
+      // If the term is empty or too short, fetch all streets
+      if (!term || term.length < minSearchLength) {
+        if (!term) {
+          console.log('Empty street search term, fetching all streets');
+          searchStreets(siteId);
+        } else {
+          console.log('Street search term too short, waiting for more input');
+        }
+        return;
+      }
+      
+      console.log(`Debounced street search with term: "${term}" for siteId: ${siteId}`);
+      searchStreets(siteId, term);
+    }, isMobile ? 150 : 300),
+    [searchStreets, isMobile]
+  );
+
+  // Handle search in the street combobox
   const handleStreetSearch = useCallback((searchTerm: string) => {
     console.log("Street search term:", searchTerm);
     
-    // Always update filtered suggestions, even for short or empty searches
-    if (!searchTerm) {
-      console.log("Empty search term, showing all streets");
-      setFilteredStreetSuggestions(streetSuggestions);
+    if (!selectedCityId) {
+      console.log("No city selected, cannot search for streets");
       return;
     }
     
-    // Convert to lowercase for case-insensitive search
-    const searchTermLower = searchTerm.toLowerCase();
-    
-    // Filter streets based on search term
-    const filtered = streetSuggestions.filter(street => 
-      street.label.toLowerCase().includes(searchTermLower)
-    );
-    
-    console.log("Filtered street suggestions:", {
-      original: streetSuggestions.length,
-      filtered: filtered.length,
-      searchTerm,
-      firstStreet: filtered.length > 0 ? filtered[0].label : 'none'
-    });
-    
-    setFilteredStreetSuggestions(filtered);
-  }, [streetSuggestions]);
-
-  // Create a debounced version of the street search handler
-  const debouncedSearchStreets = useCallback(
-    debounce((term: string) => {
-      console.log(`Debounced street search with term: "${term}"`);
-      handleStreetSearch(term);
-    }, isMobile ? 150 : 300),
-    [handleStreetSearch, isMobile]
-  );
+    debouncedSearchStreets(selectedCityId, searchTerm);
+  }, [selectedCityId, debouncedSearchStreets]);
 
   // Handle street selection
   const handleStreetSelected = (streetValue: string) => {
@@ -577,6 +602,123 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setFilteredStreetSuggestions(streetSuggestions);
   }, [streetSuggestions]);
 
+  // Search for districts in a city
+  const searchDistricts = useCallback(async (siteId: string, term: string = '') => {
+    if (!siteId) {
+      setDistrictSuggestions([]);
+      setFilteredDistrictSuggestions([]);
+      return;
+    }
+
+    setLoadingDistricts(true);
+    try {
+      // Add the term parameter to the API call
+      const encodedTerm = encodeURIComponent(term);
+      const cacheBuster = `&_t=${Date.now()}`;
+      const requestUrl = `/api/speedy/search-district?siteId=${encodeURIComponent(siteId)}${term ? `&term=${encodedTerm}` : ''}${cacheBuster}`;
+      
+      console.log('District search request URL:', requestUrl);
+      
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store', 
+          'Pragma': 'no-cache'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      if (data.districts && data.districts.length > 0) {
+        const options: ComboboxOption[] = data.districts.map((district: any) => ({
+          value: `${district.id}|${district.name}`,
+          label: district.name
+        }));
+        
+        console.log('District search results:', {
+          term,
+          count: options.length,
+          firstDistrict: options[0]?.label || 'none'
+        });
+        
+        setDistrictSuggestions(options);
+        setFilteredDistrictSuggestions(options);
+      } else {
+        console.log('No districts found for search term:', term);
+        setDistrictSuggestions([]);
+        setFilteredDistrictSuggestions([]);
+      }
+    } catch (error) {
+      console.error('Error searching districts:', error);
+      setDistrictSuggestions([]);
+      setFilteredDistrictSuggestions([]);
+    } finally {
+      setLoadingDistricts(false);
+    }
+  }, []);
+
+  // Use debounced search for districts
+  const debouncedSearchDistricts = useCallback(
+    debounce((siteId: string, term: string) => {
+      const minSearchLength = isMobile ? 1 : 2;
+      
+      // If the term is empty or too short, fetch all districts
+      if (!term || term.length < minSearchLength) {
+        if (!term) {
+          console.log('Empty district search term, fetching all districts');
+          searchDistricts(siteId);
+        } else {
+          console.log('District search term too short, waiting for more input');
+        }
+        return;
+      }
+      
+      console.log(`Debounced district search with term: "${term}" for siteId: ${siteId}`);
+      searchDistricts(siteId, term);
+    }, isMobile ? 150 : 300),
+    [searchDistricts, isMobile]
+  );
+
+  // Handle search in the district combobox
+  const handleDistrictSearch = useCallback((searchTerm: string) => {
+    console.log("District search term:", searchTerm);
+    
+    if (!selectedCityId) {
+      console.log("No city selected, cannot search for districts");
+      return;
+    }
+    
+    debouncedSearchDistricts(selectedCityId, searchTerm);
+  }, [selectedCityId, debouncedSearchDistricts]);
+
+  // Handle district selection
+  const handleDistrictSelected = (districtValue: string) => {
+    if (districtValue) {
+      const [districtId, districtName] = districtValue.split('|');
+      
+      // Set district value
+      form.setValue('district', districtName);
+      
+      console.log('Setting district value:', {
+        originalValue: districtValue,
+        extractedDistrictName: districtName
+      });
+    }
+  };
+
+  // Update effect to initialize filtered district suggestions when original suggestions change
+  useEffect(() => {
+    console.log(`District suggestions updated: ${districtSuggestions.length} items`);
+    setFilteredDistrictSuggestions(districtSuggestions);
+  }, [districtSuggestions]);
+
   const handleCitySelected = (cityValue: string, fieldName: string) => {
     if (cityValue) {
       const [cityName, postalCode, cityId] = cityValue.split('|');
@@ -592,8 +734,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         if (selectedShippingMethod === 'address' && cityId) {
           setSelectedCityId(cityId);
           
-          // Fetch streets for this city
+          // Fetch all streets for this city (empty search term = all streets)
           searchStreets(cityId);
+          
+          // Fetch all districts for this city
+          searchDistricts(cityId);
         }
       }
       
@@ -622,6 +767,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         form.setValue('district', '');
         setStreetSuggestions([]);
         setFilteredStreetSuggestions([]);
+        setDistrictSuggestions([]);
+        setFilteredDistrictSuggestions([]);
         if (selectedShippingMethod === 'address') {
           setSelectedCityId(null);
         }
@@ -1323,7 +1470,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   totalStreets: streetSuggestions.length,
                                   filteredStreets: filteredStreetSuggestions.length
                                 });
-                                // Even with 1 character, let's show search results
                                 handleStreetSearch(value);
                               }}
                               placeholder="Търсете улица"
@@ -1372,16 +1518,32 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             <FormLabel className="text-black text-xs">
                               Квартал
                             </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Квартал" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                            <div className="flex-1">
+                              <Combobox
+                                options={filteredDistrictSuggestions}
+                                value={field.value || ""}
+                                onChange={(value) => {
+                                  console.log("District selected in form:", value);
+                                  handleDistrictSelected(value);
+                                }}
+                                onSearch={(value) => {
+                                  console.log("District search term in form:", {
+                                    term: value,
+                                    length: value.length,
+                                    totalDistricts: districtSuggestions.length,
+                                    filteredDistricts: filteredDistrictSuggestions.length
+                                  });
+                                  handleDistrictSearch(value);
+                                }}
+                                placeholder="Търсете квартал"
+                                loading={loadingDistricts}
+                                emptyText={selectedCityId ? "Няма намерени квартали" : "Първо изберете град"}
+                                disabled={!selectedCityId}
+                                className="border-gray-200 focus:border-gray-400"
+                                type="default"
+                                isMobile={isMobile}
                               />
-                            </FormControl>
+                            </div>
                             <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
