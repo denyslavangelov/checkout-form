@@ -516,24 +516,39 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const handleStreetSearch = useCallback((searchTerm: string) => {
     console.log("Street search term:", searchTerm);
     
-    if (!searchTerm || searchTerm.length < 2) {
+    // Always update filtered suggestions, even for short or empty searches
+    if (!searchTerm) {
+      console.log("Empty search term, showing all streets");
       setFilteredStreetSuggestions(streetSuggestions);
       return;
     }
     
+    // Convert to lowercase for case-insensitive search
+    const searchTermLower = searchTerm.toLowerCase();
+    
     // Filter streets based on search term
     const filtered = streetSuggestions.filter(street => 
-      street.label.toLowerCase().includes(searchTerm.toLowerCase())
+      street.label.toLowerCase().includes(searchTermLower)
     );
     
     console.log("Filtered street suggestions:", {
       original: streetSuggestions.length,
       filtered: filtered.length,
-      searchTerm
+      searchTerm,
+      firstStreet: filtered.length > 0 ? filtered[0].label : 'none'
     });
     
     setFilteredStreetSuggestions(filtered);
   }, [streetSuggestions]);
+
+  // Create a debounced version of the street search handler
+  const debouncedSearchStreets = useCallback(
+    debounce((term: string) => {
+      console.log(`Debounced street search with term: "${term}"`);
+      handleStreetSearch(term);
+    }, isMobile ? 150 : 300),
+    [handleStreetSearch, isMobile]
+  );
 
   // Handle street selection
   const handleStreetSelected = (streetValue: string) => {
@@ -558,6 +573,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   // Update effect to initialize filtered street suggestions when original suggestions change
   useEffect(() => {
+    console.log(`Street suggestions updated: ${streetSuggestions.length} items`);
     setFilteredStreetSuggestions(streetSuggestions);
   }, [streetSuggestions]);
 
@@ -1301,7 +1317,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 handleStreetSelected(value);
                               }}
                               onSearch={(value) => {
-                                console.log("Street search term in form:", value);
+                                console.log("Street search term in form:", {
+                                  term: value,
+                                  length: value.length,
+                                  totalStreets: streetSuggestions.length,
+                                  filteredStreets: filteredStreetSuggestions.length
+                                });
+                                // Even with 1 character, let's show search results
                                 handleStreetSearch(value);
                               }}
                               placeholder="Търсете улица"
