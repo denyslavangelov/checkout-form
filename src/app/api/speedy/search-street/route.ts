@@ -49,17 +49,25 @@ export async function GET(request: Request) {
       streetsCount: data.streets?.length || 0
     });
 
-    // Format the streets for autocomplete
-    const formattedStreets = data.streets?.map((street: any) => ({
-      id: street.id,
-      name: street.name,
-      districtId: street.districtId,
-      districtName: street.districtName,
-      siteId: street.siteId,
-      siteName: street.siteName,
-      value: `${street.id}|${street.name}|${street.districtName || ''}`,
-      label: street.districtName ? `${street.name} (${street.districtName})` : street.name
-    })) || [];
+    // Format the streets for autocomplete with prefixes
+    const formattedStreets = data.streets?.map((street: any) => {
+      // Extract the street prefix if available
+      const prefix = street.namePrefix || 'ул.'; // Default to "ул." if prefix not available
+      
+      return {
+        id: street.id,
+        name: street.name,
+        prefix: prefix,
+        districtId: street.districtId,
+        districtName: street.districtName,
+        siteId: street.siteId,
+        siteName: street.siteName,
+        value: `${street.id}|${street.name}|${street.districtName || ''}|${prefix}`,
+        label: street.districtName 
+          ? `${prefix} ${street.name} (${street.districtName})` 
+          : `${prefix} ${street.name}`
+      };
+    }) || [];
 
     return NextResponse.json({ streets: formattedStreets });
   } catch (error) {

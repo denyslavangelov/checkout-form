@@ -575,23 +575,30 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     debouncedSearchStreets(selectedCityId, searchTerm);
   }, [selectedCityId, debouncedSearchStreets]);
 
-  // Handle street selection
+  // Handle street selection with prefix
   const handleStreetSelected = (streetValue: string) => {
     if (streetValue) {
-      const [streetId, streetName, districtName] = streetValue.split('|');
+      const parts = streetValue.split('|');
+      const streetId = parts[0];
+      const streetName = parts[1];
+      const districtName = parts[2] || '';
+      const prefix = parts[3] || 'ул.'; // Get the prefix or default to 'ул.'
       
-      // Set street and district values
-      form.setValue('street', streetName);
+      // Set street value with prefix
+      form.setValue('street', `${prefix} ${streetName}`);
       
       // If district is provided, set it
       if (districtName) {
+        // We don't handle the district prefix here, as it will be set separately
         form.setValue('district', districtName);
       }
       
       console.log('Setting street value:', {
         originalValue: streetValue,
         extractedStreetName: streetName,
-        extractedDistrictName: districtName
+        extractedDistrictName: districtName,
+        prefix: prefix,
+        finalValue: `${prefix} ${streetName}`
       });
     }
   };
@@ -698,17 +705,22 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     debouncedSearchDistricts(selectedCityId, searchTerm);
   }, [selectedCityId, debouncedSearchDistricts]);
 
-  // Handle district selection
+  // Handle district selection with prefix
   const handleDistrictSelected = (districtValue: string) => {
     if (districtValue) {
-      const [districtId, districtName] = districtValue.split('|');
+      const parts = districtValue.split('|');
+      const districtId = parts[0];
+      const districtName = parts[1];
+      const prefix = parts[2] || 'ж.к.'; // Get the prefix or default to 'ж.к.'
       
-      // Set district value
-      form.setValue('district', districtName);
+      // Set district value with prefix
+      form.setValue('district', `${prefix} ${districtName}`);
       
       console.log('Setting district value:', {
         originalValue: districtValue,
-        extractedDistrictName: districtName
+        extractedDistrictName: districtName,
+        prefix: prefix,
+        finalValue: `${prefix} ${districtName}`
       });
     }
   };
@@ -719,12 +731,17 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setFilteredDistrictSuggestions(districtSuggestions);
   }, [districtSuggestions]);
 
+  // Handle city selection
   const handleCitySelected = (cityValue: string, fieldName: string) => {
     if (cityValue) {
-      const [cityName, postalCode, cityId] = cityValue.split('|');
+      const parts = cityValue.split('|');
+      const cityName = parts[0];
+      const postalCode = parts[1];
+      const cityId = parts[2];
+      const prefix = parts[3] || 'гр.'; // Get the prefix or default to 'гр.'
       
-      // Set city name in the appropriate field
-      form.setValue(fieldName as keyof z.infer<typeof formSchema>, cityName);
+      // Set city name in the appropriate field, with prefix
+      form.setValue(fieldName as keyof z.infer<typeof formSchema>, `${prefix} ${cityName}`);
       
       // If this is for personal address, also set postal code if available
       if (fieldName === 'city' && postalCode) {

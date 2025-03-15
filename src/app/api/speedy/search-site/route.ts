@@ -44,14 +44,20 @@ export async function GET(request: Request) {
     const data = await response.json();
     console.log('Speedy API response:', data);
 
-    // Format the sites for autocomplete
-    const formattedSites = data.sites?.map((site: any) => ({
-      id: site.id,
-      name: site.name,
-      postCode: site.postCode,
-      value: `${site.name}|${site.postCode}|${site.id}`,
-      label: `${site.name}${site.postCode ? ` (${site.postCode})` : ''}`
-    })) || [];
+    // Format the sites for autocomplete with prefixes
+    const formattedSites = data.sites?.map((site: any) => {
+      // Extract the site name prefix if available
+      const prefix = site.namePrefix || 'гр.'; // Default to "гр." if prefix not available
+      
+      return {
+        id: site.id,
+        name: site.name,
+        postCode: site.postCode,
+        prefix: prefix,
+        value: `${site.name}|${site.postCode}|${site.id}|${prefix}`,
+        label: `${prefix} ${site.name}${site.postCode ? ` (${site.postCode})` : ''}`
+      };
+    }) || [];
 
     return NextResponse.json({ sites: formattedSites });
   } catch (error) {

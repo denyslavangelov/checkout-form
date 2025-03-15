@@ -52,15 +52,19 @@ export async function GET(request: Request) {
     const data = await response.json();
     console.log(`District search response for term "${term || '(empty)'}" returned ${data.complexes?.length || 0} results`);
 
-    // Format districts for autocomplete
+    // Format districts for autocomplete with prefixes
     const districts = data.complexes?.map((complex: any) => {
+      // Extract the complex/district prefix if available
+      const prefix = complex.namePrefix || 'ж.к.'; // Default to "ж.к." if prefix not available
+      
       return {
         id: complex.id,
         name: complex.name,
+        prefix: prefix,
         siteId: complex.siteId,
         siteName: complex.siteName,
-        value: `${complex.id}|${complex.name}`,
-        label: complex.name
+        value: `${complex.id}|${complex.name}|${prefix}`,
+        label: `${prefix} ${complex.name}`
       };
     }) || [];
 
