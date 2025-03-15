@@ -296,9 +296,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       const encodedTerm = encodeURIComponent(term);
       let apiUrl = `/api/speedy/search-site?term=${encodedTerm}`;
       
-      // Add a timestamp to prevent potential caching issues
-      const cacheBuster = `&_t=${Date.now()}`;
-      const requestUrl = `${apiUrl}${cacheBuster}`;
+
+      const requestUrl = `${apiUrl}`;
       
       console.log('Actual request URL with cache buster:', requestUrl);
       
@@ -319,9 +318,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       if (!response.ok && (term.match(/[а-яА-Я]/g) || term.includes('sof'))) {
         console.log('First request failed, trying alternative encoding for Cyrillic characters');
         
-        // Different encoding approach
-        const alternativeEncoding = term.split('').map(char => encodeURIComponent(char)).join('');
-        apiUrl = `/api/speedy/search-site?term=${alternativeEncoding}${cacheBuster}`;
+        apiUrl = `/api/speedy/search-site?term=${term}`;
         console.log('Trying alternative URL:', apiUrl);
         
         response = await fetch(apiUrl, {
