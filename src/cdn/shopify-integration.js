@@ -343,12 +343,10 @@
 
       console.log('Sending formatted request:', requestPayload);
       
-      const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Origin': window.location.origin
         },
         body: JSON.stringify(requestPayload)
       });
