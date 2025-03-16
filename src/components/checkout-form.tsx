@@ -715,293 +715,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, [localCartData, onOpenChange]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Get all form data
-    const formData = {
-      firstName: form.getValues('firstName'),
-      lastName: form.getValues('lastName'),
-      email: form.getValues('email'),
-      phone: form.getValues('phone'),
-      address: form.getValues('address'),
-      city: form.getValues('city'),
-      postalCode: form.getValues('postalCode'),
-      notes: form.getValues('note'),
-      cartData: localCartData,
-      shippingMethod: selectedShippingMethod,
-      paymentMethod: form.getValues('paymentMethod')
-    };
-
-    // Send message to parent window to create order
-    window.parent.postMessage({
-      type: 'submit-checkout',
-      formData: formData
-    }, '*');
-  };
-
-  // Add message listener for responses
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'order-created') {
-        console.log('Order created successfully:', event.data.data);
-        // Show success message or redirect
-        setSubmitStatus('success');
-        // You might want to show a success message or redirect
-      } else if (event.data.type === 'order-error') {
-        console.error('Error creating order:', event.data.error);
-        setSubmitStatus('error');
-        // Show error message to user
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  // Handle quantity changes
-  const updateQuantity = (itemIndex: number, newQuantity: number) => {
-    if (!localCartData || newQuantity < 1) return;
-    
-    // Create a deep copy of the cart data
-    const updatedCart = JSON.parse(JSON.stringify(localCartData));
-    const item = updatedCart.items[itemIndex];
-    
-    // Calculate price differences
-    const priceDifference = item.price * (newQuantity - item.quantity);
-    
-    // Update the item quantity
-    item.quantity = newQuantity;
-    item.line_price = item.price * newQuantity;
-    
-    // Update cart totals
-    updatedCart.total_price += priceDifference;
-    updatedCart.items_subtotal_price += priceDifference;
-    
-    setLocalCartData(updatedCart);
-  };
-  
-  // Handle item removal
-  const removeItem = (itemIndex: number) => {
-    if (!localCartData) return;
-    
-    // Create a deep copy of the cart data
-    const updatedCart = JSON.parse(JSON.stringify(localCartData));
-    const itemToRemove = updatedCart.items[itemIndex];
-    
-    // Calculate price to subtract
-    const priceToSubtract = itemToRemove.line_price;
-    
-    // Remove the item from the array
-    updatedCart.items.splice(itemIndex, 1);
-    
-    // Update cart totals
-    updatedCart.total_price -= priceToSubtract;
-    updatedCart.items_subtotal_price -= priceToSubtract;
-    updatedCart.item_count -= itemToRemove.quantity;
-    
-    setLocalCartData(updatedCart);
-  };
-
-  // Get shipping method label
-  const getShippingMethodLabel = (method: string) => {
-    switch (method) {
-      case "speedy":
-        return "Офис на Спиди";
-      case "econt":
-        return "Офис на Еконт";
-      case "address":
-        return "Личен адрес";
-      default:
-        return "";
-    }
-  };
-
-  // Get shipping method icon
-  const getShippingMethodIcon = (method: string) => {
-    switch (method) {
-      case "speedy":
-  return (
-          <img 
-            src="/assets/logo-speedy-red.svg" 
-            alt="Speedy" 
-            className="h-5 w-auto"
-          />
-        );
-      case "econt":
-        return (
-          <img 
-            src="/assets/logo-econt-blue.svg" 
-            alt="Econt" 
-            className="h-5 w-auto"
-          />
-        );
-      case "address":
-        return <Home className="h-5 w-5 text-gray-500" />;
-      default:
-        return null;
-    }
-  };
-
-  const renderCartSummary = () => {
-    console.log('renderCartSummary called with localCartData:', { 
-      hasData: !!localCartData,
-      itemCount: localCartData?.items?.length || 0,
-      dataType: typeof localCartData
-    });
-    
-    if (!localCartData) {
-      console.log('No localCartData available');
-      return (
-        <div className="space-y-2">
-          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
-          <div className="flex items-center justify-center py-4 text-gray-500">
-            <span>Зареждане на данните...</span>
-          </div>
-          <div className="text-xs text-gray-400 mt-2 text-center">
-            Проверка на статуса: проблем с данните на кошницата. Моля, опитайте да добавите продукти отново.
-          </div>
-        </div>
-      );
-    }
-    
-    if (!localCartData.items || !Array.isArray(localCartData.items)) {
-      console.error('Invalid cart data structure - missing items array', localCartData);
-  return (
-        <div className="space-y-2">
-          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
-          <div className="flex items-center justify-center py-4 text-gray-500">
-            <span>Невалидни данни на кошницата</span>
-          </div>
-          <div className="text-xs text-gray-400 mt-2 text-center">
-            Възникна проблем с данните на кошницата. Моля, опитайте отново.
-          </div>
-        </div>
-      );
-    }
-    
-    if (localCartData.items.length === 0) {
-      console.log('Cart is empty');
-      return (
-        <div className="space-y-2">
-          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
-          <div className="text-center py-4">Кошницата е празна</div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
-        
-        <div className="max-h-[30vh] overflow-y-auto pb-2">
-          {localCartData.items.map((item: any, index: number) => (
-            <div key={index} className="flex items-start gap-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100 mb-2">
-              {item.image ? (
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-12 h-12 object-cover rounded-md flex-shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
-                  <span className="text-gray-500 text-xs">Няма изображение</span>
-              </div>
-              )}
-              
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm truncate">{item.title}</h4>
-                {item.variant_title && <p className="text-xs text-gray-500 truncate">{item.variant_title}</p>}
-                
-                <div className="flex items-center mt-1 justify-between">
-                  <div className="flex items-center">
-                    <div className="flex items-center border rounded text-sm">
-                      <button 
-                        type="button"
-                        className="px-1.5 py-0 text-gray-600 hover:bg-gray-100"
-                        onClick={() => updateQuantity(index, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                      >
-                        -
-                      </button>
-                      <span className="px-1.5 py-0 text-center w-6">{item.quantity}</span>
-                      <button 
-                        type="button"
-                        className="px-1.5 py-0 text-gray-600 hover:bg-gray-100"
-                        onClick={() => updateQuantity(index, item.quantity + 1)}
-                      >
-                        +
-                      </button>
-              </div>
-                    
-                    <button
-                      type="button"
-                      className="ml-2 text-red-500 hover:text-red-700"
-                      onClick={() => removeItem(index)}
-                      title="Премахни продукта"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-            </div>
-
-                  <div className="text-right">
-                    <p className="font-medium text-sm">{formatMoney(item.line_price)}</p>
-                    {item.original_line_price !== item.line_price && (
-                      <p className="text-xs text-gray-500 line-through">
-                        {formatMoney(item.original_line_price)}
-                      </p>
-                    )}
-              </div>
-              </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-  
-  const renderOrderSummary = () => {
-    if (!localCartData) return null;
-    
-    const totalWithShipping = localCartData.total_price + shippingCost;
-    
-    return (
-      <div className="border-t border-b py-3 space-y-2">
-        <div className="flex justify-between text-sm">
-                <span>Междинна сума</span>
-          <span>{formatMoney(localCartData.items_subtotal_price)}</span>
-              </div>
-        
-        {localCartData.total_discount > 0 && (
-          <div className="flex justify-between text-sm text-green-600">
-            <span>Отстъпка</span>
-            <span>-{formatMoney(localCartData.total_discount)}</span>
-          </div>
-        )}
-        
-        <div className="flex justify-between text-sm">
-                <span>Доставка</span>
-          <span>{formatMoney(shippingCost)}</span>
-              </div>
-        
-        <div className="flex justify-between font-bold text-base pt-1">
-          <span>Общо</span>
-          <span>{formatMoney(totalWithShipping)}</span>
-              </div>
-            </div>
-    );
-  };
-  
-  const formatMoney = (cents: number) => {
-    return (cents / 100).toLocaleString('bg-BG', {
-      style: 'currency',
-      currency: localCartData?.currency || cartData?.currency || 'BGN'
-    });
-  };
-
   // Add a state for filtered office suggestions
   const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);
 
@@ -1059,6 +772,219 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
   }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
+
+  // Add a state for submit status
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  // Format money helper
+  const formatMoney = (cents: number) => {
+    return (cents / 100).toLocaleString('bg-BG', {
+      style: 'currency',
+      currency: localCartData?.currency || cartData?.currency || 'BGN'
+    });
+  };
+
+  // Get shipping method label
+  const getShippingMethodLabel = (method: string) => {
+    switch (method) {
+      case "speedy":
+        return "Офис на Спиди";
+      case "econt":
+        return "Офис на Еконт";
+      case "address":
+        return "Личен адрес";
+      default:
+        return "";
+    }
+  };
+
+  // Get shipping method icon
+  const getShippingMethodIcon = (method: string) => {
+    switch (method) {
+      case "speedy":
+        return (
+          <img 
+            src="/assets/logo-speedy-red.svg" 
+            alt="Speedy" 
+            className="h-5 w-auto"
+          />
+        );
+      case "econt":
+        return (
+          <img 
+            src="/assets/logo-econt-blue.svg" 
+            alt="Econt" 
+            className="h-5 w-auto"
+          />
+        );
+      case "address":
+        return <Home className="h-5 w-5 text-gray-500" />;
+      default:
+        return null;
+    }
+  };
+
+  // Handle quantity changes
+  const updateQuantity = (itemIndex: number, newQuantity: number) => {
+    if (!localCartData || newQuantity < 1) return;
+    
+    const updatedCart = JSON.parse(JSON.stringify(localCartData));
+    const item = updatedCart.items[itemIndex];
+    
+    const priceDifference = item.price * (newQuantity - item.quantity);
+    
+    item.quantity = newQuantity;
+    item.line_price = item.price * newQuantity;
+    
+    updatedCart.total_price += priceDifference;
+    updatedCart.items_subtotal_price += priceDifference;
+    
+    setLocalCartData(updatedCart);
+  };
+  
+  // Handle item removal
+  const removeItem = (itemIndex: number) => {
+    if (!localCartData) return;
+    
+    const updatedCart = JSON.parse(JSON.stringify(localCartData));
+    const itemToRemove = updatedCart.items[itemIndex];
+    
+    const priceToSubtract = itemToRemove.line_price;
+    
+    updatedCart.items.splice(itemIndex, 1);
+    
+    updatedCart.total_price -= priceToSubtract;
+    updatedCart.items_subtotal_price -= priceToSubtract;
+    updatedCart.item_count -= itemToRemove.quantity;
+    
+    setLocalCartData(updatedCart);
+  };
+
+  const renderCartSummary = () => {
+    if (!localCartData) {
+      return (
+        <div className="space-y-2">
+          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+          <div className="flex items-center justify-center py-4 text-gray-500">
+            <span>Зареждане на данните...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (!localCartData.items || !Array.isArray(localCartData.items)) {
+      return (
+        <div className="space-y-2">
+          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+          <div className="flex items-center justify-center py-4 text-gray-500">
+            <span>Невалидни данни на кошницата</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+        <div className="max-h-[30vh] overflow-y-auto pb-2">
+          {localCartData.items.map((item: any, index: number) => (
+            <div key={index} className="flex items-start gap-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100 mb-2">
+              {/* Item content */}
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-12 h-12 object-cover rounded-md flex-shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
+                  <span className="text-gray-500 text-xs">Няма изображение</span>
+                </div>
+              )}
+              
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-sm truncate">{item.title}</h4>
+                {item.variant_title && <p className="text-xs text-gray-500 truncate">{item.variant_title}</p>}
+                
+                <div className="flex items-center mt-1 justify-between">
+                  <div className="flex items-center">
+                    <div className="flex items-center border rounded text-sm">
+                      <button 
+                        type="button"
+                        className="px-1.5 py-0 text-gray-600 hover:bg-gray-100"
+                        onClick={() => updateQuantity(index, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <span className="px-1.5 py-0 text-center w-6">{item.quantity}</span>
+                      <button 
+                        type="button"
+                        className="px-1.5 py-0 text-gray-600 hover:bg-gray-100"
+                        onClick={() => updateQuantity(index, item.quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      className="ml-2 text-red-500 hover:text-red-700"
+                      onClick={() => removeItem(index)}
+                      title="Премахни продукта"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-medium text-sm">{formatMoney(item.line_price)}</p>
+                    {item.original_line_price !== item.line_price && (
+                      <p className="text-xs text-gray-500 line-through">
+                        {formatMoney(item.original_line_price)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderOrderSummary = () => {
+    if (!localCartData) return null;
+    
+    const totalWithShipping = localCartData.total_price + shippingCost;
+    
+    return (
+      <div className="border-t border-b py-3 space-y-2">
+        <div className="flex justify-between text-sm">
+          <span>Междинна сума</span>
+          <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+        </div>
+        
+        {localCartData.total_discount > 0 && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>Отстъпка</span>
+            <span>-{formatMoney(localCartData.total_discount)}</span>
+          </div>
+        )}
+        
+        <div className="flex justify-between text-sm">
+          <span>Доставка</span>
+          <span>{formatMoney(shippingCost)}</span>
+        </div>
+        
+        <div className="flex justify-between font-bold text-base pt-1">
+          <span>Общо</span>
+          <span>{formatMoney(totalWithShipping)}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1657,10 +1583,47 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
         <div className="px-4 py-3 border-t">
           <Button
-            type="submit"
+            type="button"
             className={`w-full bg-blue-600 text-white font-medium py-2.5 
               ${isMobile ? 'text-base py-3' : ''}`}
             disabled={submitStatus === 'loading'}
+            onClick={async () => {
+              console.log('Submit button clicked');
+              debugger;
+              setSubmitStatus('loading');
+
+              try {
+                // Get the Shopify domain from the window object
+                const shopifyDomain = (window as any).Shopify?.shop || window.location.hostname;
+                console.log('Shopify domain:', shopifyDomain);
+
+                // Make the API request
+                console.log('Making API request to create order...');
+                const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    domain: shopifyDomain
+                  })
+                });
+
+                console.log('API response status:', response.status);
+                const data = await response.json();
+                console.log('API response data:', data);
+
+                if (!response.ok) {
+                  throw new Error('Failed to create order');
+                }
+
+                setSubmitStatus('success');
+                console.log('Order created successfully');
+              } catch (error) {
+                console.error('Error creating order:', error);
+                setSubmitStatus('error');
+              }
+            }}
           >
             {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${((localCartData?.total_price || 0) + shippingCost) / 100} лв.)`}
           </Button>
