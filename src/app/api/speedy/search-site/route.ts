@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const term = searchParams.get('term');
-
+  
   // Get credentials from environment variables
   const username = process.env.SPEEDY_USERNAME || "1904618";
   const password = process.env.SPEEDY_PASSWORD || "6661214521";
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log('Searching for term:', term);
+    console.log('Searching for sites with term:', term);
     
     const response = await fetch('https://api.speedy.bg/v1/location/site', {
       method: 'POST',
@@ -27,8 +27,8 @@ export async function GET(request: Request) {
         userName: username,
         password: password,
         language: 'bg',
-        name: term,
-        countryId: 100
+        countryId: 100,
+        name: term
       })
     });
 
@@ -42,24 +42,27 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    console.log('Speedy API response:', data);
+    
+    if (data.sites && data.sites.length > 0) {
+      // Format the sites for autocomplete with prefixes
+      const formattedSites = data.sites.map((site: any) => {
+        // Extract the site prefix if available
+        const prefix = site.namePrefix || 'гр.'; // Default to "гр." if prefix not available
+        
+        return {
+          id: site.id,
+          name: site.name,
+          prefix: prefix,
+          postCode: site.postCode,
+          value: `${site.name}|${site.postCode}|${site.id}|${prefix}`,
+          label: `${prefix} ${site.name}`
+        };
+      });
 
-    // Format the sites for autocomplete with prefixes
-    const formattedSites = data.sites?.map((site: any) => {
-      // Extract the site name prefix if available
-      const prefix = site.namePrefix || 'гр.'; // Default to "гр." if prefix not available
-      
-      return {
-        id: site.id,
-        name: site.name,
-        postCode: site.postCode,
-        prefix: prefix,
-        value: `${site.name}|${site.postCode}|${site.id}|${prefix}`,
-        label: `${prefix} ${site.name}${site.postCode ? ` (${site.postCode})` : ''}`
-      };
-    }) || [];
-
-    return NextResponse.json({ sites: formattedSites });
+      return NextResponse.json({ sites: formattedSites });
+    } else {
+      return NextResponse.json({ sites: [] });
+    }
   } catch (error) {
     console.error('Error in /api/speedy/search-site:', error);
     return NextResponse.json(
