@@ -806,7 +806,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       console.log('No localCartData available');
       return (
         <div className="space-y-2">
-          <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
           <div className="flex items-center justify-center py-4 text-gray-500">
             <span>Зареждане на данните...</span>
           </div>
@@ -821,7 +821,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       console.error('Invalid cart data structure - missing items array', localCartData);
   return (
         <div className="space-y-2">
-          <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
           <div className="flex items-center justify-center py-4 text-gray-500">
             <span>Невалидни данни на кошницата</span>
           </div>
@@ -836,7 +836,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       console.log('Cart is empty');
       return (
         <div className="space-y-2">
-          <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+          <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
           <div className="text-center py-4">Кошницата е празна</div>
         </div>
       );
@@ -844,7 +844,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
     return (
       <div className="space-y-2">
-        <h3 className="text-base font-medium mb-2">Резюме на поръчката</h3>
+        <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
         
         <div className="max-h-[30vh] overflow-y-auto pb-2">
           {localCartData.items.map((item: any, index: number) => (
