@@ -334,7 +334,7 @@ function openCustomCheckout() {
     });
 }
 
-// Add message listener for domain requests
+// Add message listener for domain requests and order creation
 window.addEventListener('message', function(event) {
   // Only accept messages from our checkout form
   if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
@@ -347,7 +347,54 @@ window.addEventListener('message', function(event) {
       domain: domain
     }, '*');
   }
+
+  // Handle the submit checkout request
+  if (event.data.type === 'submit-checkout') {
+    handleOrderCreation(event.data.formData, event.source);
+  }
 });
+
+// Function to handle order creation
+async function handleOrderCreation(formData, source) {
+  try {
+    console.log('Creating order with data:', formData);
+    
+    const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        domain: formData.shop_domain,
+        cart_data: formData.cartData,
+        shipping_method: formData.shippingMethod
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response from API:', errorText);
+      throw new Error(`Failed to create order: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Order created successfully:', data);
+
+    // Send success message back to iframe
+    source.postMessage({
+      type: 'order-created',
+      data: data
+    }, '*');
+
+  } catch (error) {
+    console.error('Error creating order:', error);
+    // Send error message back to iframe
+    source.postMessage({
+      type: 'order-error',
+      error: error.message
+    }, '*');
+  }
+}
 
 // Initialize the custom checkout
 function initializeCustomCheckout() {
