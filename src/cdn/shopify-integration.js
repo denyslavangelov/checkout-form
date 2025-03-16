@@ -169,10 +169,10 @@
     console.log('Persistent checkout button monitoring started');
   }
   
-  async function openCustomCheckout() {
+  function openCustomCheckout() {
     console.log('Opening custom checkout...');
     
-    // Create and show the modal immediately
+    // Create and show the modal and iframe immediately
     let modal = document.createElement('div');
     modal.id = 'custom-checkout-modal';
     modal.style.position = 'fixed';
@@ -186,122 +186,108 @@
     modal.style.justifyContent = 'center';
     modal.style.alignItems = 'center';
     
-    // Create loading indicator
-    const loadingDiv = document.createElement('div');
-    loadingDiv.style.backgroundColor = 'white';
-    loadingDiv.style.padding = '20px';
-    loadingDiv.style.borderRadius = '8px';
-    loadingDiv.style.textAlign = 'center';
-    loadingDiv.innerHTML = 'Зареждане на кошницата...';
-    modal.appendChild(loadingDiv);
-    document.body.appendChild(modal);
-
-    try {
-      // Fetch cart data first
-      const cartResponse = await fetch('/cart.js');
-      const cartData = await cartResponse.json();
-      
-      // Store cart data globally
-      window.shopifyCart = cartData;
-      window.customCheckoutData = {
-        cartData: cartData,
-        timestamp: new Date().toISOString()
-      };
-      
-      try {
-        localStorage.setItem('tempCartData', JSON.stringify(cartData));
-      } catch (e) {
-        console.warn('Could not store cart data in localStorage', e);
-      }
-
-      // Create iframe after cart data is loaded
-      const iframe = document.createElement('iframe');
-      iframe.id = 'checkout-iframe';
-      iframe.style.width = '100%';
+    // Create iframe immediately
+    const iframe = document.createElement('iframe');
+    iframe.id = 'checkout-iframe';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.maxWidth = '600px';
+    iframe.style.maxHeight = '90vh';
+    iframe.style.border = 'none';
+    iframe.style.borderRadius = '8px';
+    iframe.style.backgroundColor = 'white';
+    iframe.style.margin = 'auto';
+    
+    // Configure iframe URL
+    const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
+    iframeUrl.searchParams.append('hasCart', 'true');
+    
+    // Get and append the Shopify domain
+    const shopifyDomain = Shopify.shop || window.Shopify.shop || 
+      document.querySelector('meta[name="shopify-checkout-api-token"]')?.dataset?.shopifyDomain ||
+      window.location.hostname;
+    iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
+    
+    // Optimize for mobile/tablet immediately
+    if (window.innerWidth < 768) {
+      iframe.style.maxWidth = '100%';
+      iframe.style.maxHeight = '100%';
       iframe.style.height = '100%';
-      iframe.style.maxWidth = '600px';
-      iframe.style.maxHeight = '90vh';
-      iframe.style.border = 'none';
-      iframe.style.borderRadius = '8px';
-      iframe.style.backgroundColor = 'white';
-      iframe.style.margin = 'auto';
-      
-      // Configure iframe URL
-      const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
-      iframeUrl.searchParams.append('hasCart', 'true');
-      
-      // Get and append the Shopify domain
-      const shopifyDomain = Shopify.shop || window.Shopify.shop || 
-        document.querySelector('meta[name="shopify-checkout-api-token"]')?.dataset?.shopifyDomain ||
-        window.location.hostname;
-      iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
-      
-      // Optimize for mobile/tablet
-      if (window.innerWidth < 768) {
-        iframe.style.maxWidth = '100%';
-        iframe.style.maxHeight = '100%';
-        iframe.style.height = '100%';
-        iframe.style.borderRadius = '0';
-        iframeUrl.searchParams.append('isMobile', 'true');
-        modal.style.padding = '0';
-      } else if (window.innerWidth < 992) {
-        iframe.style.maxWidth = '90%';
-        iframe.style.maxHeight = '95vh';
-        iframeUrl.searchParams.append('isTablet', 'true');
-      }
-      
-      // Add viewport information
-      iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
-      iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
-      
-      // Set up message handler
-      window.addEventListener('message', function messageHandler(event) {
-        // Only accept messages from our checkout form
-        if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
+      iframe.style.borderRadius = '0';
+      iframeUrl.searchParams.append('isMobile', 'true');
+      modal.style.padding = '0';
+    } else if (window.innerWidth < 992) {
+      iframe.style.maxWidth = '90%';
+      iframe.style.maxHeight = '95vh';
+      iframeUrl.searchParams.append('isTablet', 'true');
+    }
+    
+    // Add viewport information
+    iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
+    iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
+    
+    // Set up message handler
+    window.addEventListener('message', function messageHandler(event) {
+      // Only accept messages from our checkout form
+      if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
 
-        switch (event.data.type) {
-          case 'request-cart-data':
-            if (window.shopifyCart && iframe.contentWindow) {
-              iframe.contentWindow.postMessage({
-                type: 'cart-data',
-                cart: window.shopifyCart,
-                metadata: {
-                  timestamp: new Date().toISOString(),
-                  shopUrl: window.location.hostname,
-                  shopifyDomain: shopifyDomain,
-                  source: 'shopify-integration'
-                }
-              }, '*');
-            }
-            break;
-
-          case 'GET_SHOPIFY_DOMAIN':
-            event.source.postMessage({
-              type: 'SHOPIFY_DOMAIN_RESPONSE',
-              domain: shopifyDomain
+      switch (event.data.type) {
+        case 'request-cart-data':
+          if (window.shopifyCart && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
+              cart: window.shopifyCart,
+              metadata: {
+                timestamp: new Date().toISOString(),
+                shopUrl: window.location.hostname,
+                shopifyDomain: shopifyDomain,
+                source: 'shopify-integration'
+              }
             }, '*');
-            break;
+          }
+          break;
 
-          case 'submit-checkout':
-            handleOrderCreation(event.data.formData, event.source);
-            break;
+        case 'GET_SHOPIFY_DOMAIN':
+          event.source.postMessage({
+            type: 'SHOPIFY_DOMAIN_RESPONSE',
+            domain: shopifyDomain
+          }, '*');
+          break;
 
-          case 'checkout-closed':
-            if (document.body.contains(modal)) {
-              document.body.removeChild(modal);
-            }
-            window.removeEventListener('message', messageHandler);
-            break;
+        case 'submit-checkout':
+          handleOrderCreation(event.data.formData, event.source);
+          break;
+
+        case 'checkout-closed':
+          if (document.body.contains(modal)) {
+            document.body.removeChild(modal);
+          }
+          window.removeEventListener('message', messageHandler);
+          break;
+      }
+    });
+    
+    // Show the iframe immediately
+    iframe.src = iframeUrl.toString();
+    modal.appendChild(iframe);
+    document.body.appendChild(modal);
+    
+    // Fetch cart data in parallel
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cartData => {
+        window.shopifyCart = cartData;
+        window.customCheckoutData = {
+          cartData: cartData,
+          timestamp: new Date().toISOString()
+        };
+        
+        try {
+          localStorage.setItem('tempCartData', JSON.stringify(cartData));
+        } catch (e) {
+          console.warn('Could not store cart data in localStorage', e);
         }
-      });
-      
-      // Show the iframe
-      iframe.src = iframeUrl.toString();
-      modal.innerHTML = ''; // Clear loading indicator
-      modal.appendChild(iframe);
-
-      // Send cart data immediately after iframe is loaded
-      iframe.onload = () => {
+        
         if (iframe.contentWindow) {
           iframe.contentWindow.postMessage({
             type: 'cart-data',
@@ -314,17 +300,11 @@
             }
           }, '*');
         }
-      };
-
-    } catch (error) {
-      console.error('Error loading cart data:', error);
-      loadingDiv.innerHTML = 'Възникна грешка при зареждането на кошницата. Моля, опитайте отново.';
-      setTimeout(() => {
-        if (document.body.contains(modal)) {
-          document.body.removeChild(modal);
-        }
-      }, 3000);
-    }
+      })
+      .catch(error => {
+        console.error('Error fetching cart data:', error);
+        alert('Възникна грешка при зареждането на информацията за кошницата. Моля, опитайте отново.');
+      });
   }
 
   // Function to handle order creation
