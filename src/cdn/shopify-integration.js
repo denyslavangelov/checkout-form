@@ -253,6 +253,36 @@ function openCustomCheckout() {
       }
     }
     
+    // Handle form submission
+    if (event.data?.type === 'submit-checkout') {
+      fetch('https://shipfast-v2.vercel.app/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shop_domain: shopifyDomain,
+          ...event.data.formData // Include any additional form data
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Send the response back to the iframe
+        iframe.contentWindow.postMessage({
+          type: 'order-created',
+          data: data
+        }, '*');
+      })
+      .catch(error => {
+        console.error('Error creating order:', error);
+        // Send error back to the iframe
+        iframe.contentWindow.postMessage({
+          type: 'order-error',
+          error: error.message
+        }, '*');
+      });
+    }
+    
     if (event.data === 'checkout-closed') {
       if (document.body.contains(modal)) {
         document.body.removeChild(modal);
