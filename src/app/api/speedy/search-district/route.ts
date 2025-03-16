@@ -26,9 +26,10 @@ export async function GET(request: Request) {
     const requestBody: any = {
       userName: username,
       password: password,
-      language: 'BG',
-      siteId: siteId,
-      countryId: 100 // Bulgaria
+      language: 'bg',
+      siteId: parseInt(siteId),
+      countryId: 100,
+      name: term || undefined // Only include name if term is provided
     };
 
     // Only add name parameter if a search term is provided
