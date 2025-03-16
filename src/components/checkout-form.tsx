@@ -1589,6 +1589,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               setSubmitStatus('loading');
 
               try {
+                debugger;
                 // Get the Shopify domain from the window object
                 const shopifyDomain = (window as any).Shopify?.shop || window.location.hostname;
                 console.log('Shopify domain:', shopifyDomain);
