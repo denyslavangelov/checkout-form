@@ -1059,6 +1059,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                         address: selectedShippingMethod === 'address' ? 
                           `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
                           : form.getValues('officeAddress'),
+                        postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
                         note: form.getValues('note')
                       }
                     }, '*');

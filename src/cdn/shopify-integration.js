@@ -353,7 +353,8 @@
           email: formData.email,
           address: {
             city: formData.city,
-            address1: formData.address
+            address1: formData.address,
+            postcode: formData.postalCode
           },
           note: formData.note || ''
         }
