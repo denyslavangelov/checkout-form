@@ -1044,29 +1044,37 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       throw new Error('Could not determine Shopify domain');
                     }
 
-                    // Make the API request
-                    console.log('Making API request to create order...');
-                    const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        domain: shopifyDomain
-                      })
+                    // Send submit message to parent window
+                    window.parent.postMessage({
+                      type: 'submit-checkout',
+                      formData: {
+                        shop_domain: shopifyDomain,
+                        cartData: localCartData,
+                        shippingMethod: selectedShippingMethod
+                      }
+                    }, '*');
+
+                    // Listen for response from parent window
+                    await new Promise((resolve, reject) => {
+                      const timeout = setTimeout(() => {
+                        reject(new Error('Timeout waiting for order creation'));
+                        window.removeEventListener('message', handler);
+                      }, 10000);
+
+                      const handler = (event: MessageEvent) => {
+                        if (event.data.type === 'order-created') {
+                          clearTimeout(timeout);
+                          window.removeEventListener('message', handler);
+                          resolve(event.data);
+                        } else if (event.data.type === 'order-error') {
+                          clearTimeout(timeout);
+                          window.removeEventListener('message', handler);
+                          reject(new Error(event.data.error));
+                        }
+                      };
+
+                      window.addEventListener('message', handler);
                     });
-
-                    console.log('API response status:', response.status);
-                    
-                    if (!response.ok) {
-                      const errorText = await response.text();
-                      console.error('Error response:', errorText);
-                      throw new Error(`Failed to create order: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    console.log('API response data:', data);
 
                     setSubmitStatus('success');
                     console.log('Order created successfully');
@@ -1641,33 +1649,37 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
                 console.log('Received Shopify domain:', shopifyDomain);
 
-                if (!shopifyDomain) {
-                  throw new Error('Could not determine Shopify domain');
-                }
+                // Send submit message to parent window
+                window.parent.postMessage({
+                  type: 'submit-checkout',
+                  formData: {
+                    shop_domain: shopifyDomain,
+                    cartData: localCartData,
+                    shippingMethod: selectedShippingMethod
+                  }
+                }, '*');
 
-                // Make the API request
-                console.log('Making API request to create order...');
-                const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    domain: shopifyDomain
-                  })
+                // Listen for response from parent window
+                await new Promise((resolve, reject) => {
+                  const timeout = setTimeout(() => {
+                    reject(new Error('Timeout waiting for order creation'));
+                    window.removeEventListener('message', handler);
+                  }, 10000);
+
+                  const handler = (event: MessageEvent) => {
+                    if (event.data.type === 'order-created') {
+                      clearTimeout(timeout);
+                      window.removeEventListener('message', handler);
+                      resolve(event.data);
+                    } else if (event.data.type === 'order-error') {
+                      clearTimeout(timeout);
+                      window.removeEventListener('message', handler);
+                      reject(new Error(event.data.error));
+                    }
+                  };
+
+                  window.addEventListener('message', handler);
                 });
-
-                console.log('API response status:', response.status);
-                
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  console.error('Error response:', errorText);
-                  throw new Error(`Failed to create order: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('API response data:', data);
 
                 setSubmitStatus('success');
                 console.log('Order created successfully');
