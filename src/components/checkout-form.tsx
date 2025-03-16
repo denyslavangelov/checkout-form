@@ -1055,8 +1055,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                         lastName: form.getValues('lastName'),
                         phone: form.getValues('phone'),
                         email: form.getValues('email'),
-                        city: form.getValues('city'),
-                        address: form.getValues('address'),
+                        city: selectedShippingMethod === 'address' ? form.getValues('city') : form.getValues('officeCity'),
+                        address: selectedShippingMethod === 'address' ? 
+                          `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
+                          : form.getValues('officeAddress'),
                         note: form.getValues('note')
                       }
                     }, '*');
@@ -1667,8 +1669,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     lastName: form.getValues('lastName'),
                     phone: form.getValues('phone'),
                     email: form.getValues('email'),
-                    city: form.getValues('city'),
-                    address: form.getValues('address'),
+                    city: selectedShippingMethod === 'address' ? form.getValues('city') : form.getValues('officeCity'),
+                    address: selectedShippingMethod === 'address' ? 
+                      `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
+                      : form.getValues('officeAddress'),
                     note: form.getValues('note')
                   }
                 }, '*');
