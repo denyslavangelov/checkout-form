@@ -360,10 +360,18 @@
       const data = await response.json();
       console.log('Order created successfully:', data);
 
-      source.postMessage({
-        type: 'order-created',
-        data: data
-      }, '*');
+      if (data.success && data.order && data.order.order_status_url) {
+        // First notify the iframe about successful order creation
+        source.postMessage({
+          type: 'order-created',
+          data: data
+        }, '*');
+
+        // Then redirect to the order status page
+        window.location.href = data.order.order_status_url;
+      } else {
+        throw new Error('Invalid response format from API');
+      }
 
     } catch (error) {
       console.error('Error creating order:', error);
