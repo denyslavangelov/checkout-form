@@ -312,6 +312,9 @@
     try {
       console.log('Creating order with data:', formData);
       
+      // Extract just the shop domain name from the full myshopify.com URL
+      const shop_domain = formData.shop_domain.split('.')[0];
+      
       // Format cart data to match API expectations
       const cartItems = formData.cartData.items.map(item => ({
         id: item.id,
@@ -327,7 +330,7 @@
       }));
 
       const requestPayload = {
-        domain: formData.shop_domain,
+        shop_domain: shop_domain, // Use the extracted domain name
         cart: {
           items: cartItems,
           currency: formData.cartData.currency,
