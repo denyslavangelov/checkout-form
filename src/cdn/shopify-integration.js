@@ -332,7 +332,6 @@
         line_price: item.line_price
       }));
 
-      debugger;
       const requestPayload = {
         shop_domain: formData.shop_domain,
         cart: {
@@ -347,15 +346,15 @@
         },
         shipping_method: formData.shippingMethod,
         client_details: {
-          first_name: formData.clientData.firstName,
-          last_name: formData.clientData.lastName,
-          phone: formData.clientData.phone,
-          email: formData.clientData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone,
+          email: formData.email,
           address: {
-            city: formData.clientData.city,
-            address1: formData.clientData.address
+            city: formData.city,
+            address1: formData.address
           },
-          note: formData.clientData.note || ''
+          note: formData.note || ''
         }
       };
 
