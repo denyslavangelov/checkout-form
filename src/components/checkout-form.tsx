@@ -103,39 +103,71 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   // Look for cart data in the global window object if it's not passed as props
   useEffect(() => {
-    // This runs only when cartData is null and we're in a browser environment
-    if (!cartData && typeof window !== 'undefined') {
-      console.log('Attempting to find cart data in window object...');
-      
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 500; // 500ms between retries
+
+    const findCartData = () => {
+      console.log('Attempting to find cart data...', {
+        attempt: retryCount + 1,
+        hasProps: !!cartData,
+        hasWindowCart: !!(window as any).cartData,
+        hasCustomCheckout: !!(window as any).customCheckoutData,
+        hasShopifyCart: !!(window as any).shopifyCart
+      });
+
       // Check if cart data exists in any known locations
-      // These are common places where the custom checkout script might store cart data
       const possibleCartData = 
+        cartData || 
         (window as any).cartData || 
         (window as any).customCheckoutData?.cartData || 
         (window as any).shopifyCart;
-      
+
       if (possibleCartData) {
-        console.log('Found cart data in window object:', possibleCartData);
+        console.log('Found cart data:', possibleCartData);
         setLocalCartData(possibleCartData);
-      } else {
-        // If we need to, we could also try to fetch the cart data directly
-        console.log('Could not find cart data in window object. Consider adding a global variable in custom-checkout.js');
-        
-        // If we're in development, we might also check localStorage
-        if (process.env.NODE_ENV === 'development') {
+        return true;
+      }
+
+      // If we're in development, also check localStorage
+      if (process.env.NODE_ENV === 'development') {
+        try {
           const storedCartData = localStorage.getItem('cartData');
           if (storedCartData) {
-            try {
-              const parsedCartData = JSON.parse(storedCartData);
-              console.log('Found cart data in localStorage:', parsedCartData);
-              setLocalCartData(parsedCartData);
-            } catch (e) {
-              console.error('Error parsing cart data from localStorage:', e);
-            }
+            const parsedCartData = JSON.parse(storedCartData);
+            console.log('Found cart data in localStorage:', parsedCartData);
+            setLocalCartData(parsedCartData);
+            return true;
           }
+        } catch (e) {
+          console.error('Error parsing cart data from localStorage:', e);
         }
       }
-    }
+
+      return false;
+    };
+
+    const attemptToFindCart = () => {
+      if (findCartData()) {
+        return; // Found cart data, stop retrying
+      }
+
+      if (retryCount < maxRetries) {
+        retryCount++;
+        console.log(`Retrying to find cart data (attempt ${retryCount}/${maxRetries})...`);
+        setTimeout(attemptToFindCart, retryDelay);
+      } else {
+        console.warn('Failed to find cart data after all retries');
+        // If in development, use test cart as fallback
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Using default test cart as fallback in development');
+          setLocalCartData(defaultTestCart);
+        }
+      }
+    };
+
+    // Start the first attempt
+    attemptToFindCart();
   }, [cartData]);
 
   // Create a default test cart for development/testing
@@ -1044,6 +1076,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       throw new Error('Could not determine Shopify domain');
                     }
 
+                    // Clean city name by removing prefixes
+                    const cleanCityName = (city: string) => {
+                      return city.replace(/^(гр\.|с\.|гр|с)\s+/i, '').trim();
+                    };
+
+                    const cityValue = selectedShippingMethod === 'address' ? 
+                      form.getValues('city') || '' : 
+                      form.getValues('officeCity') || '';
+
                     // Send submit message to parent window
                     window.parent.postMessage({
                       type: 'submit-checkout',
@@ -1055,11 +1096,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                         lastName: form.getValues('lastName'),
                         phone: form.getValues('phone'),
                         email: form.getValues('email'),
-                        city: selectedShippingMethod === 'address' ? form.getValues('city') : form.getValues('officeCity'),
+                        city: cleanCityName(cityValue),
                         address: selectedShippingMethod === 'address' ? 
                           `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
                           : form.getValues('officeAddress'),
-                        postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
                         note: form.getValues('note')
                       }
                     }, '*');
@@ -1659,6 +1699,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
                 console.log('Received Shopify domain:', shopifyDomain);
 
+                // Clean city name by removing prefixes
+                const cleanCityName = (city: string) => {
+                  return city.replace(/^(гр\.|с\.|гр|с)\s+/i, '').trim();
+                };
+
+                const cityValue = selectedShippingMethod === 'address' ? 
+                  form.getValues('city') || '' : 
+                  form.getValues('officeCity') || '';
+
                 // Send submit message to parent window
                 window.parent.postMessage({
                   type: 'submit-checkout',
@@ -1670,11 +1719,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     lastName: form.getValues('lastName'),
                     phone: form.getValues('phone'),
                     email: form.getValues('email'),
-                    city: selectedShippingMethod === 'address' ? form.getValues('city') : form.getValues('officeCity'),
+                    city: cleanCityName(cityValue),
                     address: selectedShippingMethod === 'address' ? 
                       `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
                       : form.getValues('officeAddress'),
-                    postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
                     note: form.getValues('note')
                   }
                 }, '*');
