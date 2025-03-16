@@ -38,6 +38,7 @@ const formSchema = z.object({
   phone: z.string().min(10, {
     message: "Моля, въведете валиден телефонен номер.",
   }),
+  email: z.string().email({ message: "Невалиден имейл адрес." }).optional(),
   address: z.string().min(5, {
     message: "Адресът трябва да бъде поне 5 символа.",
   }),
@@ -58,6 +59,7 @@ const formSchema = z.object({
     message: "Моля, въведете валиден пощенски код.",
   }),
   shippingMethod: z.string().default("speedy"),
+  paymentMethod: z.string().default("cod"),
   officeAddress: z.string().optional(),
   officeCity: z.string().optional(),
   officePostalCode: z.string().optional(),
@@ -76,6 +78,7 @@ interface CheckoutFormProps {
   onOpenChange: (open: boolean) => void
   cartData: any | null
   isMobile?: boolean
+  storeId: string
 }
 
 // City search interface
@@ -87,8 +90,37 @@ interface CitySearchResult {
   label: string;
 }
 
-export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
-  // Enhanced debug logging for cart data
+export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false, storeId }: CheckoutFormProps) {
+  // Add state for access token
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isLoadingToken, setIsLoadingToken] = useState(false);
+
+  // Fetch access token when form opens
+  useEffect(() => {
+    const fetchAccessToken = async () => {
+      if (!open || !storeId || accessToken) return;
+
+      setIsLoadingToken(true);
+      try {
+        const response = await fetch(`/api/auth/get-token?storeId=${encodeURIComponent(storeId)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch access token');
+        }
+
+        const data = await response.json();
+        setAccessToken(data.access_token);
+        console.log('Access token retrieved successfully');
+      } catch (error) {
+        console.error('Error fetching access token:', error);
+      } finally {
+        setIsLoadingToken(false);
+      }
+    };
+
+    fetchAccessToken();
+  }, [open, storeId, accessToken]);
+
+  // Enhanced debug logging for cart data and access token
   console.log('CheckoutForm rendered with props:', { 
     open, 
     cartData, 
@@ -96,6 +128,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     cartDataType: cartData ? typeof cartData : 'null/undefined',
     cartItemsCount: cartData?.items?.length || 0,
     isMobile,
+    hasAccessToken: !!accessToken,
+    isLoadingToken,
     componentOrigin: 'CheckoutForm component'
   });
 
@@ -162,6 +196,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       firstName: "",
       lastName: "",
       phone: "",
+      email: "",
       address: "",
       street: "",
       number: "",
@@ -171,6 +206,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       city: "",
       postalCode: "",
       shippingMethod: "speedy",
+      paymentMethod: "cod",
       officeAddress: "",
       officeCity: "",
       officePostalCode: "",
@@ -711,8 +747,90 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, [localCartData, onOpenChange]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!accessToken) {
+      console.error('No access token available');
+      return;
+    }
+
+    if (!localCartData || !localCartData.items || localCartData.items.length === 0) {
+      console.error('No cart data available');
+      return;
+    }
+
+    try {
+      // Prepare the order data
+      const orderData = {
+        customer: {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          phone: values.phone,
+          email: values.email || undefined,
+        },
+        shipping: {
+          method: values.shippingMethod,
+          address: values.shippingMethod === 'address' ? {
+            city: values.city,
+            postalCode: values.postalCode,
+            street: values.street,
+            number: values.number,
+            entrance: values.entrance || undefined,
+            floor: values.floor || undefined,
+            apartment: values.apartment || undefined,
+          } : {
+            city: values.officeCity,
+            postalCode: values.officePostalCode,
+            office: values.officeAddress,
+          },
+        },
+        payment: {
+          method: values.paymentMethod,
+        },
+        items: localCartData.items.map((item: any) => ({
+          id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          title: item.title,
+        })),
+        totals: {
+          subtotal: localCartData.items_subtotal_price,
+          shipping: shippingCost,
+          discount: localCartData.total_discount || 0,
+          total: localCartData.total_price + shippingCost,
+        },
+        note: values.note || undefined,
+      };
+
+      // Create the order
+      const response = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const order = await response.json();
+      console.log('Order created successfully:', order);
+
+      // Close the form
+      onOpenChange(false);
+
+      // Clear the cart (you'll need to implement this based on your cart management system)
+      // For example:
+      // clearCart();
+
+      // Show success message or redirect
+      // You might want to show a success dialog or redirect to a thank you page
+    } catch (error) {
+      console.error('Error creating order:', error);
+      // Handle error (show error message to user)
+    }
   }
 
   // Handle quantity changes
@@ -1165,11 +1283,35 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           </FormItem>
                         )}
                       />
+
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-black text-xs">
+                              Имейл
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Имейл (не е задължително)" 
+                                type="email" 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-500 text-xs" />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <Separator className="my-4" />
 
-                    {/* Address Section */}
+                    {/* Address Section - update number to 2 */}
                     <div className="space-y-3">
                       <h3 className="font-medium text-black text-sm flex items-center gap-2">
                         <span className="flex items-center justify-center bg-black text-white rounded-full w-5 h-5 text-xs">2</span>
@@ -1503,6 +1645,38 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 placeholder="Бележка към поръчката"
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    {/* Payment Method Section */}
+                    <div className="space-y-3">
+                      <h3 className="font-medium text-black text-sm flex items-center gap-2">
+                        <span className="flex items-center justify-center bg-black text-white rounded-full w-5 h-5 text-xs">4</span>
+                        Начин на плащане
+                      </h3>
+                      <FormField
+                        control={form.control}
+                        name="paymentMethod"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col gap-1.5"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value="cod" id="cod" className="aspect-square w-4 h-4" />
+                                  <label htmlFor="cod" className="text-sm text-black font-medium cursor-pointer">
+                                    Наложен платеж
+                                  </label>
+                                </div>
+                              </RadioGroup>
                             </FormControl>
                           </FormItem>
                         )}
