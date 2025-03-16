@@ -210,6 +210,11 @@ function openCustomCheckout() {
   const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
   iframeUrl.searchParams.append('hasCart', 'true');
   
+  debugger;
+  // Get and append the Shopify domain
+  const shopifyDomain = window.location.hostname;
+  iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
+  
   // Optimize for mobile/tablet immediately
   if (window.innerWidth < 768) {
     iframe.style.maxWidth = '100%';
@@ -239,6 +244,7 @@ function openCustomCheckout() {
           metadata: {
             timestamp: new Date().toISOString(),
             shopUrl: window.location.hostname,
+            shopifyDomain: shopifyDomain,
             source: 'shopify-integration'
           }
         }, '*');
@@ -284,6 +290,7 @@ function openCustomCheckout() {
           metadata: {
             timestamp: new Date().toISOString(),
             shopUrl: window.location.hostname,
+            shopifyDomain: shopifyDomain,
             source: 'shopify-integration'
           }
         }, '*');
