@@ -312,6 +312,7 @@
     try {
       console.log('Creating order with data:', formData);
       
+      debugger;
       // Show loading state in the iframe
       source.postMessage({
         type: 'order-processing',
