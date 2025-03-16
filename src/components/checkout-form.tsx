@@ -1084,7 +1084,19 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
             {localCartData && localCartData.items && localCartData.items.length > 0 && (
               <Form {...form}>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form className="space-y-4" onSubmit={form.handleSubmit((formData) => {
+                  setSubmitStatus('loading');
+                  
+                  // Send message to parent window
+                  window.parent.postMessage({
+                    type: 'submit-checkout',
+                    formData: {
+                      ...formData,
+                      cartData: localCartData,
+                      shippingMethod: selectedShippingMethod
+                    }
+                  }, '*');
+                })}>
                   {/* Shipping Method */}
                   <div className="space-y-2">
                     <h3 className="font-medium text-black text-sm">Изберете метод за доставка</h3>
