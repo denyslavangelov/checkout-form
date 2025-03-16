@@ -1017,15 +1017,28 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   setSubmitStatus('loading');
 
                   try {
-                    // Get the Shopify domain from the parent window
-                    const parentDomain = window.parent.location.hostname;
-                    // Extract the myshopify.com domain if it exists
-                    const shopifyDomain = parentDomain.includes('myshopify.com') 
-                      ? parentDomain 
-                      : (window.parent as any).Shopify?.shop;
-                    
-                    console.log('Parent domain:', parentDomain);
-                    console.log('Shopify domain:', shopifyDomain);
+                    // Request domain from parent window
+                    window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
+
+                    // Listen for the response
+                    const shopifyDomain = await new Promise((resolve, reject) => {
+                      const timeout = setTimeout(() => {
+                        reject(new Error('Timeout waiting for domain'));
+                        window.removeEventListener('message', handler);
+                      }, 5000);
+
+                      const handler = (event: MessageEvent) => {
+                        if (event.data.type === 'SHOPIFY_DOMAIN_RESPONSE') {
+                          clearTimeout(timeout);
+                          window.removeEventListener('message', handler);
+                          resolve(event.data.domain);
+                        }
+                      };
+
+                      window.addEventListener('message', handler);
+                    });
+
+                    console.log('Received Shopify domain:', shopifyDomain);
 
                     if (!shopifyDomain) {
                       throw new Error('Could not determine Shopify domain');
@@ -1602,19 +1615,31 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             disabled={submitStatus === 'loading'}
             onClick={async () => {
               console.log('Submit button clicked');
-              debugger;
               setSubmitStatus('loading');
 
               try {
-                // Get the Shopify domain from the parent window
-                const parentDomain = window.parent.location.hostname;
-                // Extract the myshopify.com domain if it exists
-                const shopifyDomain = parentDomain.includes('myshopify.com') 
-                  ? parentDomain 
-                  : (window.parent as any).Shopify?.shop;
-                
-                console.log('Parent domain:', parentDomain);
-                console.log('Shopify domain:', shopifyDomain);
+                // Request domain from parent window
+                window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
+
+                // Listen for the response
+                const shopifyDomain = await new Promise((resolve, reject) => {
+                  const timeout = setTimeout(() => {
+                    reject(new Error('Timeout waiting for domain'));
+                    window.removeEventListener('message', handler);
+                  }, 5000);
+
+                  const handler = (event: MessageEvent) => {
+                    if (event.data.type === 'SHOPIFY_DOMAIN_RESPONSE') {
+                      clearTimeout(timeout);
+                      window.removeEventListener('message', handler);
+                      resolve(event.data.domain);
+                    }
+                  };
+
+                  window.addEventListener('message', handler);
+                });
+
+                console.log('Received Shopify domain:', shopifyDomain);
 
                 if (!shopifyDomain) {
                   throw new Error('Could not determine Shopify domain');

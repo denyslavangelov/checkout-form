@@ -332,4 +332,24 @@ function openCustomCheckout() {
       console.error('Error fetching cart data:', error);
       alert('Възникна грешка при зареждането на информацията за кошницата. Моля, опитайте отново.');
     });
+}
+
+// Add message listener for domain requests
+window.addEventListener('message', function(event) {
+  // Only accept messages from our checkout form
+  if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
+
+  // Handle the domain request
+  if (event.data.type === 'GET_SHOPIFY_DOMAIN') {
+    const domain = window.Shopify?.shop || window.location.hostname;
+    event.source.postMessage({
+      type: 'SHOPIFY_DOMAIN_RESPONSE',
+      domain: domain
+    }, '*');
+  }
+});
+
+// Initialize the custom checkout
+function initializeCustomCheckout() {
+  // ... existing code ...
 } 
