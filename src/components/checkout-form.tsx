@@ -715,9 +715,51 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, [localCartData, onOpenChange]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-  }
+    // Get all form data
+    const formData = {
+      firstName: form.getValues('firstName'),
+      lastName: form.getValues('lastName'),
+      email: form.getValues('email'),
+      phone: form.getValues('phone'),
+      address: form.getValues('address'),
+      city: form.getValues('city'),
+      postalCode: form.getValues('postalCode'),
+      notes: form.getValues('note'),
+      cartData: localCartData,
+      shippingMethod: selectedShippingMethod,
+      paymentMethod: form.getValues('paymentMethod')
+    };
+
+    // Send message to parent window to create order
+    window.parent.postMessage({
+      type: 'submit-checkout',
+      formData: formData
+    }, '*');
+  };
+
+  // Add message listener for responses
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'order-created') {
+        console.log('Order created successfully:', event.data.data);
+        // Show success message or redirect
+        setSubmitStatus('success');
+        // You might want to show a success message or redirect
+      } else if (event.data.type === 'order-error') {
+        console.error('Error creating order:', event.data.error);
+        setSubmitStatus('error');
+        // Show error message to user
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Handle quantity changes
   const updateQuantity = (itemIndex: number, newQuantity: number) => {
@@ -1042,7 +1084,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
             {localCartData && localCartData.items && localCartData.items.length > 0 && (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Shipping Method */}
                   <div className="space-y-2">
                     <h3 className="font-medium text-black text-sm">Изберете метод за доставка</h3>
@@ -1578,14 +1620,17 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         <div className="px-4 py-3 border-t">
           <Button
             type="submit"
-            className={`w-full bg-black hover:bg-black/90 text-white font-medium py-2.5 
+            className={`w-full bg-blue-600 text-white font-medium py-2.5 
               ${isMobile ? 'text-base py-3' : ''}`}
+            disabled={submitStatus === 'loading'}
           >
-            Завършете поръчката си
-            <span className="xxs-1">
-              - {(((localCartData?.total_price || 0) + shippingCost) / 100).toFixed(2)} лв.
-            </span>
+            {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${((localCartData?.total_price || 0) + shippingCost) / 100} лв.)`}
           </Button>
+          {submitStatus === 'error' && (
+            <div className="text-red-500 text-center mt-2">
+              Възникна грешка при създаването на поръчката. Моля, опитайте отново.
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
