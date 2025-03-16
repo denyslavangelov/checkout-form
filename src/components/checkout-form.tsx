@@ -1017,29 +1017,46 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   setSubmitStatus('loading');
 
                   try {
-                    // Get the Shopify domain from the window object
-                    const shopifyDomain = (window as any).Shopify?.shop || window.location.hostname;
+                    // Get the Shopify domain from the parent window
+                    const parentDomain = window.parent.location.hostname;
+                    // Extract the myshopify.com domain if it exists
+                    const shopifyDomain = parentDomain.includes('myshopify.com') 
+                      ? parentDomain 
+                      : (window.parent as any).Shopify?.shop;
+                    
+                    console.log('Parent domain:', parentDomain);
                     console.log('Shopify domain:', shopifyDomain);
 
-                    // Make the API request with no-cors mode
+                    if (!shopifyDomain) {
+                      throw new Error('Could not determine Shopify domain');
+                    }
+
+                    // Make the API request
                     console.log('Making API request to create order...');
                     const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                       },
-                      mode: 'no-cors',
                       body: JSON.stringify({
                         domain: shopifyDomain
                       })
                     });
 
                     console.log('API response status:', response.status);
-                    console.log('API response type:', response.type);
+                    
+                    if (!response.ok) {
+                      const errorText = await response.text();
+                      console.error('Error response:', errorText);
+                      throw new Error(`Failed to create order: ${response.status}`);
+                    }
 
-                    // With no-cors, we can't read the response
+                    const data = await response.json();
+                    console.log('API response data:', data);
+
                     setSubmitStatus('success');
-                    console.log('Request completed');
+                    console.log('Order created successfully');
                   } catch (err) {
                     console.error('Error creating order:', err);
                     setSubmitStatus('error');
@@ -1589,30 +1606,46 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               setSubmitStatus('loading');
 
               try {
-                debugger;
-                // Get the Shopify domain from the window object
-                const shopifyDomain = (window as any).Shopify?.shop || window.location.hostname;
+                // Get the Shopify domain from the parent window
+                const parentDomain = window.parent.location.hostname;
+                // Extract the myshopify.com domain if it exists
+                const shopifyDomain = parentDomain.includes('myshopify.com') 
+                  ? parentDomain 
+                  : (window.parent as any).Shopify?.shop;
+                
+                console.log('Parent domain:', parentDomain);
                 console.log('Shopify domain:', shopifyDomain);
 
-                // Make the API request with no-cors mode
+                if (!shopifyDomain) {
+                  throw new Error('Could not determine Shopify domain');
+                }
+
+                // Make the API request
                 console.log('Making API request to create order...');
                 const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                   },
-                  mode: 'no-cors',
                   body: JSON.stringify({
                     domain: shopifyDomain
                   })
                 });
 
                 console.log('API response status:', response.status);
-                console.log('API response type:', response.type);
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  console.error('Error response:', errorText);
+                  throw new Error(`Failed to create order: ${response.status}`);
+                }
 
-                // With no-cors, we can't read the response
+                const data = await response.json();
+                console.log('API response data:', data);
+
                 setSubmitStatus('success');
-                console.log('Request completed');
+                console.log('Order created successfully');
               } catch (err) {
                 console.error('Error creating order:', err);
                 setSubmitStatus('error');
