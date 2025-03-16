@@ -17,9 +17,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log('Searching for streets in site:', siteId, 'with term:', term);
+    console.log('Searching for streets and complexes in site:', siteId, 'with term:', term);
     
-    const response = await fetch('https://api.speedy.bg/v1/location/street', {
+    // Fetch streets
+    const streetResponse = await fetch('https://api.speedy.bg/v1/location/street', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -30,46 +31,87 @@ export async function GET(request: Request) {
         language: 'bg',
         siteId: parseInt(siteId),
         countryId: 100,
-        name: term || undefined // Only include name if term is provided
+        name: term || undefined
+      })
+    });
+
+    // Fetch complexes
+    const complexResponse = await fetch('https://api.speedy.bg/v1/location/complex', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userName: username,
+        password: password,
+        language: 'bg',
+        siteId: parseInt(siteId),
+        countryId: 100,
+        name: term || undefined
       })
     });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
+    if (!streetResponse.ok || !complexResponse.ok) {
+      const errorResponse = !streetResponse.ok ? streetResponse : complexResponse;
+      const errorData = await errorResponse.json().catch(() => null);
       console.error('Speedy API error:', errorData);
       throw new Error(
         errorData?.error?.message || 
-        `HTTP error! status: ${response.status}`
+        `HTTP error! status: ${errorResponse.status}`
       );
     }
 
-    const data = await response.json();
-    console.log('Speedy Streets API response:', {
+    const [streetData, complexData] = await Promise.all([
+      streetResponse.json(),
+      complexResponse.json()
+    ]);
+
+    console.log('Speedy API response:', {
       term,
-      streetsCount: data.streets?.length || 0
+      streetsCount: streetData.streets?.length || 0,
+      complexesCount: complexData.complexes?.length || 0
     });
 
     // Format the streets for autocomplete with prefixes
-    const formattedStreets = data.streets?.map((street: any) => {
-      // Extract the street prefix if available
-      const prefix = street.namePrefix || 'ул.'; // Default to "ул." if prefix not available
-      
+    const formattedStreets = streetData.streets?.map((street: any) => {
+      const prefix = street.namePrefix || 'ул.';
       return {
         id: street.id,
         name: street.name,
         prefix: prefix,
+        type: 'street',
         districtId: street.districtId,
         districtName: street.districtName,
         siteId: street.siteId,
         siteName: street.siteName,
-        value: `${street.id}|${street.name}|${street.districtName || ''}|${prefix}`,
+        value: `street|${street.id}|${street.name}|${street.districtName || ''}|${prefix}`,
         label: street.districtName 
           ? `${prefix} ${street.name} (${street.districtName})` 
           : `${prefix} ${street.name}`
       };
     }) || [];
 
-    return NextResponse.json({ streets: formattedStreets });
+    // Format complexes for autocomplete with prefixes
+    const formattedComplexes = complexData.complexes?.map((complex: any) => {
+      const prefix = complex.namePrefix || 'ж.к.';
+      return {
+        id: complex.id,
+        name: complex.name,
+        prefix: prefix,
+        type: 'complex',
+        siteId: complex.siteId,
+        siteName: complex.siteName,
+        value: `complex|${complex.id}|${complex.name}|${prefix}`,
+        label: `${prefix} ${complex.name}`
+      };
+    }) || [];
+
+    // Combine and sort results
+    const combinedResults = [...formattedStreets, ...formattedComplexes].sort((a, b) => 
+      a.label.localeCompare(b.label, 'bg')
+    );
+
+    return NextResponse.json({ streets: combinedResults });
   } catch (error) {
     console.error('Error in /api/speedy/search-street:', error);
     return NextResponse.json(

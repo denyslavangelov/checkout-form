@@ -42,12 +42,11 @@ const formSchema = z.object({
     message: "Адресът трябва да бъде поне 5 символа.",
   }),
   street: z.string().min(2, {
-    message: "Улицата трябва да бъде поне 2 символа.",
+    message: "Улицата/комплексът трябва да бъде поне 2 символа.",
   }).optional(),
   number: z.string().min(1, {
-    message: "Моля, въведете номер.",
+    message: "Моля, въведете номер/блок.",
   }).optional(),
-  district: z.string().optional(),
   building: z.string().optional(),
   entrance: z.string().optional(),
   floor: z.string().optional(),
@@ -166,8 +165,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       address: "",
       street: "",
       number: "",
-      district: "",
-      building: "",
       entrance: "",
       floor: "",
       apartment: "",
@@ -282,15 +279,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const [loadingStreets, setLoadingStreets] = useState(false);
   const [filteredStreetSuggestions, setFilteredStreetSuggestions] = useState<ComboboxOption[]>([]);
   
-  // State for district search
-  const [districtSuggestions, setDistrictSuggestions] = useState<ComboboxOption[]>([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
-  const [filteredDistrictSuggestions, setFilteredDistrictSuggestions] = useState<ComboboxOption[]>([]);
-  
   // State for tracking search input values
   const [searchCity, setSearchCity] = useState("");
   const [searchStreet, setSearchStreet] = useState("");
-  const [searchDistrict, setSearchDistrict] = useState("");
   
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
@@ -586,37 +577,37 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     debouncedSearchStreets(selectedCityId, searchTerm);
   }, [selectedCityId, debouncedSearchStreets]);
 
-  // Handle street selection with prefix
-  const handleStreetSelected = (streetValue: string) => {
-    if (streetValue) {
-      const parts = streetValue.split('|');
-      const streetId = parts[0];
-      const streetName = parts[1];
-      const districtName = parts[2] || '';
-      const prefix = parts[3] || 'ул.'; // Get the prefix or default to 'ул.'
-      
+  // Handle street/complex selection with prefix
+  const handleStreetSelected = (value: string) => {
+    if (value) {
+      const parts = value.split('|');
+      const type = parts[0];
+      const id = parts[1];
+      const name = parts[2];
+      const districtOrEmpty = parts[3];
+      const prefix = parts[4];
+
       // Set street value with prefix
-      form.setValue('street', `${prefix} ${streetName}`);
+      const displayValue = type === 'street' && districtOrEmpty
+        ? `${prefix} ${name} (${districtOrEmpty})`
+        : `${prefix} ${name}`;
       
-      // If district is provided, set it
-      if (districtName) {
-        // We don't handle the district prefix here, as it will be set separately
-        form.setValue('district', districtName);
-      }
+      form.setValue('street', displayValue);
       
-      console.log('Setting street value:', {
-        originalValue: streetValue,
-        extractedStreetName: streetName,
-        extractedDistrictName: districtName,
-        prefix: prefix,
-        finalValue: `${prefix} ${streetName}`
+      console.log('Setting street/complex value:', {
+        originalValue: value,
+        type,
+        name,
+        districtOrEmpty,
+        prefix,
+        finalValue: displayValue
       });
     }
   };
 
   // Update effect to initialize filtered street suggestions when original suggestions change
   useEffect(() => {
-    console.log(`Street suggestions updated: ${streetSuggestions.length} items`);
+    console.log(`Street/complex suggestions updated: ${streetSuggestions.length} items`);
     // Only show filtered suggestions when there's a search term
     if (!searchStreet) {
       setFilteredStreetSuggestions([]);
@@ -624,140 +615,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       setFilteredStreetSuggestions(streetSuggestions);
     }
   }, [streetSuggestions, searchStreet]);
-
-  // Search for districts in a city
-  const searchDistricts = useCallback(async (siteId: string, term: string = '') => {
-    if (!siteId) {
-      setDistrictSuggestions([]);
-      setFilteredDistrictSuggestions([]);
-      return;
-    }
-
-    setLoadingDistricts(true);
-    try {
-      // Add the term parameter to the API call
-      const encodedTerm = encodeURIComponent(term);
-      const cacheBuster = `&_t=${Date.now()}`;
-      const requestUrl = `/api/speedy/search-district?siteId=${encodeURIComponent(siteId)}${term ? `&term=${encodedTerm}` : ''}${cacheBuster}`;
-      
-      console.log('District search request URL:', requestUrl);
-      
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store', 
-          'Pragma': 'no-cache'
-        },
-        signal: AbortSignal.timeout(5000)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      
-      const data = await response.json();
-      
-      if (data.districts && data.districts.length > 0) {
-        // Use the label from the API that includes the prefix
-        const options: ComboboxOption[] = data.districts.map((district: any) => ({
-          value: district.value,
-          label: district.label
-        }));
-        
-        console.log('District search results:', {
-          term,
-          count: options.length,
-          firstDistrict: options[0]?.label || 'none'
-        });
-        
-        setDistrictSuggestions(options);
-        setFilteredDistrictSuggestions(options);
-      } else {
-        console.log('No districts found for search term:', term);
-        setDistrictSuggestions([]);
-        setFilteredDistrictSuggestions([]);
-      }
-    } catch (error) {
-      console.error('Error searching districts:', error);
-      setDistrictSuggestions([]);
-      setFilteredDistrictSuggestions([]);
-    } finally {
-      setLoadingDistricts(false);
-    }
-  }, []);
-
-  // Use debounced search for districts
-  const debouncedSearchDistricts = useCallback(
-    debounce((siteId: string, term: string) => {
-      const minSearchLength = isMobile ? 1 : 2;
-      
-      // If the term is empty or too short, fetch all districts
-      if (!term || term.length < minSearchLength) {
-        if (!term) {
-          console.log('Empty district search term, fetching all districts');
-          searchDistricts(siteId);
-        } else {
-          console.log('District search term too short, waiting for more input');
-        }
-        return;
-      }
-      
-      console.log(`Debounced district search with term: "${term}" for siteId: ${siteId}`);
-      searchDistricts(siteId, term);
-    }, isMobile ? 150 : 300),
-    [searchDistricts, isMobile]
-  );
-
-  // Handle search in the district combobox
-  const handleDistrictSearch = useCallback((searchTerm: string) => {
-    console.log("District search term:", searchTerm);
-    
-    if (!selectedCityId) {
-      console.log("No city selected, cannot search for districts");
-      return;
-    }
-    
-    // Only show suggestions when the user has typed something
-    if (!searchTerm) {
-      setFilteredDistrictSuggestions([]);
-      return;
-    }
-    
-    debouncedSearchDistricts(selectedCityId, searchTerm);
-  }, [selectedCityId, debouncedSearchDistricts]);
-
-  // Handle district selection with prefix
-  const handleDistrictSelected = (districtValue: string) => {
-    if (districtValue) {
-      const parts = districtValue.split('|');
-      const districtId = parts[0];
-      const districtName = parts[1];
-      const prefix = parts[2] || 'ж.к.'; // Get the prefix or default to 'ж.к.'
-      
-      // Set district value with prefix
-      form.setValue('district', `${prefix} ${districtName}`);
-      
-      console.log('Setting district value:', {
-        originalValue: districtValue,
-        extractedDistrictName: districtName,
-        prefix: prefix,
-        finalValue: `${prefix} ${districtName}`
-      });
-    }
-  };
-
-  // Update effect to initialize filtered district suggestions when original suggestions change
-  useEffect(() => {
-    console.log(`District suggestions updated: ${districtSuggestions.length} items`);
-    // Only show filtered suggestions when there's a search term
-    if (!searchDistrict) {
-      setFilteredDistrictSuggestions([]);
-    } else {
-      setFilteredDistrictSuggestions(districtSuggestions);
-    }
-  }, [districtSuggestions, searchDistrict]);
 
   // Handle city selection
   const handleCitySelected = (cityValue: string, fieldName: string) => {
@@ -781,9 +638,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           
           // Fetch all streets for this city (empty search term = all streets)
           searchStreets(cityId);
-          
-          // Fetch all districts for this city
-          searchDistricts(cityId);
         }
       }
       
@@ -809,11 +663,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       } else if (fieldName === 'city') {
         form.setValue('postalCode', '');
         form.setValue('street', '');
-        form.setValue('district', '');
+        form.setValue('building', '');
+        form.setValue('entrance', '');
+        form.setValue('floor', '');
+        form.setValue('apartment', '');
         setStreetSuggestions([]);
         setFilteredStreetSuggestions([]);
-        setDistrictSuggestions([]);
-        setFilteredDistrictSuggestions([]);
         if (selectedShippingMethod === 'address') {
           setSelectedCityId(null);
         }
@@ -1137,15 +992,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       form.setValue('address', '');
       form.setValue('street', '');
       form.setValue('number', '');
-      form.setValue('district', '');
-      form.setValue('building', '');
       form.setValue('entrance', '');
       form.setValue('floor', '');
       form.setValue('apartment', '');
       setStreetSuggestions([]);
       setFilteredStreetSuggestions([]);
-      setDistrictSuggestions([]);
-      setFilteredDistrictSuggestions([]);
     }
     
     // Reset the selected city ID and suggestions
@@ -1155,10 +1006,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setFilteredOfficeSuggestions([]);
     setSearchCity("");
     setSearchStreet("");
-    setSearchDistrict("");
     
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
-  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions, setDistrictSuggestions, setFilteredDistrictSuggestions]);
+  }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1496,29 +1346,29 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-black text-xs">
-                            Улица<span className="text-red-500 ml-0.5">*</span>
+                            Улица/Комплекс<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
                           <div className="flex-1">
                             <Combobox
                               options={filteredStreetSuggestions}
                               value={field.value || ""}
                               onChange={(value) => {
-                                console.log("Street selected in form:", value);
+                                console.log("Street/complex selected in form:", value);
                                 handleStreetSelected(value);
                               }}
                               onSearch={(value) => {
-                                console.log("Street search term in form:", {
+                                console.log("Street/complex search term in form:", {
                                   term: value,
                                   length: value.length,
-                                  totalStreets: streetSuggestions.length,
-                                  filteredStreets: filteredStreetSuggestions.length
+                                  totalItems: streetSuggestions.length,
+                                  filteredItems: filteredStreetSuggestions.length
                                 });
                                 handleStreetSearch(value);
                                 setSearchStreet(value);
                               }}
-                              placeholder="Търсете улица"
+                              placeholder="Търсете улица или комплекс"
                               loading={loadingStreets}
-                              emptyText={!selectedCityId ? "Първо изберете град" : (!searchStreet ? "Започнете да пишете" : "Няма намерени улици")}
+                              emptyText={!selectedCityId ? "Първо изберете град" : (!searchStreet ? "Започнете да пишете" : "Няма намерени резултати")}
                               disabled={!selectedCityId}
                               className="border-gray-200 focus:border-gray-400"
                               type="default"
@@ -1537,90 +1387,26 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-black text-xs">
-                              Номер<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                                placeholder="№" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                                disabled={!selectedCityId}
-                              {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                        name="district"
-                      render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Квартал
+                              Номер/Блок<span className="text-red-500 ml-0.5">*</span>
                             </FormLabel>
-                            <div className="flex-1">
-                              <Combobox
-                                options={filteredDistrictSuggestions}
-                                value={field.value || ""}
-                                onChange={(value) => {
-                                  console.log("District selected in form:", value);
-                                  handleDistrictSelected(value);
-                                }}
-                                onSearch={(value) => {
-                                  console.log("District search term in form:", {
-                                    term: value,
-                                    length: value.length,
-                                    totalDistricts: districtSuggestions.length,
-                                    filteredDistricts: filteredDistrictSuggestions.length
-                                  });
-                                  handleDistrictSearch(value);
-                                  setSearchDistrict(value);
-                                }}
-                                placeholder="Търсете квартал"
-                                loading={loadingDistricts}
-                                emptyText={!selectedCityId ? "Първо изберете град" : (!searchDistrict ? "Започнете да пишете" : "Няма намерени квартали")}
+                            <FormControl>
+                              <Input 
+                                placeholder="№/Бл." 
+                                autoComplete="new-password"
+                                autoCorrect="off"
+                                spellCheck="false"
                                 disabled={!selectedCityId}
-                                className="border-gray-200 focus:border-gray-400"
-                                type="default"
-                                isMobile={isMobile}
+                                {...field}
+                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                               />
-                            </div>
+                            </FormControl>
                             <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
                       />
                     </div>
 
-                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
-                      <FormField
-                        control={form.control}
-                        name="building"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Блок
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                                placeholder="Бл." 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                                disabled={!selectedCityId}
-                              {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
-
+                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
                       <FormField
                         control={form.control}
                         name="entrance"
@@ -1689,12 +1475,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               />
                             </FormControl>
                             <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                      </>
-                    )}
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     {/* Note field - always visible regardless of shipping method */}
                     <FormField
@@ -1715,20 +1499,22 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                         </FormItem>
                       )}
                     />
-                </div>
+                  </>
+                )}
               </div>
+            </div>
 
-                {/* Submit Button - make it larger on mobile */}
-              <Button
-                type="submit"
-                className={`w-full bg-black hover:bg-black/90 text-white font-medium py-2.5 
-                  ${isMobile ? 'text-base py-3 mt-4' : ''}`}
-              >
-                Завършете поръчката си
-              </Button>
-            </form>
-          </Form>
-          )}
+            {/* Submit Button - make it larger on mobile */}
+            <Button
+              type="submit"
+              className={`w-full bg-black hover:bg-black/90 text-white font-medium py-2.5 
+                ${isMobile ? 'text-base py-3 mt-4' : ''}`}
+            >
+              Завършете поръчката си
+            </Button>
+          </form>
+        </Form>
+        )}
         </div>
       </DialogContent>
     </Dialog>
