@@ -1054,93 +1054,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                 
                 <form className="space-y-4" onSubmit={async (e) => {
                   e.preventDefault();
-                  console.log('Form submission started');
-                  setSubmitStatus('loading');
-
-                  try {
-                    // Request domain from parent window
-                    window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
-
-                    // Listen for the response
-                    const shopifyDomain = await new Promise((resolve, reject) => {
-                      const timeout = setTimeout(() => {
-                        reject(new Error('Timeout waiting for domain'));
-                        window.removeEventListener('message', handler);
-                      }, 5000);
-
-                      const handler = (event: MessageEvent) => {
-                        if (event.data.type === 'SHOPIFY_DOMAIN_RESPONSE') {
-                          clearTimeout(timeout);
-                          window.removeEventListener('message', handler);
-                          resolve(event.data.domain);
-                        }
-                      };
-
-                      window.addEventListener('message', handler);
-                    });
-
-                    console.log('Received Shopify domain:', shopifyDomain);
-
-                    if (!shopifyDomain) {
-                      throw new Error('Could not determine Shopify domain');
-                    }
-
-                    // Clean city name by removing prefixes
-                    const cleanCityName = (city: string) => {
-                      return city.replace(/^(гр\.|с\.|гр|с)\s+/i, '').trim();
-                    };
-
-                    const cityValue = selectedShippingMethod === 'address' ? 
-                      form.getValues('city') || '' : 
-                      form.getValues('officeCity') || '';
-
-                    // Send submit message to parent window
-                    window.parent.postMessage({
-                      type: 'submit-checkout',
-                      formData: {
-                        shop_domain: shopifyDomain,
-                        cartData: localCartData,
-                        shippingMethod: selectedShippingMethod,
-                        firstName: form.getValues('firstName'),
-                        lastName: form.getValues('lastName'),
-                        phone: form.getValues('phone'),
-                        email: form.getValues('email'),
-                        city: cleanCityName(cityValue),
-                        address: selectedShippingMethod === 'address' ? 
-                          `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
-                          : form.getValues('officeAddress'),
-                        note: form.getValues('note')
-                      }
-                    }, '*');
-
-                    // Listen for response from parent window
-                    await new Promise((resolve, reject) => {
-                      const timeout = setTimeout(() => {
-                        reject(new Error('Timeout waiting for order creation'));
-                        window.removeEventListener('message', handler);
-                      }, 10000);
-
-                      const handler = (event: MessageEvent) => {
-                        if (event.data.type === 'order-created') {
-                          clearTimeout(timeout);
-                          window.removeEventListener('message', handler);
-                          resolve(event.data);
-                        } else if (event.data.type === 'order-error') {
-                          clearTimeout(timeout);
-                          window.removeEventListener('message', handler);
-                          reject(new Error(event.data.error));
-                        }
-                      };
-
-                      window.addEventListener('message', handler);
-                    });
-
-                    setSubmitStatus('success');
-                    console.log('Order created successfully');
-                  } catch (err) {
-                    console.error('Error creating order:', err);
-                    setSubmitStatus('error');
-                  }
                 }}>
               {/* Shipping Method */}
                 <div className="space-y-2">
@@ -1708,6 +1621,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
                 console.log('Received Shopify domain:', shopifyDomain);
 
+                if (!shopifyDomain) {
+                  throw new Error('Could not determine Shopify domain');
+                }
+
                 // Clean city name by removing prefixes
                 const cleanCityName = (city: string) => {
                   return city.replace(/^(гр\.|с\.|гр|с)\s+/i, '').trim();
@@ -1732,6 +1649,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     address: selectedShippingMethod === 'address' ? 
                       `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
                       : form.getValues('officeAddress'),
+                    postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
+                    officePostalCode: selectedShippingMethod === 'address' ? form.getValues('officePostalCode') : form.getValues('postalCode'),
                     note: form.getValues('note')
                   }
                 }, '*');
