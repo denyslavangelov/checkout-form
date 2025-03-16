@@ -212,7 +212,9 @@ function openCustomCheckout() {
   
   debugger;
   // Get and append the Shopify domain
-  const shopifyDomain = window.location.hostname;
+  const shopifyDomain = Shopify.shop || window.Shopify.shop || 
+    document.querySelector('meta[name="shopify-checkout-api-token"]')?.dataset?.shopifyDomain ||
+    window.location.hostname;
   iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
   
   // Optimize for mobile/tablet immediately
