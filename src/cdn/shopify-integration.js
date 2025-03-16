@@ -312,6 +312,12 @@
     try {
       console.log('Creating order with data:', formData);
       
+      // Show loading state in the iframe
+      source.postMessage({
+        type: 'order-processing',
+        message: 'Създаване на поръчка...'
+      }, '*');
+      
       // Format cart data to match API expectations
       const cartItems = formData.cartData.items.map(item => ({
         id: item.id,
@@ -327,7 +333,7 @@
       }));
 
       const requestPayload = {
-        shop_domain: formData.shop_domain, // Use the full myshopify.com domain
+        shop_domain: formData.shop_domain,
         cart: {
           items: cartItems,
           currency: formData.cartData.currency,
@@ -367,8 +373,16 @@
           data: data
         }, '*');
 
-        // Then redirect to the order status page
-        window.location.href = data.order.order_status_url;
+        // Show success message before redirect
+        source.postMessage({
+          type: 'order-redirect',
+          message: 'Пренасочване към страницата на поръчката...'
+        }, '*');
+
+        // Short delay to show the success message
+        setTimeout(() => {
+          window.location.href = data.order.order_status_url;
+        }, 500);
       } else {
         throw new Error('Invalid response format from API');
       }
