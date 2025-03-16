@@ -345,7 +345,18 @@
           total_discount: formData.cartData.total_discount,
           requires_shipping: formData.cartData.requires_shipping
         },
-        shipping_method: formData.shippingMethod
+        shipping_method: formData.shippingMethod,
+        client_details: {
+          first_name: formData.clientData.firstName,
+          last_name: formData.clientData.lastName,
+          phone: formData.clientData.phone,
+          email: formData.clientData.email,
+          address: {
+            city: formData.clientData.city,
+            address1: formData.clientData.address
+          },
+          note: formData.clientData.note || ''
+        }
       };
 
       console.log('Sending formatted request:', requestPayload);
