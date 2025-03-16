@@ -252,37 +252,6 @@ function openCustomCheckout() {
         modal.style.justifyContent = 'center';
         modal.style.alignItems = 'center';
         
-        // Add close button
-        const closeButton = document.createElement('button');
-        closeButton.textContent = '×';
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '15px';
-        closeButton.style.right = '15px';
-        closeButton.style.fontSize = '24px';
-        closeButton.style.background = 'white';
-        closeButton.style.border = 'none';
-        closeButton.style.borderRadius = '50%';
-        closeButton.style.width = '30px';
-        closeButton.style.height = '30px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.style.display = 'flex';
-        closeButton.style.alignItems = 'center';
-        closeButton.style.justifyContent = 'center';
-        closeButton.style.zIndex = '10000';
-        
-        closeButton.addEventListener('click', function() {
-          // Send message to iframe to close the checkout form
-          const iframe = document.getElementById('checkout-iframe');
-          if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage('close-checkout', '*');
-          }
-          
-          // Also close the modal
-          document.body.removeChild(modal);
-        });
-        
-        modal.appendChild(closeButton);
-        
         // Create iframe
         const iframe = document.createElement('iframe');
         iframe.id = 'checkout-iframe';
@@ -312,15 +281,6 @@ function openCustomCheckout() {
           
           // Make sure the modal takes up full screen on mobile
           modal.style.padding = '0';
-          
-          // Position the close button for better mobile access
-          closeButton.style.top = '10px';
-          closeButton.style.right = '10px';
-          closeButton.style.width = '36px';
-          closeButton.style.height = '36px';
-          closeButton.style.fontSize = '28px';
-          closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-          closeButton.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
         } else if (window.innerWidth < 992) {
           // Medium screens (tablets)
           iframe.style.maxWidth = '90%';
