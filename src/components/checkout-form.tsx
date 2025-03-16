@@ -27,7 +27,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { ComboboxOption, Combobox } from "@/components/ui/combobox"
 import { debounce } from "@/lib/utils"
-import { prepareCheckoutData } from "@/lib/prepare-checkout-data"
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -854,72 +853,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   }, [localCartData, onOpenChange]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("🔴 onSubmit function called with values:", values);
     
-    // Validate that we have cart data
-    if (!localCartData || !localCartData.items || localCartData.items.length === 0) {
-      alert("Вашата количка е празна. Моля, добавете продукти преди да завършите поръчката.");
-      return;
-    }
-    
-    // Convert form data to format expected by the API
-    const checkoutData = prepareCheckoutData(values, localCartData);
-    
-    // For demonstration, log the data that would be sent
-    console.log("Checkout form submitted with data:", { 
-      customerData: checkoutData, 
-      cart: localCartData,
-      shipping: {
-        method: values.shippingMethod,
-        cost: shippingCost
-      },
-      totalWithShipping: (localCartData?.total_price || 0) + shippingCost
-    });
-    
-    try {
-      if (typeof window !== 'undefined') {
-        // Show a loading message to the user
-        alert("Подготвяме вашата поръчка. Моля, изчакайте...");
-        
-        // Create a checkout using Shopify's Storefront API
-        fetch('/api/shopify/create-checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customerData: checkoutData,
-            cartData: localCartData
-          }),
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log("Checkout response:", data);
-          
-          if (data.success && data.checkoutUrl) {
-            // Store checkout info in localStorage for potential recovery
-            localStorage.setItem('checkoutId', data.cartId);
-            localStorage.setItem('checkoutTimestamp', Date.now().toString());
-            
-            // In production, you might want to track analytics here
-            console.log(`Redirecting to Shopify checkout: ${data.checkoutUrl}`);
-            
-            // Redirect to Shopify checkout
-            window.location.href = data.checkoutUrl;
-          } else {
-            throw new Error(data.error || "Failed to create checkout");
-          }
-        })
-        .catch(error => {
-          console.error("Checkout creation failed:", error);
-          
-          alert("Възникна проблем при създаването на поръчката. Моля, опитайте отново или се свържете с нас.");
-        });
-      }
-    } catch (error) {
-      console.error("Error starting checkout process:", error);
-      alert("Възникна неочаквана грешка. Моля, опитайте отново.");
-    }
   }
 
   // Handle quantity changes
@@ -1282,7 +1216,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             </div>
                             <span className="text-black text-sm">5.99 лв.</span>
                           </div>
-                          
+{/*                           
                           <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
                             <div className="flex items-center gap-2">
                               <RadioGroupItem value="econt" id="econt" className="aspect-square w-4 h-4" />
@@ -1294,7 +1228,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               </div>
                             </div>
                             <span className="text-black text-sm">6.99 лв.</span>
-                          </div>
+                          </div> */}
                           
                           <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
                             <div className="flex items-center gap-2">
