@@ -9,12 +9,12 @@
     const result = originalAddEventListener.call(this, type, listener, options);
     
     // Check if this is a checkout button and a click event
-    if (this.id === 'CartDrawer-Checkout' && type === 'click') {
+    if (isCheckoutButton(this) && type === 'click') {
       console.log('Detected click handler being added to checkout button!');
       
       // Add our custom handler right after (this will run last)
       setTimeout(() => {
-        addOurCheckoutHandler();
+        addOurCheckoutHandler(this);
       }, 100);
     }
     
@@ -30,12 +30,12 @@
       const result = originalOnClickDescriptor.set.call(this, newValue);
       
       // Check if this is a checkout button
-      if (this.id === 'CartDrawer-Checkout') {
+      if (isCheckoutButton(this)) {
         console.log('Detected onclick property being set on checkout button!');
         
         // Add our custom handler right after
         setTimeout(() => {
-          addOurCheckoutHandler();
+          addOurCheckoutHandler(this);
         }, 100);
       }
       
@@ -43,20 +43,50 @@
     },
     get: originalOnClickDescriptor.get
   });
+
+  // Function to check if an element is a checkout button
+  function isCheckoutButton(element) {
+    if (!element || !element.tagName) return false;
+
+    // Common checkout button identifiers
+    const checkoutIdentifiers = [
+      { attr: 'id', value: 'CartDrawer-Checkout' },
+      { attr: 'name', value: 'checkout' },
+      { attr: 'href', value: '/checkout' },
+      { attr: 'class', value: 'checkout-button' },
+      { attr: 'class', value: 'cart__checkout' },
+      { attr: 'class', value: 'cart-checkout' },
+      { attr: 'data-action', value: 'checkout' },
+      { attr: 'class', value: 'shopify-payment-button__button' }
+    ];
+
+    // Check if element matches any identifier
+    const isIdentifiedCheckout = checkoutIdentifiers.some(identifier => {
+      const attrValue = element.getAttribute(identifier.attr);
+      return attrValue && (
+        attrValue === identifier.value ||
+        attrValue.includes(identifier.value) ||
+        (identifier.value === '/checkout' && attrValue.includes('/checkout'))
+      );
+    });
+
+    // Check text content for "checkout" keyword
+    const hasCheckoutText = element.textContent && 
+      element.textContent.toLowerCase().includes('checkout');
+
+    // Check if it's inside a cart form
+    const isInCartForm = element.closest('form[action="/cart"]') !== null;
+
+    return isIdentifiedCheckout || hasCheckoutText || isInCartForm;
+  }
   
   // Function to add our checkout handler
-  function addOurCheckoutHandler() {
-    const checkoutButton = document.getElementById('CartDrawer-Checkout');
-    
-    if (checkoutButton && !checkoutButton._hasOurHandler) {
-      console.log('Adding our checkout handler');
-      
-      // Mark this button as processed
-      checkoutButton._hasOurHandler = true;
+  function addOurCheckoutHandler(button) {
+    if (button && !button._hasOurHandler) {
+      button._hasOurHandler = true;
       
       // Use capture phase to get event first, before other handlers
-      checkoutButton.addEventListener('click', function(e) {
-        console.log('OUR HANDLER EXECUTED!!!');
+      button.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopImmediatePropagation(); // Stop other handlers
         openCustomCheckout();
@@ -75,33 +105,57 @@
       dot.style.zIndex = '9999';
       
       // Make sure the button has relative positioning for the indicator
-      if (getComputedStyle(checkoutButton).position === 'static') {
-        checkoutButton.style.position = 'relative';
+      if (getComputedStyle(button).position === 'static') {
+        button.style.position = 'relative';
       }
       
-      checkoutButton.appendChild(dot);
+      button.appendChild(dot);
     }
   }
   
-  // Function to continuously monitor for the button
-  function monitorForCheckoutButton() {
-    const checkoutButton = document.getElementById('CartDrawer-Checkout');
+  // Function to find and initialize all checkout buttons
+  function findAndInitializeCheckoutButtons() {
+    // Common checkout button selectors
+    const selectors = [
+      '#CartDrawer-Checkout',
+      '[name="checkout"]',
+      '[href="/checkout"]',
+      '[href*="/checkout"]',
+      '.checkout-button',
+      '.cart__checkout',
+      '.cart-checkout',
+      '[data-action="checkout"]',
+      'form[action="/cart"] [type="submit"]',
+      '.shopify-payment-button__button'
+    ];
+
+    // Find all potential checkout buttons
+    const buttons = document.querySelectorAll(selectors.join(','));
     
-    if (checkoutButton && 
-        checkoutButton.offsetParent !== null && // Button is visible
-        !checkoutButton._hasOurHandler) { 
-      addOurCheckoutHandler();
-    }
+    buttons.forEach(button => {
+      if (isCheckoutButton(button)) {
+        addOurCheckoutHandler(button);
+      }
+    });
   }
   
-  // Monitor the DOM for changes to catch when the cart drawer opens
+  // Function to continuously monitor for checkout buttons
+  function monitorForCheckoutButtons() {
+    findAndInitializeCheckoutButtons();
+  }
+  
+  // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
-    // Check frequently for the checkout button
-    setInterval(monitorForCheckoutButton, 500);
+    // Check frequently for checkout buttons
+    setInterval(monitorForCheckoutButtons, 500);
     
-    // Also use MutationObserver to detect when the cart drawer is added/shown
-    const observer = new MutationObserver(function() {
-      monitorForCheckoutButton();
+    // Also use MutationObserver to detect when new buttons are added
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes.length) {
+          findAndInitializeCheckoutButtons();
+        }
+      });
     });
     
     // Observe the entire document
