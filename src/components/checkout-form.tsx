@@ -291,6 +291,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const [searchCity, setSearchCity] = useState("");
   const [searchStreet, setSearchStreet] = useState("");
   const [searchDistrict, setSearchDistrict] = useState("");
+  const [searchOffice, setSearchOffice] = useState("");
   
   // Watch for shipping method changes
   const selectedShippingMethod = form.watch("shippingMethod");
@@ -433,15 +434,32 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   }, [isMobile, setCitySuggestions, setLoadingCities]);
   
   // Search for offices in a city
-  const searchOffices = useCallback(async (siteId: string) => {
+  const searchOffices = useCallback(async (siteId: string, term: string = '') => {
     if (!siteId) {
       setOfficeSuggestions([]);
+      setFilteredOfficeSuggestions([]);
       return;
     }
 
     setLoadingOffices(true);
     try {
-      const response = await fetch(`/api/speedy/search-office?siteId=${encodeURIComponent(siteId)}`);
+      // Add the term parameter to the API call
+      const encodedTerm = encodeURIComponent(term);
+      const cacheBuster = `&_t=${Date.now()}`;
+      const requestUrl = `/api/speedy/search-office?siteId=${encodeURIComponent(siteId)}${term ? `&term=${encodedTerm}` : ''}${cacheBuster}`;
+      
+      console.log('Office search request URL:', requestUrl);
+      
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store', 
+          'Pragma': 'no-cache'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
       
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -455,19 +473,71 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           label: `${office.name}: ${office.address.fullAddressString}`
         }));
         
+        console.log('Office search results:', {
+          term,
+          count: options.length,
+          firstOffice: options[0]?.label || 'none'
+        });
+        
         setOfficeSuggestions(options);
+        setFilteredOfficeSuggestions(options);
       } else {
+        console.log('No offices found for search term:', term);
         setOfficeSuggestions([]);
+        setFilteredOfficeSuggestions([]);
       }
     } catch (error) {
       console.error('Error searching offices:', error);
       setOfficeSuggestions([]);
+      setFilteredOfficeSuggestions([]);
     } finally {
       setLoadingOffices(false);
     }
   }, []);
 
-  // Update the debounced search function to remove Sofia special handling
+  // Use debounced search for offices
+  const debouncedSearchOffices = useCallback(
+    debounce((siteId: string, term: string) => {
+      const minSearchLength = isMobile ? 1 : 2;
+      
+      // If the term is empty or too short, fetch all offices
+      if (!term || term.length < minSearchLength) {
+        if (!term) {
+          console.log('Empty office search term, fetching all offices');
+          searchOffices(siteId);
+        } else {
+          console.log('Office search term too short, waiting for more input');
+        }
+        return;
+      }
+      
+      console.log(`Debounced office search with term: "${term}" for siteId: ${siteId}`);
+      searchOffices(siteId, term);
+    }, isMobile ? 150 : 300),
+    [searchOffices, isMobile]
+  );
+
+  // Update the handleOfficeSearch function to track the search term
+  const handleOfficeSearch = useCallback((searchTerm: string) => {
+    console.log("Office search term:", searchTerm);
+    
+    setSearchOffice(searchTerm);
+    
+    if (!selectedCityId) {
+      console.log("No city selected, cannot search for offices");
+      return;
+    }
+    
+    // Only show suggestions when the user has typed something
+    if (!searchTerm) {
+      setFilteredOfficeSuggestions([]);
+      return;
+    }
+    
+    debouncedSearchOffices(selectedCityId, searchTerm);
+  }, [selectedCityId, debouncedSearchOffices]);
+
+  // Update the searchCities function to remove Sofia special handling
   const debouncedSearchCities = useCallback(
     debounce((term: string) => {
       const minSearchLength = 1;
@@ -1105,23 +1175,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setFilteredOfficeSuggestions(officeSuggestions);
   }, [officeSuggestions]);
 
-  // Add a function to handle office search
-  const handleOfficeSearch = useCallback((searchTerm: string) => {
-    console.log("Office search term:", searchTerm);
-    
-    if (!searchTerm || searchTerm.length < 2) {
-      setFilteredOfficeSuggestions(officeSuggestions);
-      return;
-    }
-    
-    // Filter offices based on search term
-    const filtered = officeSuggestions.filter(office => 
-      office.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    
-    setFilteredOfficeSuggestions(filtered);
-  }, [officeSuggestions]);
-
   // Clear relevant address fields when shipping method changes
   useEffect(() => {
     // Clear relevant address fields when shipping method changes
@@ -1156,6 +1209,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setSearchCity("");
     setSearchStreet("");
     setSearchDistrict("");
+    setSearchOffice("");
     
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
   }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions, setDistrictSuggestions, setFilteredDistrictSuggestions]);
@@ -1413,7 +1467,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                     onSearch={handleOfficeSearch}
                                     placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
                                     loading={loadingOffices}
-                                    emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
+                                    emptyText={selectedCityId 
+                                      ? (searchOffice ? "Няма намерени офиси" : "Започнете да пишете") 
+                                      : "Първо изберете град"}
                                     disabled={!selectedCityId}
                                     className="border-gray-200 focus:border-gray-400"
                                     type="office"
