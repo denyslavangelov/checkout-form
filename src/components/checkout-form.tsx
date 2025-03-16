@@ -927,7 +927,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const getShippingMethodIcon = (method: string) => {
     switch (method) {
       case "speedy":
-        return (
+  return (
           <img 
             src="/assets/logo-speedy-red.svg" 
             alt="Speedy" 
@@ -1075,9 +1075,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     return (
       <div className="border-t border-b py-3 space-y-2">
         <div className="flex justify-between text-sm">
-          <span>Междинна сума</span>
+                <span>Междинна сума</span>
           <span>{formatMoney(localCartData.items_subtotal_price)}</span>
-        </div>
+              </div>
         
         {localCartData.total_discount > 0 && (
           <div className="flex justify-between text-sm text-green-600">
@@ -1087,15 +1087,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         )}
         
         <div className="flex justify-between text-sm">
-          <span>Доставка</span>
+                <span>Доставка</span>
           <span>{formatMoney(shippingCost)}</span>
-        </div>
+              </div>
         
         <div className="flex justify-between font-bold text-base pt-1">
           <span>Общо</span>
           <span>{formatMoney(totalWithShipping)}</span>
-        </div>
-      </div>
+              </div>
+            </div>
     );
   };
   
@@ -1184,7 +1184,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
         <div id="checkout-form-description" className="sr-only">
           Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
-        </div>
+          </div>
 
         <div className="overflow-y-auto px-4 py-3 space-y-4">
           {/* Cart Summary */}
@@ -1220,8 +1220,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 {getShippingMethodIcon("speedy")}
                                 <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
                                   Офис на Спиди
-                                </label>
-                              </div>
+                              </label>
+                            </div>
                             </div>
                             <span className="text-black text-sm">5.99 лв.</span>
                           </div>
@@ -1250,12 +1250,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               </div>
                             </div>
                             <span className="text-black text-sm">8.99 лв.</span>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </div>
                 
                 {/* Order Summary (moved after shipping methods) */}
@@ -1450,18 +1450,18 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             <FormControl>
                               <Input 
                                 placeholder="Пощенски код" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
+                            autoComplete="new-password"
+                            autoCorrect="off"
+                            spellCheck="false"
                                 disabled
-                                {...field}
+                            {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
+                          />
+                        </FormControl>
                             <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
+                      </FormItem>
+                    )}
+                  />
                     )}
 
                     <FormField
@@ -1547,28 +1547,28 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           <FormItem>
                             <FormLabel className="text-black text-xs">
                               Номер<span className="text-red-500 ml-0.5">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
                                 placeholder="№" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              spellCheck="false"
                                 disabled={!selectedCityId}
-                                {...field}
+                              {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
+                            />
+                          </FormControl>
                             <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
+                    <FormField
+                      control={form.control}
                         name="district"
-                        render={({ field }) => (
-                          <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-black text-xs">
                               Квартал
                             </FormLabel>
@@ -1613,18 +1613,18 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           <FormItem>
                             <FormLabel className="text-black text-xs">
                               Блок
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
                                 placeholder="Бл." 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
+                              autoComplete="new-password"
+                              autoCorrect="off"
+                              spellCheck="false"
                                 disabled={!selectedCityId}
-                                {...field}
+                              {...field}
                                 className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
+                            />
+                          </FormControl>
                             <FormMessage className="text-red-500 text-xs" />
                           </FormItem>
                         )}
@@ -1698,10 +1698,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               />
                             </FormControl>
                             <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                       </>
                     )}
 
