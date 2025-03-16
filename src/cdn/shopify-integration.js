@@ -312,24 +312,59 @@
     try {
       console.log('Creating order with data:', formData);
       
+      // Format cart data to match API expectations
+      const cartItems = formData.cartData.items.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        title: item.title,
+        price: item.price,
+        variant_id: item.variant_id,
+        product_id: item.product_id,
+        sku: item.sku || '',
+        variant_title: item.variant_title || '',
+        vendor: item.vendor || '',
+        line_price: item.line_price
+      }));
+
+      const requestPayload = {
+        domain: formData.shop_domain,
+        cart: {
+          items: cartItems,
+          currency: formData.cartData.currency,
+          total_price: formData.cartData.total_price,
+          total_weight: formData.cartData.total_weight,
+          item_count: formData.cartData.item_count,
+          items_subtotal_price: formData.cartData.items_subtotal_price,
+          total_discount: formData.cartData.total_discount,
+          requires_shipping: formData.cartData.requires_shipping
+        },
+        shipping_method: formData.shippingMethod
+      };
+
+      console.log('Sending formatted request:', requestPayload);
+      
       const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Origin': window.location.origin
         },
-        mode: 'no-cors', // Add this to handle CORS
-        body: JSON.stringify({
-          domain: formData.shop_domain,
-          cart_data: formData.cartData,
-          shipping_method: formData.shippingMethod
-        })
+        body: JSON.stringify(requestPayload)
       });
 
-      // With no-cors mode, we can't read the response
-      // Assume success if the request didn't throw
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from API:', errorText);
+        throw new Error(`Failed to create order: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Order created successfully:', data);
+
       source.postMessage({
         type: 'order-created',
-        data: { status: 'success' }
+        data: data
       }, '*');
 
     } catch (error) {
