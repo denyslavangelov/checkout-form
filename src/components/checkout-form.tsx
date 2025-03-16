@@ -194,6 +194,32 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     const normalizeCartData = (data: any) => {
       if (!data) return null;
       
+      // If it's a single product (from Buy Now), convert it to cart format
+      if (data.product) {
+        return {
+          items: [{
+            id: data.product.variant_id || data.product.id,
+            title: data.product.title,
+            quantity: data.product.quantity || 1,
+            price: data.product.price,
+            line_price: data.product.price * (data.product.quantity || 1),
+            original_line_price: data.product.price * (data.product.quantity || 1),
+            variant_id: data.product.variant_id || data.product.id,
+            product_id: data.product.id,
+            sku: data.product.sku || '',
+            variant_title: data.product.variant_title || '',
+            vendor: data.product.vendor || '',
+            image: data.product.image?.src || data.product.featured_image || null,
+            requires_shipping: true
+          }],
+          total_price: data.product.price * (data.product.quantity || 1),
+          items_subtotal_price: data.product.price * (data.product.quantity || 1),
+          total_discount: 0,
+          item_count: data.product.quantity || 1,
+          currency: 'BGN'
+        };
+      }
+      
       // Check if the data has the expected structure
       if (!data.items || !Array.isArray(data.items)) {
         console.warn('Cart data has invalid format, missing items array', data);
@@ -857,6 +883,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     updatedCart.items_subtotal_price -= priceToSubtract;
     updatedCart.item_count -= itemToRemove.quantity;
     
+    // If this was the last item, close the form
+    if (updatedCart.items.length === 0) {
+      onOpenChange(false);
+      // Notify parent window to close iframe
+      if (typeof window !== 'undefined' && window.parent) {
+        window.parent.postMessage('checkout-closed', '*');
+      }
+    }
+    
     setLocalCartData(updatedCart);
   };
 
@@ -995,14 +1030,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       >
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
           <DialogHeader className={`p-4 pb-2 border-b ${isMobile ? 'sticky top-0 bg-white z-10' : 'shrink-0'}`}>
-          <DialogTitle className="text-lg font-medium tracking-tight text-black">
-            Поръчайте с наложен платеж
-          </DialogTitle>
-        </DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-medium tracking-tight text-black">
+                Поръчайте с наложен платеж
+              </DialogTitle>
+              <DialogClose className="rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </DialogClose>
+            </div>
+          </DialogHeader>
 
-        <div id="checkout-form-description" className="sr-only">
-          Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
-          </div>
+          <div id="checkout-form-description" className="sr-only">
+            Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
+            </div>
 
           <div className="px-4 py-3 space-y-4">
           {/* Cart Summary */}
