@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { X, Trash2, Home } from "lucide-react"
+import { X, Trash2, Home, Route, Building2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -510,10 +510,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       
       if (data.streets && data.streets.length > 0) {
         // Use the label from the API that includes the prefix
-        const options: ComboboxOption[] = data.streets.map((street: any) => ({
-          value: street.value,
-          label: street.label
-        }));
+        const options: ComboboxOption[] = data.streets.map((street: any) => {
+          const type = street.value.split('|')[0];
+          return {
+            value: street.value,
+            label: street.label,
+            icon: type === 'street' ? <Route className="h-4 w-4 text-gray-500" /> : <Building2 className="h-4 w-4 text-gray-500" />
+          };
+        });
         
         console.log('Street search results:', {
           term,
@@ -1017,7 +1021,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
         aria-describedby="checkout-form-description"
       >
-        <DialogHeader className="p-4 pb-2 border-b shrink-0">
+        <DialogHeader className={`p-4 pb-2 border-b shrink-0 ${isMobile ? 'relative' : ''}`}>
           <DialogTitle className="text-lg font-medium tracking-tight text-black">
             Поръчайте с наложен платеж
           </DialogTitle>
@@ -1027,7 +1031,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
         </div>
 
-        <div className="overflow-y-auto px-4 py-3 space-y-4">
+        <div className={`overflow-y-auto px-4 py-3 space-y-4 ${isMobile ? 'h-[calc(100vh-120px)]' : ''}`}>
           {/* Cart Summary */}
           {renderCartSummary()}
 
