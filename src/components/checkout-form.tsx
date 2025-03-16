@@ -1084,19 +1084,45 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
             {localCartData && localCartData.items && localCartData.items.length > 0 && (
               <Form {...form}>
-                <form className="space-y-4" onSubmit={form.handleSubmit((formData) => {
+                
+                <form className="space-y-4" onSubmit={async (e) => {
+                  e.preventDefault();
+                  console.log('Form submission started');
                   setSubmitStatus('loading');
-                  
-                  // Send message to parent window
-                  window.parent.postMessage({
-                    type: 'submit-checkout',
-                    formData: {
-                      ...formData,
-                      cartData: localCartData,
-                      shippingMethod: selectedShippingMethod
+
+                  try {
+                    debugger;
+                    // Get the Shopify domain from the window object
+                    const shopifyDomain = (window as any).Shopify?.shop || window.location.hostname;
+                    console.log('Shopify domain:', shopifyDomain);
+
+                    // Make the API request
+                    console.log('Making API request to create order...');
+                    const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        domain: shopifyDomain
+                      })
+                    });
+
+                    console.log('API response status:', response.status);
+                    const data = await response.json();
+                    console.log('API response data:', data);
+
+                    if (!response.ok) {
+                      throw new Error('Failed to create order');
                     }
-                  }, '*');
-                })}>
+
+                    setSubmitStatus('success');
+                    console.log('Order created successfully');
+                  } catch (error) {
+                    console.error('Error creating order:', error);
+                    setSubmitStatus('error');
+                  }
+                }}>
                   {/* Shipping Method */}
                   <div className="space-y-2">
                     <h3 className="font-medium text-black text-sm">Изберете метод за доставка</h3>
