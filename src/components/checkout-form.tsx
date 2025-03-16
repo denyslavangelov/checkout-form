@@ -105,37 +105,45 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   useEffect(() => {
     let retryCount = 0;
     const maxRetries = 3;
-    const retryDelay = 500; // 500ms between retries
+    const retryDelay = 300; // Reduced from 500ms to 300ms
 
     const findCartData = () => {
       console.log('Attempting to find cart data...', {
         attempt: retryCount + 1,
         hasProps: !!cartData,
-        hasWindowCart: !!(window as any).cartData,
+        hasWindowCart: !!(window as any).shopifyCart,
         hasCustomCheckout: !!(window as any).customCheckoutData,
-        hasShopifyCart: !!(window as any).shopifyCart
+        hasLocalStorage: process.env.NODE_ENV === 'development' ? !!localStorage.getItem('tempCartData') : false
       });
 
-      // Check if cart data exists in any known locations
-      const possibleCartData = 
-        cartData || 
-        (window as any).cartData || 
-        (window as any).customCheckoutData?.cartData || 
-        (window as any).shopifyCart;
-
-      if (possibleCartData) {
-        console.log('Found cart data:', possibleCartData);
-        setLocalCartData(possibleCartData);
+      // First check props as they are most reliable
+      if (cartData) {
+        console.log('Using cart data from props');
+        setLocalCartData(cartData);
         return true;
       }
 
-      // If we're in development, also check localStorage
+      // Then check window.shopifyCart which is set by the CDN script
+      if ((window as any).shopifyCart) {
+        console.log('Using cart data from window.shopifyCart');
+        setLocalCartData((window as any).shopifyCart);
+        return true;
+      }
+
+      // Then check customCheckoutData
+      if ((window as any).customCheckoutData?.cartData) {
+        console.log('Using cart data from customCheckoutData');
+        setLocalCartData((window as any).customCheckoutData.cartData);
+        return true;
+      }
+
+      // Finally check localStorage in development
       if (process.env.NODE_ENV === 'development') {
         try {
-          const storedCartData = localStorage.getItem('cartData');
+          const storedCartData = localStorage.getItem('tempCartData');
           if (storedCartData) {
             const parsedCartData = JSON.parse(storedCartData);
-            console.log('Found cart data in localStorage:', parsedCartData);
+            console.log('Using cart data from localStorage');
             setLocalCartData(parsedCartData);
             return true;
           }
@@ -166,8 +174,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       }
     };
 
-    // Start the first attempt
+    // Request cart data from parent window immediately
+    if (window.parent) {
+      window.parent.postMessage({ type: 'request-cart-data' }, '*');
+    }
+
+    // Start looking for cart data
     attemptToFindCart();
+
+    // Listen for cart data message from parent
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'cart-data' && event.data?.cart) {
+        console.log('Received cart data from parent window');
+        setLocalCartData(event.data.cart);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, [cartData]);
 
   // Create a default test cart for development/testing
