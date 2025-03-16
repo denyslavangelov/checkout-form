@@ -1050,7 +1050,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       formData: {
                         shop_domain: shopifyDomain,
                         cartData: localCartData,
-                        shippingMethod: selectedShippingMethod
+                        shippingMethod: selectedShippingMethod,
+                        firstName: form.getValues('firstName'),
+                        lastName: form.getValues('lastName'),
+                        phone: form.getValues('phone'),
+                        email: form.getValues('email'),
+                        city: form.getValues('city'),
+                        address: form.getValues('address'),
+                        note: form.getValues('note')
                       }
                     }, '*');
 
@@ -1655,7 +1662,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   formData: {
                     shop_domain: shopifyDomain,
                     cartData: localCartData,
-                    shippingMethod: selectedShippingMethod
+                    shippingMethod: selectedShippingMethod,
+                    firstName: form.getValues('firstName'),
+                    lastName: form.getValues('lastName'),
+                    phone: form.getValues('phone'),
+                    email: form.getValues('email'),
+                    city: form.getValues('city'),
+                    address: form.getValues('address'),
+                    note: form.getValues('note')
                   }
                 }, '*');
 
