@@ -1020,7 +1020,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
 
                   <div className="text-right">
-                    {item.price !== (item.original_line_price / item.quantity) ? (
+                    {item.original_line_price > item.line_price ? (
                       <>
                         <p className="font-medium text-sm text-red-600">{formatMoney(item.line_price)}</p>
                         <p className="text-xs text-gray-500 line-through">
@@ -1144,8 +1144,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             className="flex flex-col gap-2"
                           >
                             <div 
-                              className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
-                              onClick={() => form.setValue("shippingMethod", "speedy")}
+                              className={`flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors ${selectedShippingMethod === "speedy" ? "bg-blue-50/50 border-blue-200" : ""}`}
+                              onClick={() => {
+                                form.setValue("shippingMethod", "speedy");
+                                // Trigger onChange to ensure UI updates
+                                const event = new Event("change", { bubbles: true });
+                                document.getElementById("speedy")?.dispatchEvent(event);
+                              }}
                             >
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
@@ -1159,8 +1164,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               <span className="text-black text-sm">5.99 лв.</span>
                             </div>
                             <div 
-                              className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
-                              onClick={() => form.setValue("shippingMethod", "address")}
+                              className={`flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors ${selectedShippingMethod === "address" ? "bg-blue-50/50 border-blue-200" : ""}`}
+                              onClick={() => {
+                                form.setValue("shippingMethod", "address");
+                                // Trigger onChange to ensure UI updates
+                                const event = new Event("change", { bubbles: true });
+                                document.getElementById("address")?.dispatchEvent(event);
+                              }}
                             >
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
