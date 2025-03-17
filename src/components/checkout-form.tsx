@@ -239,6 +239,16 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         // Handle cart data messages
         if (event.data?.type === 'cart-data' && event.data?.cart) {
           console.log('Received cart data from parent window:', event.data.cart);
+          
+          // Special handling for Buy Now button data
+          const isBuyNowData = event.data.cart.cart_type === 'buy_now' || 
+                              event.data.cart.source === 'buy_now_button' ||
+                              event.data.metadata?.source === 'buy_now_button';
+                              
+          if (isBuyNowData) {
+            console.log('Detected Buy Now button data:', event.data.cart);
+          }
+          
           const normalizedData = normalizeCartData(event.data.cart);
           if (normalizedData) {
             console.log('Setting cart data from message');
@@ -263,7 +273,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         window.removeEventListener('message', messageHandler);
       };
     }
-  }, []);
+  }, [normalizeCartData, setLocalCartData]);
   
   // Show loading spinner while waiting for cart data
   const isLoadingCart = open && (!localCartData || !localCartData.items || localCartData.items.length === 0);
@@ -747,10 +757,21 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   // Check if cart is empty and close the form if it is
   useEffect(() => {
+    // Only close form if cart is empty and we've actually received cart data
+    // This prevents closing immediately on initial load when data might not be ready yet
     if (localCartData && localCartData.items && localCartData.items.length === 0) {
-      handleDialogClose();
+      // Don't close the form if we're waiting for cart data
+      // Special handling for Buy Now: don't close if cart type is buy_now
+      const isBuyNowData = cartData?.cart_type === 'buy_now' || cartData?.source === 'buy_now_button';
+      
+      console.log('Cart is empty. Buy Now button?', { isBuyNowData, cartData });
+      
+      // Only close if it's not a Buy Now attempt
+      if (!isBuyNowData) {
+        handleDialogClose();
+      }
     }
-  }, [localCartData]);
+  }, [localCartData, cartData, handleDialogClose]);
 
   // Add a state for filtered office suggestions
   const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);

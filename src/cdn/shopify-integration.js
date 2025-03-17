@@ -428,7 +428,25 @@
       switch (messageType) {
         case 'request-cart-data':
           console.log('Received request for cart data from iframe');
-          // Fetch fresh cart data
+          
+          // Check if we have Buy Now data
+          if (window.shopifyCart && window.shopifyCart.cart_type === 'buy_now') {
+            console.log('We have Buy Now data, sending it directly to iframe');
+            if (event.source) {
+              event.source.postMessage({
+                type: 'cart-data',
+                cart: window.shopifyCart,
+                metadata: {
+                  timestamp: new Date().toISOString(),
+                  shopUrl: window.location.hostname,
+                  source: 'buy_now_button'
+                }
+              }, '*');
+            }
+            break;
+          }
+          
+          // Otherwise fetch fresh cart data
           fetch('/cart.js')
             .then(response => response.json())
             .then(cartData => {
@@ -460,9 +478,15 @@
           
           // Send cart data along with domain response
           if (window.shopifyCart && event.source) {
+            // Special handling for Buy Now data
+            const metadata = window.shopifyCart.cart_type === 'buy_now' ? 
+              { source: 'buy_now_button', timestamp: new Date().toISOString() } : 
+              { timestamp: new Date().toISOString() };
+            
             event.source.postMessage({
               type: 'cart-data',
-              cart: window.shopifyCart
+              cart: window.shopifyCart,
+              metadata: metadata
             }, '*');
           } else {
             // If we don't have cart data yet, fetch it
@@ -475,7 +499,10 @@
                 if (event.source) {
                   event.source.postMessage({
                     type: 'cart-data',
-                    cart: cartData
+                    cart: cartData,
+                    metadata: {
+                      timestamp: new Date().toISOString()
+                    }
                   }, '*');
                 }
               })
