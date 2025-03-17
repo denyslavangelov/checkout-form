@@ -1118,497 +1118,534 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   e.preventDefault();
                 }}>
               {/* Shipping Method */}
-                <div className="space-y-2">
-                  <h3 className="font-medium text-black text-sm">Изберете метод за доставка</h3>
-                <FormField
-                  control={form.control}
-                  name="shippingMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col gap-1.5"
-                        >
-                          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
+                <div className="p-4 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold mb-3">Метод за доставка</h3>
+                  <FormField
+                    control={form.control}
+                    name="shippingMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col gap-2"
+                          >
+                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
                               <div className="flex items-center gap-2">
-                                {getShippingMethodIcon("speedy")}
-                                <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
-                                  Офис на Спиди
-                              </label>
-                            </div>
-                            </div>
-                            <span className="text-black text-sm">5.99 лв.</span>
-                          </div>
-                          <div className="flex items-center justify-between border border-gray-200 rounded-lg p-2.5 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
-                              <div className="flex items-center gap-2">
-                                {getShippingMethodIcon("address")}
-                                <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
-                                  Личен адрес
-                                </label>
+                                <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
+                                <div className="flex items-center gap-2">
+                                  {getShippingMethodIcon("speedy")}
+                                  <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
+                                    Офис на Спиди
+                                  </label>
+                                </div>
                               </div>
+                              <span className="text-black text-sm">5.99 лв.</span>
                             </div>
-                            <span className="text-black text-sm">8.99 лв.</span>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
+                                <div className="flex items-center gap-2">
+                                  {getShippingMethodIcon("address")}
+                                  <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
+                                    Личен адрес
+                                  </label>
+                                </div>
+                              </div>
+                              <span className="text-black text-sm">8.99 лв.</span>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 {/* Order Summary (moved after shipping methods) */}
                 {renderOrderSummary()}
 
                   <div className="space-y-4">
                     {/* Personal Information Section */}
-                <div className="space-y-3">
-                      <h3 className="font-medium text-black text-sm flex items-center gap-2">
-                        <span className="flex items-center justify-center bg-black text-white rounded-full w-5 h-5 text-xs">1</span>
-                        Лични данни
-                      </h3>
-                  <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-                    <FormField
-                      control={form.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-black text-xs">
-                            Първо име<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Първо име" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                              {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="lastName"
-                      render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-black text-xs">
-                            Фамилия<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Фамилия" 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                              {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                          <FormLabel className="text-black text-xs">
-                          Телефон<span className="text-red-500 ml-0.5">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Телефон" 
-                            type="tel" 
-                            autoComplete="new-password"
-                            autoCorrect="off"
-                            spellCheck="false"
-                            {...field}
-                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                          />
-                        </FormControl>
-                          <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Имейл
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Имейл (не е задължително)" 
-                                type="email" 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Separator className="my-4" />
-
-                    {/* Address Section - update number to 2 */}
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-black text-sm flex items-center gap-2">
-                        <span className="flex items-center justify-center bg-black text-white rounded-full w-5 h-5 text-xs">2</span>
-                        {selectedShippingMethod === "address" 
-                          ? "Адрес за доставка"
-                          : `${getShippingMethodLabel(selectedShippingMethod)}`}
-                      </h3>
-
-                    {selectedShippingMethod !== "address" ? (
-                      <>
-                          {/* Office delivery fields */}
-                        {form.watch('officeCity') && (
-                  <FormField
-                    control={form.control}
-                            name="officePostalCode"
-                    render={({ field }) => (
-                      <FormItem>
+                    <div className="p-4 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold mb-3">Лични данни</h3>
+                      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+                        <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                          <FormField
+                            control={form.control}
+                            name="firstName"
+                            render={({ field }) => (
+                              <FormItem>
                                 <FormLabel className="text-black text-xs">
-                                  Пощенски код
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field}
-                                    disabled
+                                  Първо име<span className="text-red-500 ml-0.5">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Първо име" 
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    {...field}
                                     className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                   />
                                 </FormControl>
+                                <FormMessage className="text-red-500 text-xs" />
                               </FormItem>
                             )}
                           />
-                        )}
 
-                        <FormField
-                          control={form.control}
-                          name="officeCity"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-black text-xs">
-                                Град<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
-                              <div className="flex-1">
-                                <Combobox
-                                  options={citySuggestions}
-                                  value={field.value ?? ""}
-                                  onChange={(value) => {
-                                    console.log("City selected in form:", value);
-                                    handleCitySelected(value, 'officeCity');
-                                  }}
-                                  onSearch={(value) => {
-                                    console.log("City search term in form:", value);
-                                    // Already handled by debouncedSearchCities which is mobile-aware
-                                    debouncedSearchCities(value);
-                                    setSearchCity(value);
-                                  }}
-                                    placeholder="Изберете населено място"
-                                  loading={loadingCities}
-                                  emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
-                                  className="border-gray-200 focus:border-gray-400"
-                                  type="city"
-                                  isMobile={isMobile}
-                                />
-                              </div>
-                              <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                        <FormField
-                          control={form.control}
-                          name="officeAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-black text-xs">
-                                Изберете офис<span className="text-red-500 ml-0.5">*</span>
-                              </FormLabel>
-                              <div className="flex items-center gap-2 w-full">
-                                <div className="flex-shrink-0">
-                                  {getShippingMethodIcon(selectedShippingMethod)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <Combobox
-                                    options={filteredOfficeSuggestions}
-                                    value={field.value || ""}
-                                    onChange={(value) => {
-                                      console.log("Office selected in form:", value);
-                                      handleOfficeSelected(value);
-                                    }}
-                                    onSearch={handleOfficeSearch}
-                                    placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
-                                    loading={loadingOffices}
-                                    emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
-                                    disabled={!selectedCityId}
-                                    className="border-gray-200 focus:border-gray-400"
-                                    type="office"
-                                    courier={selectedShippingMethod as 'speedy' | 'econt'}
-                                    isMobile={isMobile}
+                          <FormField
+                            control={form.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-black text-xs">
+                                  Фамилия<span className="text-red-500 ml-0.5">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Фамилия" 
+                                    autoComplete="new-password"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    {...field}
+                                    className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
                                   />
-                                </div>
-                              </div>
+                                </FormControl>
+                                <FormMessage className="text-red-500 text-xs" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Телефон<span className="text-red-500 ml-0.5">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Телефон" 
+                                  type="tel" 
+                                  autoComplete="new-password"
+                                  autoCorrect="off"
+                                  spellCheck="false"
+                                  {...field}
+                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                />
+                              </FormControl>
                               <FormMessage className="text-red-500 text-xs" />
                             </FormItem>
                           )}
                         />
-                      </>
-                    ) : (
-                      <>
-                          {/* Personal address fields */}
-                    {form.watch('city') && (
+
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Имейл
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Имейл (не е задължително)" 
+                                  type="email" 
+                                  autoComplete="new-password"
+                                  autoCorrect="off"
+                                  spellCheck="false"
+                                  {...field}
+                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                />
+                              </FormControl>
+                              <FormMessage className="text-red-500 text-xs" />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Shipping Method Section */}
+                    <div className="p-4 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold mb-3">Метод за доставка</h3>
                       <FormField
                         control={form.control}
-                        name="postalCode"
+                        name="shippingMethod"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Пощенски код<span className="text-red-500 ml-0.5">*</span>
-                            </FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="Пощенски код" 
-                            autoComplete="new-password"
-                            autoCorrect="off"
-                            spellCheck="false"
-                                disabled
-                            {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                          />
-                        </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-black text-xs">
-                            Град<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <div className="flex-1">
-                            <Combobox
-                              options={citySuggestions}
-                              value={field.value || ""}
-                              onChange={(value) => {
-                                console.log("Personal address city selected in form:", value);
-                                handleCitySelected(value, 'city');
-                              }}
-                              onSearch={(value) => {
-                                console.log("Personal address city search term in form:", value);
-                                // Already handled by debouncedSearchCities which is mobile-aware
-                                debouncedSearchCities(value);
-                                setSearchCity(value);
-                              }}
-                                    placeholder="Изберете населено място"
-                              loading={loadingCities}
-                              emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
-                              className="border-gray-200 focus:border-gray-400"
-                              type="city"
-                              isMobile={isMobile}
-                            />
-                          </div>
-                          <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="street"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-black text-xs">
-                                  Улица/Квартал <span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <div className="flex-1">
-                            <Combobox
-                              options={filteredStreetSuggestions}
-                              value={field.value || ""}
-                              onChange={(value) => {
-                                      console.log("Street/complex selected in form:", value);
-                                handleStreetSelected(value);
-                              }}
-                              onSearch={(value) => {
-                                      console.log("Street/complex search term in form:", {
-                                  term: value,
-                                  length: value.length,
-                                        totalItems: streetSuggestions.length,
-                                        filteredItems: filteredStreetSuggestions.length
-                                });
-                                handleStreetSearch(value);
-                                setSearchStreet(value);
-                              }}
-                                    placeholder="Изберете улица или квартал"
-                              loading={loadingStreets}
-                                    emptyText={!selectedCityId ? "Първо изберете град" : (!searchStreet ? "Започнете да пишете" : "Няма намерени резултати")}
-                              disabled={!selectedCityId}
-                              className="border-gray-200 focus:border-gray-400"
-                              type="default"
-                              isMobile={isMobile}
-                            />
-                          </div>
-                          <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
-                      <FormField
-                        control={form.control}
-                        name="number"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                                    Номер/Блок<span className="text-red-500 ml-0.5">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                                      placeholder="№/Бл." 
-                              autoComplete="new-password"
-                              autoCorrect="off"
-                              spellCheck="false"
-                                disabled={!selectedCityId}
-                              {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col gap-2"
+                              >
+                                <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                    <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
+                                    <div className="flex items-center gap-2">
+                                      {getShippingMethodIcon("speedy")}
+                                      <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
+                                        Офис на Спиди
+                                      </label>
+                                    </div>
+                                  </div>
+                                  <span className="text-black text-sm">5.99 лв.</span>
+                                </div>
+                                <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                    <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
+                                    <div className="flex items-center gap-2">
+                                      {getShippingMethodIcon("address")}
+                                      <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
+                                        Личен адрес
+                                      </label>
+                                    </div>
+                                  </div>
+                                  <span className="text-black text-sm">8.99 лв.</span>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
                           </FormItem>
                         )}
                       />
                     </div>
 
-                          <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
-                      <FormField
-                        control={form.control}
-                        name="entrance"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Вход
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Вх." 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                disabled={!selectedCityId}
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                    {/* Address Section */}
+                    <div className="p-4 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold mb-3">
+                        {selectedShippingMethod === "address" 
+                          ? "Адрес за доставка"
+                          : `${getShippingMethodLabel(selectedShippingMethod)}`}
+                      </h3>
+                      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+                        {selectedShippingMethod !== "address" ? (
+                          <>
+                            {/* Office delivery fields */}
+                            {form.watch('officeCity') && (
+                              <FormField
+                                control={form.control}
+                                name="officePostalCode"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-black text-xs">
+                                      Пощенски код
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        {...field}
+                                        disabled
+                                        className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
+                            )}
 
-                      <FormField
-                        control={form.control}
-                        name="floor"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Етаж
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Ет." 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                disabled={!selectedCityId}
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                              />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                          </FormItem>
-                        )}
-                      />
+                            <FormField
+                              control={form.control}
+                              name="officeCity"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-black text-xs">
+                                    Град<span className="text-red-500 ml-0.5">*</span>
+                                  </FormLabel>
+                                  <div className="flex-1">
+                                    <Combobox
+                                      options={citySuggestions}
+                                      value={field.value ?? ""}
+                                      onChange={(value) => {
+                                        console.log("City selected in form:", value);
+                                        handleCitySelected(value, 'officeCity');
+                                      }}
+                                      onSearch={(value) => {
+                                        console.log("City search term in form:", value);
+                                        debouncedSearchCities(value);
+                                        setSearchCity(value);
+                                      }}
+                                      placeholder="Изберете населено място"
+                                      loading={loadingCities}
+                                      emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
+                                      className="border-gray-200 focus:border-gray-400"
+                                      type="city"
+                                      isMobile={isMobile}
+                                    />
+                                  </div>
+                                  <FormMessage className="text-red-500 text-xs" />
+                                </FormItem>
+                              )}
+                            />
 
-                      <FormField
-                        control={form.control}
-                        name="apartment"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-black text-xs">
-                              Апартамент
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Ап." 
-                                autoComplete="new-password"
-                                autoCorrect="off"
-                                spellCheck="false"
-                                disabled={!selectedCityId}
-                                {...field}
-                                className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                            <FormField
+                              control={form.control}
+                              name="officeAddress"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-black text-xs">
+                                    Изберете офис<span className="text-red-500 ml-0.5">*</span>
+                                  </FormLabel>
+                                  <div className="flex items-center gap-2 w-full">
+                                    <div className="flex-shrink-0">
+                                      {getShippingMethodIcon(selectedShippingMethod)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <Combobox
+                                        options={filteredOfficeSuggestions}
+                                        value={field.value || ""}
+                                        onChange={(value) => {
+                                          console.log("Office selected in form:", value);
+                                          handleOfficeSelected(value);
+                                        }}
+                                        onSearch={handleOfficeSearch}
+                                        placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                                        loading={loadingOffices}
+                                        emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
+                                        disabled={!selectedCityId}
+                                        className="border-gray-200 focus:border-gray-400"
+                                        type="office"
+                                        courier={selectedShippingMethod as 'speedy' | 'econt'}
+                                        isMobile={isMobile}
+                                      />
+                                    </div>
+                                  </div>
+                                  <FormMessage className="text-red-500 text-xs" />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            {/* Personal address fields */}
+                            {form.watch('city') && (
+                              <FormField
+                                control={form.control}
+                                name="postalCode"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-black text-xs">
+                                      Пощенски код<span className="text-red-500 ml-0.5">*</span>
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Пощенски код" 
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        spellCheck="false"
+                                        disabled
+                                        {...field}
+                                        className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-500 text-xs" />
+                                  </FormItem>
+                                )}
                               />
-                            </FormControl>
-                            <FormMessage className="text-red-500 text-xs" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                      </>
-                    )}
+                            )}
+
+                            <FormField
+                              control={form.control}
+                              name="city"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-black text-xs">
+                                    Град<span className="text-red-500 ml-0.5">*</span>
+                                  </FormLabel>
+                                  <div className="flex-1">
+                                    <Combobox
+                                      options={citySuggestions}
+                                      value={field.value || ""}
+                                      onChange={(value) => {
+                                        console.log("Personal address city selected in form:", value);
+                                        handleCitySelected(value, 'city');
+                                      }}
+                                      onSearch={(value) => {
+                                        console.log("Personal address city search term in form:", value);
+                                        debouncedSearchCities(value);
+                                        setSearchCity(value);
+                                      }}
+                                      placeholder="Изберете населено място"
+                                      loading={loadingCities}
+                                      emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
+                                      className="border-gray-200 focus:border-gray-400"
+                                      type="city"
+                                      isMobile={isMobile}
+                                    />
+                                  </div>
+                                  <FormMessage className="text-red-500 text-xs" />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="street"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-black text-xs">
+                                    Улица/Квартал <span className="text-red-500 ml-0.5">*</span>
+                                  </FormLabel>
+                                  <div className="flex-1">
+                                    <Combobox
+                                      options={filteredStreetSuggestions}
+                                      value={field.value || ""}
+                                      onChange={(value) => {
+                                        console.log("Street/complex selected in form:", value);
+                                        handleStreetSelected(value);
+                                      }}
+                                      onSearch={(value) => {
+                                        console.log("Street/complex search term in form:", {
+                                          term: value,
+                                          length: value.length,
+                                          totalItems: streetSuggestions.length,
+                                          filteredItems: filteredStreetSuggestions.length
+                                        });
+                                        handleStreetSearch(value);
+                                        setSearchStreet(value);
+                                      }}
+                                      placeholder="Изберете улица или квартал"
+                                      loading={loadingStreets}
+                                      emptyText={!selectedCityId ? "Първо изберете град" : (!searchStreet ? "Започнете да пишете" : "Няма намерени резултати")}
+                                      disabled={!selectedCityId}
+                                      className="border-gray-200 focus:border-gray-400"
+                                      type="default"
+                                      isMobile={isMobile}
+                                    />
+                                  </div>
+                                  <FormMessage className="text-red-500 text-xs" />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                              <FormField
+                                control={form.control}
+                                name="number"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-black text-xs">
+                                      Номер/Блок<span className="text-red-500 ml-0.5">*</span>
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="№/Бл." 
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        spellCheck="false"
+                                        disabled={!selectedCityId}
+                                        {...field}
+                                        className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-500 text-xs" />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
+                              <FormField
+                                control={form.control}
+                                name="entrance"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-black text-xs">
+                                      Вход
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Вх." 
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        spellCheck="false"
+                                        disabled={!selectedCityId}
+                                        {...field}
+                                        className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-500 text-xs" />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="floor"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-black text-xs">
+                                      Етаж
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Ет." 
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        spellCheck="false"
+                                        disabled={!selectedCityId}
+                                        {...field}
+                                        className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-500 text-xs" />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="apartment"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-black text-xs">
+                                      Апартамент
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Ап." 
+                                        autoComplete="new-password"
+                                        autoCorrect="off"
+                                        spellCheck="false"
+                                        disabled={!selectedCityId}
+                                        {...field}
+                                        className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-500 text-xs" />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-
-                    <Separator className="my-4" />
 
                     {/* Note Section */}
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-black text-sm flex items-center gap-2">
-                        <span className="flex items-center justify-center bg-black text-white rounded-full w-5 h-5 text-xs">3</span>
-                        Допълнителна информация
-                      </h3>
-                    <FormField
-                      control={form.control}
-                      name="note"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-black text-xs">
-                              Бележка към поръчката
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field}
-                              placeholder="Бележка към поръчката"
-                              className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                    <div className="p-4 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold mb-3">Допълнителна информация</h3>
+                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <FormField
+                          control={form.control}
+                          name="note"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-black text-xs">
+                                Бележка към поръчката
+                              </FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field}
+                                  placeholder="Бележка към поръчката"
+                                  className="rounded-lg border-gray-200 focus:border-gray-400 focus:ring-0 bg-gray-50/50 text-black placeholder:text-black/70 h-9 text-sm"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
 
                     <Separator className="my-4" />
