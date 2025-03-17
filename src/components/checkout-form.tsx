@@ -198,14 +198,19 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       
       // If it's a single product (from Buy Now), convert it to cart format
       if (data.product) {
+        const productPrice = data.product.price;
+        const productCompareAtPrice = data.product.compare_at_price || data.product.original_price || productPrice;
+        const quantity = data.product.quantity || 1;
+        const isOnSale = productCompareAtPrice > productPrice;
+        
         return {
           items: [{
             id: data.product.variant_id || data.product.id,
             title: data.product.title,
-            quantity: data.product.quantity || 1,
-            price: data.product.price,
-            line_price: data.product.price * (data.product.quantity || 1),
-            original_line_price: data.product.price * (data.product.quantity || 1),
+            quantity: quantity,
+            price: productPrice,
+            line_price: productPrice * quantity,
+            original_line_price: isOnSale ? productCompareAtPrice * quantity : productPrice * quantity,
             variant_id: data.product.variant_id || data.product.id,
             product_id: data.product.id,
             sku: data.product.sku || '',
@@ -214,10 +219,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             image: data.product.image?.src || data.product.featured_image || null,
             requires_shipping: true
           }],
-          total_price: data.product.price * (data.product.quantity || 1),
-          items_subtotal_price: data.product.price * (data.product.quantity || 1),
-          total_discount: 0,
-          item_count: data.product.quantity || 1,
+          total_price: productPrice * quantity,
+          items_subtotal_price: productPrice * quantity,
+          total_discount: isOnSale ? (productCompareAtPrice - productPrice) * quantity : 0,
+          item_count: quantity,
           currency: 'BGN'
         };
       }
@@ -228,8 +233,25 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
       }
       
-      // If the data is valid, return it
-      return data;
+      // Ensure all items have original_line_price
+      const normalizedItems = data.items.map((item: any) => {
+        if (!item.original_line_price || item.original_line_price === item.line_price) {
+          // If original_line_price is missing or same as line_price, check for compare_at_price
+          if (item.compare_at_price && item.compare_at_price > item.price) {
+            return {
+              ...item,
+              original_line_price: item.compare_at_price * item.quantity
+            };
+          }
+        }
+        return item;
+      });
+      
+      // Return normalized data
+      return {
+        ...data,
+        items: normalizedItems
+      };
     };
     
     // If running in development and no cart data provided, use test cart
@@ -894,23 +916,51 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     const updatedCart = JSON.parse(JSON.stringify(localCartData));
     const item = updatedCart.items[itemIndex];
     
-    // Calculate the original price per item
+    // Calculate the price per item (current price)
+    const pricePerItem = item.line_price / item.quantity;
+    
+    // Calculate the original price per item (may be different if on sale)
     const originalPricePerItem = item.original_line_price / item.quantity;
     
-    // Calculate the current price per item
-    const currentPricePerItem = item.line_price / item.quantity;
+    // Check if item is on sale
+    const isOnSale = originalPricePerItem > pricePerItem;
+    
+    console.log('Updating quantity:', {
+      item: item.title,
+      oldQuantity: item.quantity,
+      newQuantity,
+      pricePerItem,
+      originalPricePerItem,
+      isOnSale,
+      oldLinePrice: item.line_price,
+      oldOriginalLinePrice: item.original_line_price,
+      newLinePrice: pricePerItem * newQuantity,
+      newOriginalLinePrice: originalPricePerItem * newQuantity
+    });
     
     // Update quantity
     item.quantity = newQuantity;
     
     // Update line prices
+    item.line_price = pricePerItem * newQuantity;
     item.original_line_price = originalPricePerItem * newQuantity;
-    item.line_price = currentPricePerItem * newQuantity;
     
     // Update cart totals
     updatedCart.total_price = updatedCart.items.reduce((sum: number, item: any) => sum + item.line_price, 0);
     updatedCart.items_subtotal_price = updatedCart.items.reduce((sum: number, item: any) => sum + item.line_price, 0);
     updatedCart.item_count = updatedCart.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+    
+    // Update total discount
+    if (isOnSale) {
+      updatedCart.total_discount = updatedCart.items.reduce(
+        (sum: number, item: any) => {
+          const itemOriginalPrice = item.original_line_price;
+          const itemCurrentPrice = item.line_price;
+          return sum + (itemOriginalPrice - itemCurrentPrice);
+        }, 
+        0
+      );
+    }
     
     setLocalCartData(updatedCart);
   };
@@ -969,7 +1019,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         <div className="space-y-2">
         <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
         <div className="max-h-[30vh] overflow-y-auto pb-2">
-          {localCartData.items.map((item: any, index: number) => (
+          {localCartData.items.map((item: any, index: number) => {
+            // Debug price values
+            console.log(`Item ${index} price check:`, {
+              title: item.title,
+              line_price: item.line_price,
+              original_line_price: item.original_line_price,
+              price: item.price,
+              quantity: item.quantity,
+              hasDiscount: item.original_line_price > item.line_price,
+              originalPerItem: item.original_line_price / item.quantity,
+              currentPerItem: item.line_price / item.quantity
+            });
+            
+            return (
             <div key={index} className="flex items-start gap-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100 mb-2">
               {/* Item content */}
               {item.image ? (
@@ -1034,7 +1097,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
     );
