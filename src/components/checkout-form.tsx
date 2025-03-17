@@ -728,33 +728,45 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   };
 
-  // Check if cart is empty and close the form if it is
-  useEffect(() => {
-    if (localCartData && localCartData.items && localCartData.items.length === 0) {
-      // First notify parent window to close iframe
-      if (typeof window !== 'undefined' && window.parent) {
-        window.parent.postMessage('checkout-closed', '*');
-      }
-      
-      // Then close the form after a short delay to ensure the message is sent
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 100);
-    }
-  }, [localCartData, onOpenChange]);
-
   // Handle dialog close
   const handleDialogClose = () => {
     // First notify parent window to close iframe
     if (typeof window !== 'undefined' && window.parent) {
-      window.parent.postMessage('checkout-closed', '*');
-    }
-    
-    // Then close the form after a short delay to ensure the message is sent
-    setTimeout(() => {
+      window.parent.postMessage({ type: 'checkout-closed' }, '*');
+      
+      // Wait for parent to handle cleanup
+      const cleanup = new Promise((resolve) => {
+        const handler = (event: MessageEvent) => {
+          if (event.data.type === 'checkout-cleanup-done') {
+            window.removeEventListener('message', handler);
+            resolve(true);
+          }
+        };
+        window.addEventListener('message', handler);
+        
+        // Fallback timeout in case parent doesn't respond
+        setTimeout(() => {
+          window.removeEventListener('message', handler);
+          resolve(false);
+        }, 300);
+      });
+      
+      // Close the form after cleanup
+      cleanup.then(() => {
+        onOpenChange(false);
+      });
+    } else {
+      // If no parent window, just close the form
       onOpenChange(false);
-    }, 100);
+    }
   };
+
+  // Check if cart is empty and close the form if it is
+  useEffect(() => {
+    if (localCartData && localCartData.items && localCartData.items.length === 0) {
+      handleDialogClose();
+    }
+  }, [localCartData]);
 
   // Add a state for filtered office suggestions
   const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);
@@ -1037,7 +1049,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogClose}>
+    <Dialog 
+      open={open} 
+      onOpenChange={handleDialogClose}
+      modal={true}
+    >
       <DialogContent 
         className={`sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col
           ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
