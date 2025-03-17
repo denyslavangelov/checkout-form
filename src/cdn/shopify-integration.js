@@ -226,17 +226,34 @@
     iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
     iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
     
-    // Set up message handler
-    window.addEventListener('message', function messageHandler(event) {
-      // Only accept messages from our checkout form
-      if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
+    // Load cart data first, then set the iframe src
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cartData => {
+        // Store cart data globally for later use
+        window.shopifyCart = cartData;
+        window.cartData = cartData;
+        window.customCheckoutData = {
+          cartData: cartData,
+          timestamp: new Date().toISOString()
+        };
+        
+        try {
+          localStorage.setItem('tempCartData', JSON.stringify(cartData));
+        } catch (e) {
+          console.warn('Could not store cart data in localStorage', e);
+        }
 
-      switch (event.data.type) {
-        case 'request-cart-data':
-          if (window.shopifyCart && iframe.contentWindow) {
+        // Now set the iframe src after we have the data
+        iframe.src = iframeUrl.toString();
+        
+        // Add a load event listener to immediately send data when iframe loads
+        iframe.onload = function() {
+          console.log('Iframe loaded, sending cart data immediately');
+          if (iframe.contentWindow) {
             iframe.contentWindow.postMessage({
               type: 'cart-data',
-              cart: window.shopifyCart,
+              cart: cartData,
               metadata: {
                 timestamp: new Date().toISOString(),
                 shopUrl: window.location.hostname,
@@ -245,6 +262,52 @@
               }
             }, '*');
           }
+        };
+      })
+      .catch(error => {
+        console.error('Error fetching cart data:', error);
+        // Set iframe src even if cart data fetch fails
+        iframe.src = iframeUrl.toString();
+      });
+    
+    modal.appendChild(iframe);
+    document.body.appendChild(modal);
+    
+    // Set up message handler
+    window.addEventListener('message', function messageHandler(event) {
+      // Only accept messages from our checkout form
+      if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
+
+      console.log('Received message from iframe:', event.data?.type || event.data);
+
+      // Handle messages from iframe
+      const messageType = event.data?.type || event.data;
+      
+      switch (messageType) {
+        case 'request-cart-data':
+          console.log('Received request for cart data from iframe');
+          // Fetch fresh cart data
+          fetch('/cart.js')
+            .then(response => response.json())
+            .then(cartData => {
+              window.shopifyCart = cartData;
+              window.cartData = cartData;
+              
+              console.log('Sending fresh cart data to iframe:', cartData);
+              if (event.source) {
+                event.source.postMessage({
+                  type: 'cart-data',
+                  cart: cartData,
+                  metadata: {
+                    timestamp: new Date().toISOString(),
+                    shopUrl: window.location.hostname
+                  }
+                }, '*');
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching cart data:', error);
+            });
           break;
 
         case 'GET_SHOPIFY_DOMAIN':
@@ -252,6 +315,30 @@
             type: 'SHOPIFY_DOMAIN_RESPONSE',
             domain: shopifyDomain
           }, '*');
+          
+          // Send cart data along with domain response
+          if (window.shopifyCart && event.source) {
+            event.source.postMessage({
+              type: 'cart-data',
+              cart: window.shopifyCart
+            }, '*');
+          } else {
+            // If we don't have cart data yet, fetch it
+            fetch('/cart.js')
+              .then(response => response.json())
+              .then(cartData => {
+                window.shopifyCart = cartData;
+                window.cartData = cartData;
+                
+                if (event.source) {
+                  event.source.postMessage({
+                    type: 'cart-data',
+                    cart: cartData
+                  }, '*');
+                }
+              })
+              .catch(error => console.error('Error fetching cart data:', error));
+          }
           break;
 
         case 'submit-checkout':
@@ -263,48 +350,13 @@
             document.body.removeChild(modal);
           }
           window.removeEventListener('message', messageHandler);
+          // Send cleanup confirmation back to iframe
+          if (event.source) {
+            event.source.postMessage({ type: 'checkout-cleanup-done' }, '*');
+          }
           break;
       }
     });
-    
-    // Show the iframe immediately
-    iframe.src = iframeUrl.toString();
-    modal.appendChild(iframe);
-    document.body.appendChild(modal);
-    
-    // Fetch cart data in parallel
-    fetch('/cart.js')
-      .then(response => response.json())
-      .then(cartData => {
-        window.shopifyCart = cartData;
-        window.customCheckoutData = {
-          cartData: cartData,
-          timestamp: new Date().toISOString()
-        };
-        
-        try {
-          localStorage.setItem('tempCartData', JSON.stringify(cartData));
-        } catch (e) {
-          console.warn('Could not store cart data in localStorage', e);
-        }
-        
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage({
-            type: 'cart-data',
-            cart: cartData,
-            metadata: {
-              timestamp: new Date().toISOString(),
-              shopUrl: window.location.hostname,
-              shopifyDomain: shopifyDomain,
-              source: 'shopify-integration'
-            }
-          }, '*');
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching cart data:', error);
-        alert('Възникна грешка при зареждането на информацията за кошницата. Моля, опитайте отново.');
-      });
   }
 
   // Function to handle order creation
@@ -431,51 +483,5 @@
         window.cartData = cartData;
       })
       .catch(error => console.error('Error fetching cart data:', error));
-  });
-
-  // Listen for messages from the iframe
-  window.addEventListener('message', function(event) {
-    // Handle messages from the iframe
-    const message = event.data;
-    
-    if (message === 'checkout-closed') {
-      handleCheckoutClosed();
-      // Send cleanup confirmation back to iframe
-      if (event.source) {
-        event.source.postMessage({ type: 'checkout-cleanup-done' }, '*');
-      }
-    } else if (message.type === 'GET_SHOPIFY_DOMAIN') {
-      // Get the domain and send it back to the iframe
-      const shopifyDomain = window.location.hostname;
-      console.log('Sending Shopify domain to iframe:', shopifyDomain);
-      
-      if (event.source) {
-        event.source.postMessage({
-          type: 'SHOPIFY_DOMAIN_RESPONSE',
-          domain: shopifyDomain
-        }, '*');
-      }
-
-      // Also fetch fresh cart data and send it to the iframe
-      fetch('/cart.js')
-        .then(response => response.json())
-        .then(cartData => {
-          console.log('Fresh cart data loaded:', cartData);
-          // Store cart data globally
-          window.shopifyCart = cartData;
-          // Store for checkout form
-          window.cartData = cartData;
-          
-          // Send the cart data to the iframe
-          if (event.source) {
-            event.source.postMessage({
-              type: 'CART_DATA_UPDATE',
-              cartData: cartData
-            }, '*');
-          }
-        })
-        .catch(error => console.error('Error fetching fresh cart data:', error));
-    }
-    // ... rest of message handling
   });
 })(); 

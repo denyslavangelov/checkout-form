@@ -212,81 +212,61 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Initialize cart data with a reasonable default
   const [localCartData, setLocalCartData] = useState<any>(null);
   
-  // Comprehensive effect to load and normalize cart data from all possible sources
+  // Request cart data when form opens
   useEffect(() => {
-    console.log('Cart data initialization/update effect running', {
-      hasPropsCartData: !!cartData,
-      currentLocalCartData: !!localCartData
-    });
-    
-    // Function to find and normalize cart data from all possible sources
-    const findAndNormalizeCartData = () => {
-      // 1. Try to use the props data if available
-      if (cartData) {
-        console.log('Found cart data in props:', cartData);
-        const normalizedData = normalizeCartData(cartData);
-        if (normalizedData) {
-          return normalizedData;
-        }
-      }
+    if (open && !localCartData && typeof window !== 'undefined' && window.parent) {
+      console.log('Form is open, requesting cart data from parent window');
       
-      // 2. Look for cart data in the global window object
-      if (typeof window !== 'undefined') {
-        const possibleCartData = 
-          (window as any).cartData || 
-          (window as any).customCheckoutData?.cartData || 
-          (window as any).shopifyCart;
-        
-        if (possibleCartData) {
-          console.log('Found cart data in window object:', possibleCartData);
-          const normalizedData = normalizeCartData(possibleCartData);
-          if (normalizedData) {
-            return normalizedData;
-          }
-        }
-        
-        // 3. Check localStorage in development mode
-        if (process.env.NODE_ENV === 'development') {
-          const storedCartData = localStorage.getItem('cartData');
-          if (storedCartData) {
-            try {
-              const parsedCartData = JSON.parse(storedCartData);
-              console.log('Found cart data in localStorage:', parsedCartData);
-              const normalizedData = normalizeCartData(parsedCartData);
-              if (normalizedData) {
-                return normalizedData;
-              }
-            } catch (e) {
-              console.error('Error parsing cart data from localStorage:', e);
-            }
-          }
-        }
-      }
+      // Request cart data immediately
+      window.parent.postMessage({ type: 'request-cart-data' }, '*');
       
-      // 4. Fallback to test cart in development, otherwise null
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Using default test cart for development');
-        return defaultTestCart;
-      }
+      // Try again after a short delay if needed (fallback)
+      const timer = setTimeout(() => {
+        if (!localCartData) {
+          console.log('Fallback: Requesting cart data again after delay');
+          window.parent.postMessage({ type: 'request-cart-data' }, '*');
+        }
+      }, 1000);
       
-      return null;
-    };
-    
-    // Get normalized cart data and update state if it's different from current state
-    const newCartData = findAndNormalizeCartData();
-    
-    // Only update if we have data and it's different from the current data
-    if (newCartData) {
-      if (!localCartData || 
-          JSON.stringify(newCartData.items) !== JSON.stringify(localCartData.items)) {
-        console.log('Setting normalized cart data', {
-          itemCount: newCartData.items?.length || 0,
-          firstItemTitle: newCartData.items?.[0]?.title || 'none'
-        });
-        setLocalCartData(newCartData);
-      }
+      return () => clearTimeout(timer);
     }
-  }, [cartData, localCartData]);
+  }, [open, localCartData]);
+
+  // Add an improved listener for cart data messages
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const messageHandler = (event: MessageEvent) => {
+        // Handle cart data messages
+        if (event.data?.type === 'cart-data' && event.data?.cart) {
+          console.log('Received cart data from parent window:', event.data.cart);
+          const normalizedData = normalizeCartData(event.data.cart);
+          if (normalizedData) {
+            console.log('Setting cart data from message');
+            setLocalCartData(normalizedData);
+          }
+        }
+        
+        // Also handle CART_DATA_UPDATE messages
+        if (event.data?.type === 'CART_DATA_UPDATE' && event.data?.cartData) {
+          console.log('Received cart data update from parent window:', event.data.cartData);
+          const normalizedData = normalizeCartData(event.data.cartData);
+          if (normalizedData) {
+            console.log('Setting cart data from update message');
+            setLocalCartData(normalizedData);
+          }
+        }
+      };
+      
+      window.addEventListener('message', messageHandler);
+      
+      return () => {
+        window.removeEventListener('message', messageHandler);
+      };
+    }
+  }, []);
+  
+  // Show loading spinner while waiting for cart data
+  const isLoadingCart = open && (!localCartData || !localCartData.items || localCartData.items.length === 0);
   
   // Track selected shipping method for calculating total
   const [shippingCost, setShippingCost] = useState(SHIPPING_COSTS.speedy);
@@ -964,12 +944,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     setLocalCartData(updatedCart);
   };
 
+  // Update the cart summary rendering logic to show a better loading state
   const renderCartSummary = () => {
     if (!localCartData) {
       return (
         <div className="space-y-2">
           <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
-          <div className="flex items-center justify-center py-4 text-gray-500">
+          <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
             <span>Зареждане на данните...</span>
           </div>
         </div>
@@ -977,7 +959,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
     
     if (!localCartData.items || !Array.isArray(localCartData.items)) {
-  return (
+      return (
         <div className="space-y-2">
           <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
           <div className="flex items-center justify-center py-4 text-gray-500">
@@ -987,8 +969,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       );
     }
     
-      return (
-        <div className="space-y-2">
+    return (
+      <div className="space-y-2">
         <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
         <div className="max-h-[30vh] overflow-y-auto pb-2">
           {localCartData.items.map((item: any, index: number) => {
@@ -1126,28 +1108,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     );
   };
 
-  // Listen for cart data updates from parent window
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const cartDataUpdateHandler = (event: MessageEvent) => {
-        if (event.data?.type === 'CART_DATA_UPDATE' && event.data?.cartData) {
-          console.log('Received cart data update from parent window:', event.data.cartData);
-          const normalizedData = normalizeCartData(event.data.cartData);
-          if (normalizedData) {
-            console.log('Setting updated cart data from parent');
-            setLocalCartData(normalizedData);
-          }
-        }
-      };
-
-      window.addEventListener('message', cartDataUpdateHandler);
-      
-      return () => {
-        window.removeEventListener('message', cartDataUpdateHandler);
-      };
-    }
-  }, []);
-
   return (
     <Dialog 
       open={open} 
@@ -1174,14 +1134,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
           <div id="checkout-form-description" className="sr-only">
             Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
-            </div>
+          </div>
 
           <div className="px-4 py-3 space-y-4">
             {/* Cart Summary */}
             {renderCartSummary()}
 
-            {/* Form only renders when we have cart data */}
-            {(localCartData && localCartData.items && localCartData.items.length > 0) ? (
+            {/* Form renders when cart data is loaded */}
+            {!isLoadingCart && (
               <Form {...form}>
                 <form className="space-y-4" onSubmit={async (e) => {
                   e.preventDefault();
@@ -1709,9 +1669,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     </div>
                   </form>
                 </Form>
-              ) : (
-                /* Show nothing when there's no cart data */
-                null
               )}
           </div>
         </div>
@@ -1721,7 +1678,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             type="button"
             className={`w-full bg-blue-600 text-white font-medium py-2.5 
               ${isMobile ? 'text-base py-3' : ''}`}
-            disabled={submitStatus === 'loading'}
+            disabled={!localCartData || submitStatus === 'loading'}
             onClick={async () => {
               console.log('Submit button clicked');
               setSubmitStatus('loading');
@@ -1809,7 +1766,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
                       : form.getValues('officeAddress'),
                     postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
-                    officePostalCode: selectedShippingMethod === 'address' ? form.getValues('officePostalCode') : form.getValues('postalCode'),
+                    officePostalCode: form.getValues('officePostalCode'),
                     note: form.getValues('note')
                   }
                 }, '*');
@@ -1855,4 +1812,4 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       </DialogContent>
     </Dialog>
   );
-} 
+}
