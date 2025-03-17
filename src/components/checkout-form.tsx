@@ -894,13 +894,23 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     const updatedCart = JSON.parse(JSON.stringify(localCartData));
     const item = updatedCart.items[itemIndex];
     
-    const priceDifference = item.price * (newQuantity - item.quantity);
+    // Calculate the original price per item
+    const originalPricePerItem = item.original_line_price / item.quantity;
     
+    // Calculate the current price per item
+    const currentPricePerItem = item.line_price / item.quantity;
+    
+    // Update quantity
     item.quantity = newQuantity;
-    item.line_price = item.price * newQuantity;
     
-    updatedCart.total_price += priceDifference;
-    updatedCart.items_subtotal_price += priceDifference;
+    // Update line prices
+    item.original_line_price = originalPricePerItem * newQuantity;
+    item.line_price = currentPricePerItem * newQuantity;
+    
+    // Update cart totals
+    updatedCart.total_price = updatedCart.items.reduce((sum: number, item: any) => sum + item.line_price, 0);
+    updatedCart.items_subtotal_price = updatedCart.items.reduce((sum: number, item: any) => sum + item.line_price, 0);
+    updatedCart.item_count = updatedCart.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
     
     setLocalCartData(updatedCart);
   };
@@ -1010,7 +1020,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
 
                   <div className="text-right">
-                    {item.original_line_price !== item.line_price ? (
+                    {item.price !== (item.original_line_price / item.quantity) ? (
                       <>
                         <p className="font-medium text-sm text-red-600">{formatMoney(item.line_price)}</p>
                         <p className="text-xs text-gray-500 line-through">
@@ -1034,16 +1044,18 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (!localCartData) return null;
     
     const totalWithShipping = localCartData.total_price + shippingCost;
-    const hasDiscount = localCartData.total_discount > 0 || 
-      localCartData.items.some((item: any) => item.original_line_price !== item.line_price);
     
-    // Calculate the total original price if there are discounts
-    const originalTotalPrice = hasDiscount ? 
-      localCartData.items.reduce((sum: number, item: any) => sum + item.original_line_price, 0) : 
-      localCartData.items_subtotal_price;
+    // Calculate the total original price by summing up all items' original prices
+    const originalTotalPrice = localCartData.items.reduce(
+      (sum: number, item: any) => sum + item.original_line_price, 
+      0
+    );
+    
+    // Determine if there are any discounts
+    const hasDiscount = originalTotalPrice > localCartData.total_price;
     
     // Calculate the actual discount amount
-    const actualDiscount = originalTotalPrice - localCartData.items_subtotal_price;
+    const actualDiscount = originalTotalPrice - localCartData.total_price;
     
     return (
       <div className="border-t border-b py-3 space-y-2">
@@ -1052,10 +1064,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           {hasDiscount ? (
             <div className="text-right">
               <span className="text-gray-500 line-through mr-2">{formatMoney(originalTotalPrice)}</span>
-              <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+              <span>{formatMoney(localCartData.total_price)}</span>
             </div>
           ) : (
-            <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+            <span>{formatMoney(localCartData.total_price)}</span>
           )}
         </div>
         
@@ -1131,7 +1143,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             defaultValue={field.value}
                             className="flex flex-col gap-2"
                           >
-                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                            <div 
+                              className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                              onClick={() => form.setValue("shippingMethod", "speedy")}
+                            >
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
                                 <div className="flex items-center gap-2">
@@ -1143,7 +1158,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               </div>
                               <span className="text-black text-sm">5.99 лв.</span>
                             </div>
-                            <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                            <div 
+                              className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                              onClick={() => form.setValue("shippingMethod", "address")}
+                            >
                               <div className="flex items-center gap-2">
                                 <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
                                 <div className="flex items-center gap-2">
