@@ -158,6 +158,46 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     currency: 'BGN'
   };
 
+  // Helper function to normalize cart data to ensure it has the expected structure
+  const normalizeCartData = (data: any) => {
+    if (!data) return null;
+    
+    // If it's a single product (from Buy Now), convert it to cart format
+    if (data.product) {
+      return {
+        items: [{
+          id: data.product.variant_id || data.product.id,
+          title: data.product.title,
+          quantity: data.product.quantity || 1,
+          price: data.product.price,
+          line_price: data.product.price * (data.product.quantity || 1),
+          original_line_price: data.product.price * (data.product.quantity || 1),
+          variant_id: data.product.variant_id || data.product.id,
+          product_id: data.product.id,
+          sku: data.product.sku || '',
+          variant_title: data.product.variant_title || '',
+          vendor: data.product.vendor || '',
+          image: data.product.image?.src || data.product.featured_image || null,
+          requires_shipping: true
+        }],
+        total_price: data.product.price * (data.product.quantity || 1),
+        items_subtotal_price: data.product.price * (data.product.quantity || 1),
+        total_discount: 0,
+        item_count: data.product.quantity || 1,
+        currency: 'BGN'
+      };
+    }
+    
+    // Check if the data has the expected structure
+    if (!data.items || !Array.isArray(data.items)) {
+      console.warn('Cart data has invalid format, missing items array', data);
+      return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+    }
+    
+    // If the data is valid, return it
+    return data;
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -190,46 +230,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       environment: process.env.NODE_ENV
     });
     
-    // Helper function to normalize cart data to ensure it has the expected structure
-    const normalizeCartData = (data: any) => {
-      if (!data) return null;
-      
-      // If it's a single product (from Buy Now), convert it to cart format
-      if (data.product) {
-        return {
-          items: [{
-            id: data.product.variant_id || data.product.id,
-            title: data.product.title,
-            quantity: data.product.quantity || 1,
-            price: data.product.price,
-            line_price: data.product.price * (data.product.quantity || 1),
-            original_line_price: data.product.price * (data.product.quantity || 1),
-            variant_id: data.product.variant_id || data.product.id,
-            product_id: data.product.id,
-            sku: data.product.sku || '',
-            variant_title: data.product.variant_title || '',
-            vendor: data.product.vendor || '',
-            image: data.product.image?.src || data.product.featured_image || null,
-            requires_shipping: true
-          }],
-          total_price: data.product.price * (data.product.quantity || 1),
-          items_subtotal_price: data.product.price * (data.product.quantity || 1),
-          total_discount: 0,
-          item_count: data.product.quantity || 1,
-          currency: 'BGN'
-        };
-      }
-      
-      // Check if the data has the expected structure
-      if (!data.items || !Array.isArray(data.items)) {
-        console.warn('Cart data has invalid format, missing items array', data);
-        return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
-      }
-      
-      // If the data is valid, return it
-      return data;
-    };
-    
     // If running in development and no cart data provided, use test cart
     if (!cartData && process.env.NODE_ENV === 'development') {
       console.log('Using default test cart for development');
@@ -254,20 +254,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   
   // Update local cart data when prop changes
   useEffect(() => {
-    // Helper function to normalize cart data to ensure it has the expected structure
-    const normalizeCartData = (data: any) => {
-      if (!data) return null;
-      
-      // Check if the data has the expected structure
-      if (!data.items || !Array.isArray(data.items)) {
-        console.warn('Cart data has invalid format, missing items array', data);
-        return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
-      }
-      
-      // If the data is valid, return it
-      return data;
-    };
-    
     console.log('cartData prop changed', { 
       hasCartData: !!cartData,
       previousCartItems: localCartData?.items?.length || 0,
@@ -1047,6 +1033,23 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
     );
   };
+
+  // Listen for messages from parent window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'SET_CART_DATA') {
+        console.log('Received cart data from parent:', event.data);
+        const normalizedData = normalizeCartData(event.data.data);
+        if (normalizedData) {
+          console.log('Setting normalized cart data:', normalizedData);
+          setLocalCartData(normalizedData);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   return (
     <Dialog 
