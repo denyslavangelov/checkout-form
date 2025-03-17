@@ -393,6 +393,55 @@ export function Combobox({
     );
   }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon, searchValue]);
 
+  // Find where the dropdown list is rendered and modify its positioning and z-index for mobile
+  const renderDropdownContent = () => (
+    <div
+      ref={listRef}
+      className={cn(
+        "absolute w-full bg-white shadow-md rounded-md border border-gray-200 overflow-y-auto",
+        isMobile ? 
+          "fixed left-0 right-0 bottom-0 top-auto max-h-[60vh] rounded-b-none shadow-lg z-20" : 
+          "mt-1 max-h-[300px] z-20"
+      )}
+      {...(isMobile ? { 
+        style: { top: "auto", bottom: 0, height: "60vh", zIndex: 20 } 
+      } : {})}
+    >
+      {loading ? (
+        <div className="py-6 flex items-center justify-center">
+          <Loader2 className="animate-spin h-6 w-6 text-gray-400" />
+        </div>
+      ) : options.length === 0 ? (
+        <div className="p-4 text-center text-gray-500 text-sm">
+          {searchValue.length > 0 ? emptyText : (
+            type === 'default' ? 'Започнете да пишете, за да търсите' : emptyText
+          )}
+        </div>
+      ) : (
+        <div className="py-1">
+          {options.map((option) => (
+            <div
+              key={option.value}
+              className={cn(
+                "flex items-center px-3 py-2 cursor-pointer",
+                option.value === internalValue ? "bg-gray-100" : "hover:bg-gray-50"
+              )}
+              onClick={() => handleSelect(option.value)}
+            >
+              {getOptionIcon(option)}
+              <span className={cn(
+                "truncate flex-1 text-sm",
+                option.value === internalValue ? "font-medium" : "font-normal"
+              )}>
+                {option.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
       {/* Button that opens the combobox */}
@@ -440,74 +489,85 @@ export function Combobox({
         )} />
       </Button>
       
-      {/* Desktop dropdown view */}
+      {/* Desktop dropdown */}
       {open && !isMobile && (
-        <div 
-          className="absolute top-full left-0 w-full z-50 mt-1 rounded-md border border-gray-200 bg-white shadow-lg combobox-popover"
-          onClick={(e) => e.stopPropagation()}
+        <div
+          className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-[300px] overflow-y-auto"
+          style={{ zIndex: 20 }}
         >
-          <div className="flex flex-col overflow-hidden rounded-md bg-white text-gray-950">
-            <div className="flex items-center border-b border-gray-100 px-3 sticky top-0 bg-white z-10 mb-0">
-              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-              <input
-                ref={inputRef}
-                value={searchValue}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                placeholder={placeholder}
-                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
-                autoComplete="off"
-              />
+          {loading ? (
+            <div className="p-3 text-center text-gray-500">
+              <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600 mr-2"></div>
+              <span className="text-sm">Зареждане...</span>
             </div>
-            <div className="max-h-[300px] overflow-auto p-0 -mt-2">
+          ) : options.length === 0 ? (
+            <div className="p-3 text-center text-sm text-gray-500">
+              {searchValue.length > 0 ? emptyText : 'Започнете да пишете, за да търсите'}
+            </div>
+          ) : (
+            <div className="py-1">
               {renderOptionsList()}
             </div>
-          </div>
+          )}
         </div>
       )}
       
-      {/* Mobile fullscreen search view */}
-      {open && isMobile && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col combobox-fullscreen max-w-full overflow-hidden">
-          {/* Mobile header */}
-          <div className="flex items-center bg-white border-b p-2 h-16 sticky top-0 z-20 shadow-md w-full">
-            <button 
+      {/* Mobile fullscreen dialog */}
+      {isMobile && open && (
+        <div 
+          className="fixed inset-0 bg-white flex flex-col z-20" 
+          style={{ touchAction: 'manipulation' }}
+        >
+          {/* Mobile search header - adjust button to have higher z-index */}
+          <div className="sticky top-0 flex items-center border-b p-3 gap-2 bg-white shadow-sm z-40">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setOpen(false)}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors mr-2"
-              aria-label="Back"
+              className="flex-shrink-0 z-50"
             >
-              <ArrowLeft className="h-5 w-5 text-gray-700" />
-            </button>
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back</span>
+            </Button>
+            
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+                <Search className="h-4 w-4 text-gray-400" />
               </div>
+              
               <input
                 ref={mobileInputRef}
+                type="text"
+                className="w-full pl-8 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={placeholder}
                 value={searchValue}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={placeholder}
-                className="w-full h-11 pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-base bg-gray-50/80 outline-none focus:border-gray-400 focus:ring-0"
                 autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                autoCapitalize="off"
               />
+              
               {searchValue && (
                 <button
-                  onClick={() => handleSearchChange("")}
-                  className="absolute inset-y-0 right-1 p-2 text-gray-400"
-                  aria-label="Clear search"
+                  className="absolute inset-y-0 right-2 flex items-center"
+                  onClick={() => {
+                    setSearchValue("")
+                    handleSearchChange("")
+                    if (mobileInputRef.current) {
+                      mobileInputRef.current.focus()
+                    }
+                  }}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 text-gray-400" />
                 </button>
               )}
             </div>
           </div>
           
-          {/* Add a divider after the header */}
-          <div className="h-2 bg-gray-50 border-b border-gray-100"></div>
-          
           {/* Mobile search results - add padding to ensure content doesn't start immediately under header */}
-          <div className="flex-1 overflow-auto overflow-x-hidden pt-6 w-full" ref={listRef}>
-            <div className="divide-y divide-gray-100 w-full">
+          <div className="flex-1 overflow-auto overflow-x-hidden pt-2 w-full" ref={listRef}>
+            <div className="divide-y divide-gray-100 w-full mt-2">
               {renderOptionsList()}
             </div>
           </div>

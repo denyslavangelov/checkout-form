@@ -1120,7 +1120,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         aria-describedby="checkout-form-description"
       >
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
-          <DialogHeader className={`p-4 pb-2 border-b ${isMobile ? 'sticky top-0 bg-white z-10' : 'shrink-0'}`}>
+          <DialogHeader className={`p-4 pb-2 border-b ${isMobile ? 'sticky top-0 bg-white z-30' : 'shrink-0'}`}>
             <div className="flex items-center justify-between">
               <DialogTitle className="text-lg font-medium tracking-tight text-black">
                 Поръчайте с наложен платеж
@@ -1801,7 +1801,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               }
             }}
           >
-            {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${formatMoney((localCartData?.total_price || 0) + shippingCost).replace(' лв.', '')} лв.)`}
+            {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${formatMoney((localCartData?.total_price || 0) + shippingCost).replace(' лв.', '')})`}
           </Button>
           {submitStatus === 'error' && (
             <div className="text-red-500 text-center mt-2">
