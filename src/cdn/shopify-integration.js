@@ -316,7 +316,7 @@
       // Show loading state in the iframe
       source.postMessage({
         type: 'order-processing',
-        message: 'Създаване на поръчка...'
+        message: 'Създаване на поръчка..'
       }, '*');
       
       // Format cart data to match API expectations
