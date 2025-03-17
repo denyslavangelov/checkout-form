@@ -345,7 +345,9 @@
           total_discount: formData.cartData.total_discount,
           requires_shipping: formData.cartData.requires_shipping
         },
-        shipping_method: formData.shippingMethod,
+        shipping_method: formData.shipping_method,
+        shipping_price: formData.shipping_price,
+        shipping_method_data: formData.shipping_method_data,
         client_details: {
           first_name: formData.firstName,
           last_name: formData.lastName,

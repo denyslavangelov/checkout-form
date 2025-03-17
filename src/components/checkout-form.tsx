@@ -1637,28 +1637,50 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               setSubmitStatus('loading');
 
               try {
-                // Request domain from parent window
-                window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
+                // Request domain from parent window and wait for response
+                let shopifyDomain = null;
+                let retryCount = 0;
+                const maxRetries = 3;
 
-                // Listen for the response
-                const shopifyDomain = await new Promise((resolve, reject) => {
-                  const timeout = setTimeout(() => {
-                    reject(new Error('Timeout waiting for domain'));
-                    window.removeEventListener('message', handler);
-                  }, 5000);
+                while (!shopifyDomain && retryCount < maxRetries) {
+                  try {
+                    console.log(`Attempting to get Shopify domain (attempt ${retryCount + 1})`);
+                    
+                    // Send the request
+                    window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
 
-                  const handler = (event: MessageEvent) => {
-                    if (event.data.type === 'SHOPIFY_DOMAIN_RESPONSE') {
-                      clearTimeout(timeout);
-                      window.removeEventListener('message', handler);
-                      resolve(event.data.domain);
+                    // Listen for the response with a longer timeout for Firefox
+                    shopifyDomain = await new Promise((resolve, reject) => {
+                      const timeout = setTimeout(() => {
+                        reject(new Error(`Timeout waiting for domain (attempt ${retryCount + 1})`));
+                      }, 8000); // Increased timeout to 8 seconds
+
+                      const handler = (event: MessageEvent) => {
+                        if (event.data?.type === 'SHOPIFY_DOMAIN_RESPONSE') {
+                          clearTimeout(timeout);
+                          window.removeEventListener('message', handler);
+                          console.log('Received domain response:', event.data);
+                          resolve(event.data.domain);
+                        }
+                      };
+
+                      window.addEventListener('message', handler);
+                    });
+
+                    if (shopifyDomain) {
+                      console.log('Successfully received Shopify domain:', shopifyDomain);
+                      break;
                     }
-                  };
-
-                  window.addEventListener('message', handler);
-                });
-
-                console.log('Received Shopify domain:', shopifyDomain);
+                  } catch (error) {
+                    console.warn(`Domain request attempt ${retryCount + 1} failed:`, error);
+                    retryCount++;
+                    if (retryCount === maxRetries) {
+                      throw new Error('Failed to get Shopify domain after multiple attempts');
+                    }
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                  }
+                }
 
                 if (!shopifyDomain) {
                   throw new Error('Could not determine Shopify domain');
@@ -1680,6 +1702,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     shop_domain: shopifyDomain,
                     cartData: localCartData,
                     shippingMethod: selectedShippingMethod,
+                    shipping_method: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
+                    shipping_price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
+                    shipping_method_data: {
+                      type: selectedShippingMethod,
+                      name: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
+                      price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
+                      price_formatted: `${(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS] / 100).toFixed(2)} лв.`
+                    },
                     firstName: form.getValues('firstName'),
                     lastName: form.getValues('lastName'),
                     phone: form.getValues('phone'),
