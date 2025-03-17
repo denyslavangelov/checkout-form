@@ -713,17 +713,25 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   const handleOfficeSelected = (officeValue: string) => {
     if (officeValue) {
-      // Explicitly use index 1 to get the office name
+      // Parse all parts from the value (id|name|address)
       const parts = officeValue.split('|');
+      const officeId = parts[0];
       const officeName = parts[1];
+      const officeAddress = parts[2];
       
-      // Set only the office name as the value
-      form.setValue('officeAddress', officeName);
+      // Format the full address with office ID in brackets
+      const fullOfficeAddress = `${officeName} [${officeId}]: ${officeAddress}`;
+      
+      // Set the full office address as the value
+      form.setValue('officeAddress', fullOfficeAddress);
       
       // Log for debugging
       console.log('Setting office address value:', {
         originalValue: officeValue,
-        extractedOfficeName: officeName
+        parsedId: officeId,
+        parsedName: officeName,
+        parsedAddress: officeAddress,
+        fullAddress: fullOfficeAddress
       });
     }
   };
