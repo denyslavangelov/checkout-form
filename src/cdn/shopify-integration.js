@@ -169,158 +169,243 @@
     console.log('Persistent checkout button monitoring started');
   }
   
-  function initializeCustomCheckout() {
-    // Function to extract product data from the page
-    function getProductData() {
-      try {
-        // Try to get product data from the page
-        const productJson = document.querySelector('[data-product-json]')?.textContent;
-        if (productJson) {
-          const product = JSON.parse(productJson);
-          const variant = product.variants[0]; // Default to first variant if none selected
-          
-          return {
-            id: product.id,
-            title: product.title,
-            price: variant.price * 100, // Convert to cents
-            variant_id: variant.id,
-            image: product.featured_image,
-            sku: variant.sku,
-            variant_title: variant.title !== "Default Title" ? variant.title : "",
-            vendor: product.vendor,
-            quantity: 1
-          };
-        }
-        return null;
-      } catch (error) {
-        console.error('Error getting product data:', error);
-        return null;
-      }
+  function openCustomCheckout() {
+    console.log('Opening custom checkout...');
+    
+    // Create and show the modal and iframe immediately
+    let modal = document.createElement('div');
+    modal.id = 'custom-checkout-modal';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    modal.style.zIndex = '9999';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    
+    // Create iframe immediately
+    const iframe = document.createElement('iframe');
+    iframe.id = 'checkout-iframe';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.maxWidth = '600px';
+    iframe.style.maxHeight = '90vh';
+    iframe.style.border = 'none';
+    iframe.style.borderRadius = '8px';
+    iframe.style.backgroundColor = 'white';
+    iframe.style.margin = 'auto';
+    
+    // Configure iframe URL
+    const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
+    iframeUrl.searchParams.append('hasCart', 'true');
+    
+    // Get and append the Shopify domain
+    const shopifyDomain = Shopify.shop || window.Shopify.shop || 
+      document.querySelector('meta[name="shopify-checkout-api-token"]')?.dataset?.shopifyDomain ||
+      window.location.hostname;
+    iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
+    
+    // Optimize for mobile/tablet immediately
+    if (window.innerWidth < 768) {
+      iframe.style.maxWidth = '100%';
+      iframe.style.maxHeight = '100%';
+      iframe.style.height = '100%';
+      iframe.style.borderRadius = '0';
+      iframeUrl.searchParams.append('isMobile', 'true');
+      modal.style.padding = '0';
+    } else if (window.innerWidth < 992) {
+      iframe.style.maxWidth = '90%';
+      iframe.style.maxHeight = '95vh';
+      iframeUrl.searchParams.append('isTablet', 'true');
     }
+    
+    // Add viewport information
+    iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
+    iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
+    
+    // Set up message handler
+    window.addEventListener('message', function messageHandler(event) {
+      // Only accept messages from our checkout form
+      if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
 
-    // Function to handle checkout button clicks
-    function handleCheckoutClick(event) {
-      const button = event.target.closest('button, .button, [type="button"], [type="submit"]');
-      if (!button) return;
+      switch (event.data.type) {
+        case 'request-cart-data':
+          if (window.shopifyCart && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
+              cart: window.shopifyCart,
+              metadata: {
+                timestamp: new Date().toISOString(),
+                shopUrl: window.location.hostname,
+                shopifyDomain: shopifyDomain,
+                source: 'shopify-integration'
+              }
+            }, '*');
+          }
+          break;
 
-      // Check if this is a buy now or checkout button
-      const isBuyNowButton = button.textContent?.toLowerCase().includes('buy') || 
-                            button.getAttribute('name')?.toLowerCase().includes('buy') ||
-                            button.classList.toString().toLowerCase().includes('buy');
-
-      if (isBuyNowButton) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        // Get product data for buy now
-        const productData = getProductData();
-        if (productData) {
-          openCustomCheckout({ product: productData });
-        } else {
-          console.error('Could not get product data for buy now');
-        }
-      } else if (button.textContent?.toLowerCase().includes('checkout') ||
-                 button.getAttribute('name')?.toLowerCase().includes('checkout') ||
-                 button.classList.toString().toLowerCase().includes('checkout')) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // Use regular cart data for checkout
-        openCustomCheckout();
-      }
-    }
-
-    // Add click event listener to the document
-    document.addEventListener('click', handleCheckoutClick, true);
-
-    // Function to open custom checkout
-    function openCustomCheckout(data = null) {
-      // Create modal container if it doesn't exist
-      let modalContainer = document.getElementById('custom-checkout-modal');
-      if (!modalContainer) {
-        modalContainer = document.createElement('div');
-        modalContainer.id = 'custom-checkout-modal';
-        modalContainer.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 9999;
-        `;
-        document.body.appendChild(modalContainer);
-      }
-
-      // Create iframe if it doesn't exist
-      let checkoutFrame = document.getElementById('custom-checkout-frame');
-      if (!checkoutFrame) {
-        checkoutFrame = document.createElement('iframe');
-        checkoutFrame.id = 'custom-checkout-frame';
-        checkoutFrame.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border: none;
-          background: transparent;
-        `;
-        modalContainer.appendChild(checkoutFrame);
-      }
-
-      // Set iframe src with data
-      const baseUrl = 'https://checkout.example.com'; // Replace with your actual checkout URL
-      checkoutFrame.src = baseUrl;
-
-      // Listen for messages from the iframe
-      window.addEventListener('message', function(event) {
-        if (event.data.type === 'GET_SHOPIFY_DOMAIN') {
-          // Send shop domain to the iframe
-          checkoutFrame.contentWindow.postMessage({
+        case 'GET_SHOPIFY_DOMAIN':
+          event.source.postMessage({
             type: 'SHOPIFY_DOMAIN_RESPONSE',
-            domain: window.Shopify?.shop || window.location.host
+            domain: shopifyDomain
           }, '*');
-        } else if (event.data.type === 'checkout-closed') {
-          // Handle checkout close
-          modalContainer.style.display = 'none';
-          // Send cleanup confirmation
-          checkoutFrame.contentWindow.postMessage({
-            type: 'checkout-cleanup-done'
-          }, '*');
-        } else if (event.data.type === 'submit-checkout') {
-          // Handle order creation
-          handleOrderCreation(event.data.formData)
-            .then(response => {
-              checkoutFrame.contentWindow.postMessage({
-                type: 'order-created',
-                data: response
-              }, '*');
-            })
-            .catch(error => {
-              checkoutFrame.contentWindow.postMessage({
-                type: 'order-error',
-                error: error.message
-              }, '*');
-            });
+          break;
+
+        case 'submit-checkout':
+          handleOrderCreation(event.data.formData, event.source);
+          break;
+
+        case 'checkout-closed':
+          if (document.body.contains(modal)) {
+            document.body.removeChild(modal);
+          }
+          window.removeEventListener('message', messageHandler);
+          break;
+      }
+    });
+    
+    // Show the iframe immediately
+    iframe.src = iframeUrl.toString();
+    modal.appendChild(iframe);
+    document.body.appendChild(modal);
+    
+    // Fetch cart data in parallel
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cartData => {
+        window.shopifyCart = cartData;
+        window.customCheckoutData = {
+          cartData: cartData,
+          timestamp: new Date().toISOString()
+        };
+        
+        try {
+          localStorage.setItem('tempCartData', JSON.stringify(cartData));
+        } catch (e) {
+          console.warn('Could not store cart data in localStorage', e);
         }
+        
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'cart-data',
+            cart: cartData,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              shopUrl: window.location.hostname,
+              shopifyDomain: shopifyDomain,
+              source: 'shopify-integration'
+            }
+          }, '*');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching cart data:', error);
+        alert('Възникна грешка при зареждането на информацията за кошницата. Моля, опитайте отново.');
+      });
+  }
+
+  // Function to handle order creation
+  async function handleOrderCreation(formData, source) {
+    try {
+      console.log('Creating order with data:', formData);
+      
+      debugger;
+      // Show loading state in the iframe
+      source.postMessage({
+        type: 'order-processing',
+        message: 'Създаване на поръчка...'
+      }, '*');
+      
+      // Format cart data to match API expectations
+      const cartItems = formData.cartData.items.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        title: item.title,
+        price: item.price,
+        variant_id: item.variant_id,
+        product_id: item.product_id,
+        sku: item.sku || '',
+        variant_title: item.variant_title || '',
+        vendor: item.vendor || '',
+        line_price: item.line_price
+      }));
+
+      const requestPayload = {
+        shop_domain: formData.shop_domain,
+        cart: {
+          items: cartItems,
+          currency: formData.cartData.currency,
+          total_price: formData.cartData.total_price,
+          total_weight: formData.cartData.total_weight,
+          item_count: formData.cartData.item_count,
+          items_subtotal_price: formData.cartData.items_subtotal_price,
+          total_discount: formData.cartData.total_discount,
+          requires_shipping: formData.cartData.requires_shipping
+        },
+        shipping_method: formData.shippingMethod,
+        client_details: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone,
+          email: formData.email,
+          address: {
+            city: formData.city,
+            address1: formData.address,
+            postcode: formData.postalCode
+          },
+          note: formData.note || ''
+        }
+      };
+
+      console.log('Sending formatted request:', requestPayload);
+      
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload)
       });
 
-      // Show the modal
-      modalContainer.style.display = 'flex';
-
-      // If we have data (from buy now), pass it to the iframe
-      if (data) {
-        // Wait for iframe to load
-        checkoutFrame.onload = function() {
-          setTimeout(() => {
-            checkoutFrame.contentWindow.postMessage({
-              type: 'SET_CART_DATA',
-              data: data
-            }, '*');
-          }, 500);
-        };
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from API:', errorText);
+        throw new Error(`Failed to create order: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('Order created successfully:', data);
+
+      if (data.success && data.order && data.order.order_status_url) {
+        // First notify the iframe about successful order creation
+        source.postMessage({
+          type: 'order-created',
+          data: data
+        }, '*');
+
+        // Show success message before redirect
+        source.postMessage({
+          type: 'order-redirect',
+          message: 'Пренасочване към страницата на поръчката...'
+        }, '*');
+
+        // Short delay to show the success message
+        setTimeout(() => {
+          window.location.href = data.order.order_status_url;
+        }, 500);
+      } else {
+        throw new Error('Invalid response format from API');
+      }
+
+    } catch (error) {
+      console.error('Error creating order:', error);
+      source.postMessage({
+        type: 'order-error',
+        error: error.message
+      }, '*');
     }
   }
 
