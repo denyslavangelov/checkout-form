@@ -720,7 +720,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       const officeAddress = parts[2];
       
       // Format the full address with office ID in brackets
-      const fullOfficeAddress = `${officeName} [${officeId}]: ${officeAddress}`;
+      const fullOfficeAddress = `[${officeId}] ${officeName}: ${officeAddress}`;
       
       // Set the full office address as the value
       form.setValue('officeAddress', fullOfficeAddress);
