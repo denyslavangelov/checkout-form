@@ -89,7 +89,13 @@
       button.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopImmediatePropagation(); // Stop other handlers
-        openCustomCheckout();
+        
+        // Check if this is a "Buy Now" button specifically
+        const isBuyNowButton = button.closest('.shopify-payment-button__button') !== null;
+        console.log('Checkout button clicked, isBuyNowButton:', isBuyNowButton);
+        
+        // Pass the event to openCustomCheckout
+        openCustomCheckout(e);
         return false;
       }, { capture: true }); // Use capture to get event first
       
@@ -169,8 +175,105 @@
     console.log('Persistent checkout button monitoring started');
   }
   
-  function openCustomCheckout() {
+  function openCustomCheckout(event) {
     console.log('Opening custom checkout...');
+    
+    // Determine if this is a "Buy Now" button click
+    let isBuyNowButton = false;
+    let currentProduct = null;
+    
+    if (event && event.target) {
+      const button = event.target.closest('.shopify-payment-button__button');
+      // Check if this is a Buy Now button
+      if (button) {
+        isBuyNowButton = true;
+        console.log('Buy Now button detected, getting current product info');
+        
+        try {
+          // Get product data from the page meta tags or JSON
+          const productJson = document.getElementById('ProductJson-product-template') || 
+                             document.getElementById('ProductJson-product') ||
+                             document.querySelector('[id^="ProductJson-"]');
+          
+          if (productJson && productJson.textContent) {
+            currentProduct = JSON.parse(productJson.textContent);
+            console.log('Found product JSON:', currentProduct);
+          } 
+          
+          // If not found in JSON, try to get from meta tags
+          if (!currentProduct) {
+            const productMetaTag = document.querySelector('meta[property="og:product"]') ||
+                                  document.querySelector('meta[property="product:price:amount"]');
+            
+            if (productMetaTag) {
+              // This is just a fallback with limited information
+              const price = document.querySelector('meta[property="product:price:amount"]')?.content;
+              const title = document.querySelector('meta[property="og:title"]')?.content;
+              const image = document.querySelector('meta[property="og:image"]')?.content;
+              const url = window.location.href;
+              
+              // Try to extract product ID from URL
+              const productId = url.match(/\/products\/([^\/\?#]+)/)?.[1];
+              
+              if (price && title) {
+                currentProduct = {
+                  id: productId || 'unknown',
+                  title: title,
+                  price: parseFloat(price) * 100, // Convert to cents
+                  featured_image: image,
+                  url: url,
+                  quantity: 1
+                };
+                console.log('Constructed product from meta tags:', currentProduct);
+              }
+            }
+          }
+          
+          // Look for variant information if available
+          if (currentProduct) {
+            // Try to get selected variant
+            const selectedOptions = {};
+            
+            // Find all selected option inputs
+            document.querySelectorAll('select[name^="options"], input[name^="options"]:checked').forEach(input => {
+              const option = input.getAttribute('name').match(/options\[([^\]]+)\]/)?.[1];
+              if (option) {
+                selectedOptions[option] = input.value;
+              }
+            });
+            
+            // Find quantity input
+            const quantityInput = document.querySelector('input[name="quantity"]');
+            if (quantityInput && quantityInput.value) {
+              currentProduct.quantity = parseInt(quantityInput.value, 10) || 1;
+            }
+            
+            // Find the selected variant if available
+            if (currentProduct.variants && currentProduct.variants.length > 0 && Object.keys(selectedOptions).length > 0) {
+              const selectedVariant = currentProduct.variants.find(variant => {
+                // Check if all selected options match this variant
+                if (!variant.options || !variant.options.length) return false;
+                
+                return variant.options.every((option, index) => {
+                  const optionName = currentProduct.options[index];
+                  return !selectedOptions[optionName] || selectedOptions[optionName] === option;
+                });
+              });
+              
+              if (selectedVariant) {
+                console.log('Found selected variant:', selectedVariant);
+                currentProduct.variant_id = selectedVariant.id;
+                currentProduct.price = selectedVariant.price;
+                currentProduct.compare_at_price = selectedVariant.compare_at_price;
+                currentProduct.variant_title = selectedVariant.title;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error getting product info:', e);
+        }
+      }
+    }
     
     // Create and show the modal and iframe immediately
     let modal = document.createElement('div');
@@ -226,52 +329,91 @@
     iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
     iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
     
-    // Load cart data first, then set the iframe src
-    fetch('/cart.js')
-      .then(response => response.json())
-      .then(cartData => {
-        // Store cart data globally for later use
-        window.shopifyCart = cartData;
-        window.cartData = cartData;
-        window.customCheckoutData = {
-          cartData: cartData,
-          timestamp: new Date().toISOString()
-        };
-        
-        try {
-          localStorage.setItem('tempCartData', JSON.stringify(cartData));
-        } catch (e) {
-          console.warn('Could not store cart data in localStorage', e);
+    // For Buy Now button, use the current product instead of cart data
+    if (isBuyNowButton && currentProduct) {
+      console.log('Using product from Buy Now button:', currentProduct);
+      
+      // Create a cart-like structure with the single product
+      const singleProductCart = {
+        product: currentProduct,
+        cart_type: 'buy_now',
+        source: 'product_page'
+      };
+      
+      // Store this data globally
+      window.shopifyCart = singleProductCart;
+      window.cartData = singleProductCart;
+      
+      // Now set the iframe src
+      iframe.src = iframeUrl.toString();
+      
+      // Send the product data when iframe loads
+      iframe.onload = function() {
+        console.log('Iframe loaded, sending product data immediately');
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'cart-data',
+            cart: singleProductCart,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              shopUrl: window.location.hostname,
+              shopifyDomain: shopifyDomain,
+              source: 'buy_now_button'
+            }
+          }, '*');
         }
-
-        // Now set the iframe src after we have the data
-        iframe.src = iframeUrl.toString();
-        
-        // Add a load event listener to immediately send data when iframe loads
-        iframe.onload = function() {
-          console.log('Iframe loaded, sending cart data immediately');
-          if (iframe.contentWindow) {
-            iframe.contentWindow.postMessage({
-              type: 'cart-data',
-              cart: cartData,
-              metadata: {
-                timestamp: new Date().toISOString(),
-                shopUrl: window.location.hostname,
-                shopifyDomain: shopifyDomain,
-                source: 'shopify-integration'
-              }
-            }, '*');
+      };
+      
+      modal.appendChild(iframe);
+      document.body.appendChild(modal);
+    } else {
+      // Regular flow - load cart data first, then set the iframe src
+      fetch('/cart.js')
+        .then(response => response.json())
+        .then(cartData => {
+          // Store cart data globally for later use
+          window.shopifyCart = cartData;
+          window.cartData = cartData;
+          window.customCheckoutData = {
+            cartData: cartData,
+            timestamp: new Date().toISOString()
+          };
+          
+          try {
+            localStorage.setItem('tempCartData', JSON.stringify(cartData));
+          } catch (e) {
+            console.warn('Could not store cart data in localStorage', e);
           }
-        };
-      })
-      .catch(error => {
-        console.error('Error fetching cart data:', error);
-        // Set iframe src even if cart data fetch fails
-        iframe.src = iframeUrl.toString();
-      });
-    
-    modal.appendChild(iframe);
-    document.body.appendChild(modal);
+
+          // Now set the iframe src after we have the data
+          iframe.src = iframeUrl.toString();
+          
+          // Add a load event listener to immediately send data when iframe loads
+          iframe.onload = function() {
+            console.log('Iframe loaded, sending cart data immediately');
+            if (iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'cart-data',
+                cart: cartData,
+                metadata: {
+                  timestamp: new Date().toISOString(),
+                  shopUrl: window.location.hostname,
+                  shopifyDomain: shopifyDomain,
+                  source: 'shopify-integration'
+                }
+              }, '*');
+            }
+          };
+        })
+        .catch(error => {
+          console.error('Error fetching cart data:', error);
+          // Set iframe src even if cart data fetch fails
+          iframe.src = iframeUrl.toString();
+        });
+      
+      modal.appendChild(iframe);
+      document.body.appendChild(modal);
+    }
     
     // Set up message handler
     window.addEventListener('message', function messageHandler(event) {
