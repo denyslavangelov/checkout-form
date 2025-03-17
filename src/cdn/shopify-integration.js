@@ -417,4 +417,65 @@
   } else {
     startObserving();
   }
+
+  // When page loads, make cart data globally available
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get cart data on page load and make it available for the checkout form
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cartData => {
+        console.log('Shopify cart data loaded:', cartData);
+        // Store cart data globally
+        window.shopifyCart = cartData;
+        // Store for checkout form
+        window.cartData = cartData;
+      })
+      .catch(error => console.error('Error fetching cart data:', error));
+  });
+
+  // Listen for messages from the iframe
+  window.addEventListener('message', function(event) {
+    // Handle messages from the iframe
+    const message = event.data;
+    
+    if (message === 'checkout-closed') {
+      handleCheckoutClosed();
+      // Send cleanup confirmation back to iframe
+      if (event.source) {
+        event.source.postMessage({ type: 'checkout-cleanup-done' }, '*');
+      }
+    } else if (message.type === 'GET_SHOPIFY_DOMAIN') {
+      // Get the domain and send it back to the iframe
+      const shopifyDomain = window.location.hostname;
+      console.log('Sending Shopify domain to iframe:', shopifyDomain);
+      
+      if (event.source) {
+        event.source.postMessage({
+          type: 'SHOPIFY_DOMAIN_RESPONSE',
+          domain: shopifyDomain
+        }, '*');
+      }
+
+      // Also fetch fresh cart data and send it to the iframe
+      fetch('/cart.js')
+        .then(response => response.json())
+        .then(cartData => {
+          console.log('Fresh cart data loaded:', cartData);
+          // Store cart data globally
+          window.shopifyCart = cartData;
+          // Store for checkout form
+          window.cartData = cartData;
+          
+          // Send the cart data to the iframe
+          if (event.source) {
+            event.source.postMessage({
+              type: 'CART_DATA_UPDATE',
+              cartData: cartData
+            }, '*');
+          }
+        })
+        .catch(error => console.error('Error fetching fresh cart data:', error));
+    }
+    // ... rest of message handling
+  });
 })(); 
