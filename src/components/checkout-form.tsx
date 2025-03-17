@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { X, Trash2, Home, Route, Building2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
+import { CheckIcon } from "lucide-react"
+import { CreditCardIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -1590,34 +1592,21 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
                     <Separator className="my-4" />
 
-                    {/* Payment Method Section */}
-                    <div className="space-y-3">
-                      <h3 className="font-medium text-black text-sm flex items-center gap-2">
-                        <span className="flex items-center justify-center bg-black text-white rounded-full w-5 h-5 text-xs">4</span>
-                        Начин на плащане
-                      </h3>
-                      <FormField
-                        control={form.control}
-                        name="paymentMethod"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex flex-col gap-1.5"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <RadioGroupItem value="cod" id="cod" className="aspect-square w-4 h-4" />
-                                  <label htmlFor="cod" className="text-sm text-black font-medium cursor-pointer">
-                                    Наложен платеж
-                                  </label>
-                                </div>
-                              </RadioGroup>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                    {/* Payment Method */}
+                    <div className="p-4 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold mb-3">Начин на плащане</h3>
+                      <div className="bg-white rounded-lg border border-gray-200 p-3">
+                        <div className="flex items-center">
+                          <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center mr-3">
+                            <CheckIcon className="h-3 w-3 text-white" />
+                          </div>
+                          <div className="flex items-center">
+                            <CreditCardIcon className="h-5 w-5 text-gray-600 mr-2" />
+                            <span className="font-medium">Наложен платеж</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2 ml-8">Плащане при доставка</p>
+                      </div>
                     </div>
                   </div>
                 </form>
