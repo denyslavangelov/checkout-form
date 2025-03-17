@@ -731,15 +731,30 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Check if cart is empty and close the form if it is
   useEffect(() => {
     if (localCartData && localCartData.items && localCartData.items.length === 0) {
-      // Close the checkout form if cart is empty
-      onOpenChange(false);
-      
-      // Notify parent window to close iframe
+      // First notify parent window to close iframe
       if (typeof window !== 'undefined' && window.parent) {
         window.parent.postMessage('checkout-closed', '*');
       }
+      
+      // Then close the form after a short delay to ensure the message is sent
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
     }
   }, [localCartData, onOpenChange]);
+
+  // Handle dialog close
+  const handleDialogClose = () => {
+    // First notify parent window to close iframe
+    if (typeof window !== 'undefined' && window.parent) {
+      window.parent.postMessage('checkout-closed', '*');
+    }
+    
+    // Then close the form after a short delay to ensure the message is sent
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 100);
+  };
 
   // Add a state for filtered office suggestions
   const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);
@@ -1022,7 +1037,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent 
         className={`sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col
           ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
@@ -1034,7 +1049,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               <DialogTitle className="text-lg font-medium tracking-tight text-black">
                 Поръчайте с наложен платеж
               </DialogTitle>
-              <DialogClose className="rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+              <DialogClose className="rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" onClick={handleDialogClose}>
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
               </DialogClose>
