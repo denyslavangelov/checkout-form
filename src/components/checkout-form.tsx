@@ -89,6 +89,46 @@ interface CitySearchResult {
   label: string;
 }
 
+// Helper function to normalize cart data to ensure it has the expected structure
+const normalizeCartData = (data: any, defaultTestCart: any) => {
+  if (!data) return null;
+  
+  // If it's a single product (from Buy Now), convert it to cart format
+  if (data.product) {
+    return {
+      items: [{
+        id: data.product.variant_id || data.product.id,
+        title: data.product.title,
+        quantity: data.product.quantity || 1,
+        price: data.product.price,
+        line_price: data.product.price * (data.product.quantity || 1),
+        original_line_price: data.product.price * (data.product.quantity || 1),
+        variant_id: data.product.variant_id || data.product.id,
+        product_id: data.product.id,
+        sku: data.product.sku || '',
+        variant_title: data.product.variant_title || '',
+        vendor: data.product.vendor || '',
+        image: data.product.image?.src || data.product.featured_image || null,
+        requires_shipping: true
+      }],
+      total_price: data.product.price * (data.product.quantity || 1),
+      items_subtotal_price: data.product.price * (data.product.quantity || 1),
+      total_discount: 0,
+      item_count: data.product.quantity || 1,
+      currency: 'BGN'
+    };
+  }
+  
+  // Check if the data has the expected structure
+  if (!data.items || !Array.isArray(data.items)) {
+    console.warn('Cart data has invalid format, missing items array', data);
+    return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+  }
+  
+  // If the data is valid, return it
+  return data;
+};
+
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
   // Enhanced debug logging for cart data
   console.log('CheckoutForm rendered with props:', { 
@@ -100,43 +140,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     isMobile,
     componentOrigin: 'CheckoutForm component'
   });
-
-  // Look for cart data in the global window object if it's not passed as props
-  useEffect(() => {
-    // This runs only when cartData is null and we're in a browser environment
-    if (!cartData && typeof window !== 'undefined') {
-      console.log('Attempting to find cart data in window object...');
-      
-      // Check if cart data exists in any known locations
-      // These are common places where the custom checkout script might store cart data
-      const possibleCartData = 
-        (window as any).cartData || 
-        (window as any).customCheckoutData?.cartData || 
-        (window as any).shopifyCart;
-      
-      if (possibleCartData) {
-        console.log('Found cart data in window object:', possibleCartData);
-        setLocalCartData(possibleCartData);
-      } else {
-        // If we need to, we could also try to fetch the cart data directly
-        console.log('Could not find cart data in window object. Consider adding a global variable in custom-checkout.js');
-        
-        // If we're in development, we might also check localStorage
-        if (process.env.NODE_ENV === 'development') {
-          const storedCartData = localStorage.getItem('cartData');
-          if (storedCartData) {
-            try {
-              const parsedCartData = JSON.parse(storedCartData);
-              console.log('Found cart data in localStorage:', parsedCartData);
-              setLocalCartData(parsedCartData);
-            } catch (e) {
-              console.error('Error parsing cart data from localStorage:', e);
-            }
-          }
-        }
-      }
-    }
-  }, [cartData]);
 
   // Create a default test cart for development/testing
   const defaultTestCart = {
@@ -158,45 +161,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     currency: 'BGN'
   };
 
-  // Helper function to normalize cart data to ensure it has the expected structure
-  const normalizeCartData = (data: any) => {
-    if (!data) return null;
-    
-    // If it's a single product (from Buy Now), convert it to cart format
-    if (data.product) {
-      return {
-        items: [{
-          id: data.product.variant_id || data.product.id,
-          title: data.product.title,
-          quantity: data.product.quantity || 1,
-          price: data.product.price,
-          line_price: data.product.price * (data.product.quantity || 1),
-          original_line_price: data.product.price * (data.product.quantity || 1),
-          variant_id: data.product.variant_id || data.product.id,
-          product_id: data.product.id,
-          sku: data.product.sku || '',
-          variant_title: data.product.variant_title || '',
-          vendor: data.product.vendor || '',
-          image: data.product.image?.src || data.product.featured_image || null,
-          requires_shipping: true
-        }],
-        total_price: data.product.price * (data.product.quantity || 1),
-        items_subtotal_price: data.product.price * (data.product.quantity || 1),
-        total_discount: 0,
-        item_count: data.product.quantity || 1,
-        currency: 'BGN'
-      };
-    }
-    
-    // Check if the data has the expected structure
-    if (!data.items || !Array.isArray(data.items)) {
-      console.warn('Cart data has invalid format, missing items array', data);
-      return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
-    }
-    
-    // If the data is valid, return it
-    return data;
-  };
+  // Use the defaultTestCart when cartData is null/undefined and we're in development
+  const [localCartData, setLocalCartData] = useState<typeof cartData>(() => {
+    const initialData = cartData || (process.env.NODE_ENV === 'development' ? defaultTestCart : null);
+    return initialData ? normalizeCartData(initialData, defaultTestCart) : null;
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -220,63 +189,34 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       officePostalCode: "",
       note: "",
     },
-  })
-
-  // Use the defaultTestCart when cartData is null/undefined and we're in development
-  const [localCartData, setLocalCartData] = useState<typeof cartData>(() => {
-    console.log('Initializing localCartData', {
-      hasCartData: !!cartData,
-      usingTestCart: !cartData && process.env.NODE_ENV === 'development',
-      environment: process.env.NODE_ENV
-    });
-    
-    // If running in development and no cart data provided, use test cart
-    if (!cartData && process.env.NODE_ENV === 'development') {
-      console.log('Using default test cart for development');
-      return defaultTestCart;
-    }
-    
-    if (cartData) {
-      const normalizedData = normalizeCartData(cartData);
-      if (normalizedData) {
-        console.log('Using provided cart data', { 
-          itemCount: normalizedData.items?.length || 0
-        });
-        return normalizedData;
-      } else {
-        console.warn('Provided cart data was invalid, using fallback');
-        return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
-      }
-    }
-    
-    return cartData;
   });
   
-  // Update local cart data when prop changes
+  // Listen for messages from parent window
   useEffect(() => {
-    console.log('cartData prop changed', { 
-      hasCartData: !!cartData,
-      previousCartItems: localCartData?.items?.length || 0,
-      newCartItems: cartData?.items?.length || 0
-    });
-    
-    if (cartData) {
-      const normalizedData = normalizeCartData(cartData);
-      if (normalizedData) {
-        console.log('Updating localCartData with new cartData');
-        setLocalCartData(normalizedData);
-      } else {
-        console.warn('Updated cart data was invalid, using fallback');
-        if (process.env.NODE_ENV === 'development') {
-          setLocalCartData(defaultTestCart);
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'SET_CART_DATA') {
+        console.log('Received cart data from parent:', event.data);
+        const normalizedData = normalizeCartData(event.data.data, defaultTestCart);
+        if (normalizedData) {
+          console.log('Setting normalized cart data:', normalizedData);
+          setLocalCartData(normalizedData);
         }
       }
-    } else if (process.env.NODE_ENV === 'development') {
-      // In development, if cartData becomes null, use test cart instead of showing loading
-      console.log('Using test cart as fallback in development');
-      setLocalCartData(defaultTestCart);
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [defaultTestCart]);
+
+  // Update local cart data when prop changes
+  useEffect(() => {
+    if (cartData) {
+      const normalizedData = normalizeCartData(cartData, defaultTestCart);
+      if (normalizedData) {
+        setLocalCartData(normalizedData);
+      }
     }
-  }, [cartData]);
+  }, [cartData, defaultTestCart]);
   
   // Track selected shipping method for calculating total
   const [shippingCost, setShippingCost] = useState(SHIPPING_COSTS.speedy);
@@ -1033,23 +973,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
     );
   };
-
-  // Listen for messages from parent window
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'SET_CART_DATA') {
-        console.log('Received cart data from parent:', event.data);
-        const normalizedData = normalizeCartData(event.data.data);
-        if (normalizedData) {
-          console.log('Setting normalized cart data:', normalizedData);
-          setLocalCartData(normalizedData);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   return (
     <Dialog 
