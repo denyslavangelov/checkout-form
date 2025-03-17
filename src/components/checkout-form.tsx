@@ -1268,51 +1268,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       </div>
                     </div>
 
-                    {/* Shipping Method Section */}
-                    <div className="p-4 border-t border-gray-200">
-                      <h3 className="text-lg font-semibold mb-3">Метод за доставка</h3>
-                      <FormField
-                        control={form.control}
-                        name="shippingMethod"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex flex-col gap-2"
-                              >
-                                <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                                  <div className="flex items-center gap-2">
-                                    <RadioGroupItem value="speedy" id="speedy" className="aspect-square w-4 h-4" />
-                                    <div className="flex items-center gap-2">
-                                      {getShippingMethodIcon("speedy")}
-                                      <label htmlFor="speedy" className="cursor-pointer font-medium text-black text-sm">
-                                        Офис на Спиди
-                                      </label>
-                                    </div>
-                                  </div>
-                                  <span className="text-black text-sm">5.99 лв.</span>
-                                </div>
-                                <div className="flex items-center justify-between border border-gray-200 rounded-lg p-3 cursor-pointer hover:bg-gray-50/50 transition-colors">
-                                  <div className="flex items-center gap-2">
-                                    <RadioGroupItem value="address" id="address" className="aspect-square w-4 h-4" />
-                                    <div className="flex items-center gap-2">
-                                      {getShippingMethodIcon("address")}
-                                      <label htmlFor="address" className="cursor-pointer font-medium text-black text-sm">
-                                        Личен адрес
-                                      </label>
-                                    </div>
-                                  </div>
-                                  <span className="text-black text-sm">8.99 лв.</span>
-                                </div>
-                              </RadioGroup>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
                     {/* Address Section */}
                     <div className="p-4 border-t border-gray-200">
                       <h3 className="text-lg font-semibold mb-3">
