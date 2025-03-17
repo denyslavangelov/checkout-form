@@ -1010,11 +1010,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
 
                   <div className="text-right">
-                    <p className="font-medium text-sm">{formatMoney(item.line_price)}</p>
-                    {item.original_line_price !== item.line_price && (
-                      <p className="text-xs text-gray-500 line-through">
-                        {formatMoney(item.original_line_price)}
-                      </p>
+                    {item.original_line_price !== item.line_price ? (
+                      <>
+                        <p className="font-medium text-sm text-red-600">{formatMoney(item.line_price)}</p>
+                        <p className="text-xs text-gray-500 line-through">
+                          {formatMoney(item.original_line_price)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-medium text-sm">{formatMoney(item.line_price)}</p>
                     )}
               </div>
               </div>
@@ -1030,31 +1034,48 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (!localCartData) return null;
     
     const totalWithShipping = localCartData.total_price + shippingCost;
+    const hasDiscount = localCartData.total_discount > 0 || 
+      localCartData.items.some((item: any) => item.original_line_price !== item.line_price);
+    
+    // Calculate the total original price if there are discounts
+    const originalTotalPrice = hasDiscount ? 
+      localCartData.items.reduce((sum: number, item: any) => sum + item.original_line_price, 0) : 
+      localCartData.items_subtotal_price;
+    
+    // Calculate the actual discount amount
+    const actualDiscount = originalTotalPrice - localCartData.items_subtotal_price;
     
     return (
       <div className="border-t border-b py-3 space-y-2">
         <div className="flex justify-between text-sm">
-                <span>Междинна сума</span>
-          <span>{formatMoney(localCartData.items_subtotal_price)}</span>
-              </div>
+          <span>Междинна сума</span>
+          {hasDiscount ? (
+            <div className="text-right">
+              <span className="text-gray-500 line-through mr-2">{formatMoney(originalTotalPrice)}</span>
+              <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+            </div>
+          ) : (
+            <span>{formatMoney(localCartData.items_subtotal_price)}</span>
+          )}
+        </div>
         
-        {localCartData.total_discount > 0 && (
-          <div className="flex justify-between text-sm text-green-600">
+        {actualDiscount > 0 && (
+          <div className="flex justify-between text-sm text-red-600">
             <span>Отстъпка</span>
-            <span>-{formatMoney(localCartData.total_discount)}</span>
+            <span>-{formatMoney(actualDiscount)}</span>
           </div>
         )}
         
         <div className="flex justify-between text-sm">
-                <span>Доставка</span>
+          <span>Доставка</span>
           <span>{formatMoney(shippingCost)}</span>
-              </div>
+        </div>
         
         <div className="flex justify-between font-bold text-base pt-1">
           <span>Общо</span>
           <span>{formatMoney(totalWithShipping)}</span>
-              </div>
-            </div>
+        </div>
+      </div>
     );
   };
 
@@ -1743,7 +1764,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               }
             }}
           >
-            {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${((localCartData?.total_price || 0) + shippingCost) / 100} лв.)`}
+            {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${formatMoney((localCartData?.total_price || 0) + shippingCost).replace(' лв.', '')} лв.)`}
               </Button>
           {submitStatus === 'error' && (
             <div className="text-red-500 text-center mt-2">
