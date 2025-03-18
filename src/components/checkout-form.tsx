@@ -152,12 +152,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (!data) return null;
     
     // If it's a single product (from Buy Now), convert it to cart format
-    debugger;
     if (data.product) {
       const productPrice = data.product.price;
       const productCompareAtPrice = data.product.compare_at_price || data.product.original_price || productPrice;
       const quantity = data.product.quantity || 1;
       const isOnSale = productCompareAtPrice > productPrice;
+      
+      console.log('Processing Buy Now product data:', data.product);
       
       return {
         items: [{
@@ -179,35 +180,48 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         items_subtotal_price: productPrice * quantity,
         total_discount: isOnSale ? (productCompareAtPrice - productPrice) * quantity : 0,
         item_count: quantity,
-        currency: 'BGN'
+        currency: 'BGN',
+        cart_type: 'buy_now',
+        source: 'buy_now_button'
+      };
+    }
+    
+    // If we receive data that already has items, use it (e.g. from Buy Now handling in CDN)
+    if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+      // Check if this is a Buy Now type
+      if (data.cart_type === 'buy_now' || data.source === 'buy_now_button') {
+        console.log('Using pre-normalized Buy Now data with items:', data);
+        return {
+          ...data,
+          cart_type: 'buy_now',
+          source: 'buy_now_button'
+        };
+      }
+      
+      // Regular cart data, just normalize it
+      console.log('Using regular cart data with items:', data.items.length);
+      const normalizedItems = data.items.map((item: any) => {
+        if (!item.original_line_price || item.original_line_price === item.line_price) {
+          // If original_line_price is missing or same as line_price, check for compare_at_price
+          if (item.compare_at_price && item.compare_at_price > item.price) {
+            return {
+              ...item,
+              original_line_price: item.compare_at_price * item.quantity
+            };
+          }
+        }
+        return item;
+      });
+      
+      return {
+        ...data,
+        items: normalizedItems
       };
     }
     
     // Check if the data has the expected structure
-    if (!data.items || !Array.isArray(data.items)) {
-      console.warn('Cart data has invalid format, missing items array', data);
-      return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
-    }
-    
-    // Ensure all items have original_line_price
-    const normalizedItems = data.items.map((item: any) => {
-      if (!item.original_line_price || item.original_line_price === item.line_price) {
-        // If original_line_price is missing or same as line_price, check for compare_at_price
-        if (item.compare_at_price && item.compare_at_price > item.price) {
-          return {
-            ...item,
-            original_line_price: item.compare_at_price * item.quantity
-          };
-        }
-      }
-      return item;
-    });
-    
-    // Return normalized data
-    return {
-      ...data,
-      items: normalizedItems
-    };
+    console.warn('Cart data has invalid format, missing items array', data);
+    return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
   };
 
   // Initialize cart data with a reasonable default
@@ -250,8 +264,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             console.log('Detected Buy Now button data:', event.data.cart);
           }
           
-          debugger;
-          
           const normalizedData = normalizeCartData(event.data.cart);
           if (normalizedData) {
             console.log('Setting cart data from message');
@@ -262,7 +274,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         // Also handle CART_DATA_UPDATE messages
         if (event.data?.type === 'CART_DATA_UPDATE' && event.data?.cartData) {
           console.log('Received cart data update from parent window:', event.data.cartData);
-          debugger;
           const normalizedData = normalizeCartData(event.data.cartData);
           if (normalizedData) {
             console.log('Setting cart data from update message');
@@ -766,9 +777,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (localCartData && localCartData.items && localCartData.items.length === 0) {
       // Don't close the form if we're waiting for cart data
       // Special handling for Buy Now: don't close if cart type is buy_now
-      const isBuyNowData = cartData?.cart_type === 'buy_now' || cartData?.source === 'buy_now_button';
+      const isBuyNowData = 
+        localCartData.cart_type === 'buy_now' || 
+        localCartData.source === 'buy_now_button' || 
+        cartData?.cart_type === 'buy_now' || 
+        cartData?.source === 'buy_now_button';
       
-      console.log('Cart is empty. Buy Now button?', { isBuyNowData, cartData });
+      console.log('Cart is empty. Buy Now button?', { isBuyNowData, localCartData, cartData });
       
       // Only close if it's not a Buy Now attempt
       if (!isBuyNowData) {
