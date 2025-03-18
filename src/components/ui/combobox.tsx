@@ -284,7 +284,7 @@ export function Combobox({
               <span className="font-medium text-blue-800 block break-words hyphens-auto" style={{ wordBreak: 'break-word' }}>{selectedOption.label.split(':')[0]}</span>
               {selectedOption.label.includes(':') && (
                 <span className="text-xs text-gray-600 block truncate">
-                  {truncateText(extractOfficeAddress(selectedOption.label), 40)}
+                  {truncateText(extractOfficeAddress(selectedOption.label), isMobile ? 20 : 40)}
                 </span>
               )}
             </div>
