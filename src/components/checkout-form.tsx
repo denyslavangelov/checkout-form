@@ -69,7 +69,6 @@ const formSchema = z.object({
 // Shipping costs in cents (matching the cart data format)
 const SHIPPING_COSTS = {
   speedy: 599,
-  econt: 699,
   address: 899
 };
 
@@ -113,9 +112,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   ];
 
   // Function to advance to the next step
-  const nextStep = () => {
+  const nextStep = async () => {
     // Validate the current step before proceeding
-    if (validateCurrentStep()) {
+    const isValid = await validateCurrentStep();
+    if (isValid) {
       setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
       // Scroll to top when changing steps
       if (typeof window !== 'undefined') {
@@ -144,27 +144,107 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   };
 
   // Function to validate the current step
-  const validateCurrentStep = () => {
+  const validateCurrentStep = async () => {
     switch(currentStep) {
       case 0: // Cart
-        // Just check if cart is not empty
-        return localCartData && localCartData.items && localCartData.items.length > 0;
+        // Check if cart is not empty
+        if (!localCartData || !localCartData.items || localCartData.items.length === 0) {
+          alert("Кошницата е празна. Моля, добавете продукти преди да продължите.");
+          return false;
+        }
+        return true;
       case 1: // Shipping method
         // Check if shipping method is selected
-        return !!form.getValues('shippingMethod');
+        const shippingMethod = form.getValues('shippingMethod');
+        if (!shippingMethod) {
+          alert("Моля, изберете метод за доставка преди да продължите.");
+          return false;
+        }
+        return true;
       case 2: // Customer details
         // Get shipping method
-        const shippingMethod = form.getValues('shippingMethod');
+        const method = form.getValues('shippingMethod');
+        
+        let isValid = false;
         
         // If shipping to office, validate office fields
-        if (shippingMethod === 'speedy' || shippingMethod === 'econt') {
-          return form.trigger(['firstName', 'lastName', 'phone', 'officeCity', 'officeAddress']);
+        if (method === 'speedy') {
+          try {
+            // Await the validation trigger
+            isValid = await form.trigger(['firstName', 'lastName', 'phone', 'officeCity', 'officeAddress']);
+            if (!form.getValues('firstName')) {
+              alert("Моля, въведете вашето име.");
+              return false;
+            }
+            if (!form.getValues('lastName')) {
+              alert("Моля, въведете вашата фамилия.");
+              return false;
+            }
+            if (!form.getValues('phone')) {
+              alert("Моля, въведете телефон за връзка.");
+              return false;
+            }
+            if (!form.getValues('officeCity')) {
+              alert("Моля, изберете град за доставка.");
+              return false;
+            }
+            if (!form.getValues('officeAddress')) {
+              alert("Моля, изберете офис за доставка.");
+              return false;
+            }
+          } catch (error) {
+            console.error("Error validating form:", error);
+            return false;
+          }
         }
         
         // If shipping to address, validate address fields
-        return form.trigger(['firstName', 'lastName', 'phone', 'city', 'street', 'number', 'postalCode']);
+        if (method === 'address') {
+          try {
+            // Await the validation trigger
+            isValid = await form.trigger(['firstName', 'lastName', 'phone', 'city', 'street', 'number', 'postalCode']);
+            if (!form.getValues('firstName')) {
+              alert("Моля, въведете вашето име.");
+              return false;
+            }
+            if (!form.getValues('lastName')) {
+              alert("Моля, въведете вашата фамилия.");
+              return false;
+            }
+            if (!form.getValues('phone')) {
+              alert("Моля, въведете телефон за връзка.");
+              return false;
+            }
+            if (!form.getValues('city')) {
+              alert("Моля, изберете град за доставка.");
+              return false;
+            }
+            if (!form.getValues('street')) {
+              alert("Моля, въведете улица/комплекс.");
+              return false;
+            }
+            if (!form.getValues('number')) {
+              alert("Моля, въведете номер на сградата.");
+              return false;
+            }
+            if (!form.getValues('postalCode')) {
+              alert("Моля, въведете пощенски код.");
+              return false;
+            }
+          } catch (error) {
+            console.error("Error validating form:", error);
+            return false;
+          }
+        }
+        
+        return isValid;
       case 3: // Payment
-        // Most validation already done in previous steps
+        // Check terms agreement
+        const termsChecked = document.getElementById('terms') as HTMLInputElement;
+        if (!termsChecked || !termsChecked.checked) {
+          alert("Моля, приемете общите условия преди да завършите поръчката.");
+          return false;
+        }
         return true;
       default:
         return true;
@@ -1014,8 +1094,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     switch (method) {
       case "speedy":
         return "Офис на Спиди";
-      case "econt":
-        return "Офис на Еконт";
       case "address":
         return "Личен адрес";
       default:
@@ -1031,14 +1109,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           <img 
             src="/assets/logo-speedy-red.svg" 
             alt="Speedy" 
-            className="h-5 w-auto"
-          />
-        );
-      case "econt":
-        return (
-          <img 
-            src="/assets/logo-econt-blue.svg" 
-            alt="Econt" 
             className="h-5 w-auto"
           />
         );
@@ -1321,24 +1391,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     </div>
 
                     <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                      <RadioGroupItem value="econt" id="econt" className="h-5 w-5" />
-                      <div className="grid flex-1 gap-1">
-                        <div className="flex items-center">
-                          {getShippingMethodIcon("econt")}
-                          <label htmlFor="econt" className="ml-2 text-base font-medium cursor-pointer">
-                            Доставка до офис на Еконт
-                          </label>
-                        </div>
-                        <div className="ml-7 text-sm text-gray-500">
-                          Доставка до офис на Еконт в цялата страна
-                        </div>
-                      </div>
-                      <div className="text-sm font-medium">
-                        {formatMoney(SHIPPING_COSTS.econt)}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
                       <RadioGroupItem value="address" id="address" className="h-5 w-5" />
                       <div className="grid flex-1 gap-1">
                         <div className="flex items-center">
@@ -1463,8 +1515,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         <div className="space-y-4 pt-2">
           <h3 className="text-base font-semibold">Адрес за доставка</h3>
           
-          {/* If office delivery (Speedy or Econt) */}
-          {(shippingMethod === 'speedy' || shippingMethod === 'econt') && (
+          {/* If office delivery (Speedy) */}
+          {shippingMethod === 'speedy' && (
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -1472,21 +1524,38 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Град <span className="text-red-500">*</span></FormLabel>
-                    <Combobox
-                      options={citySuggestions}
-                      placeholder="Изберете град"
-                      loading={loadingCities}
-                      value={field.value ?? ""}
-                      onChange={(value) => {
-                        handleCitySelected(value, 'officeCity');
-                      }}
-                      onSearch={(value) => {
-                        debouncedSearchCities(value);
-                        setSearchCity(value);
-                      }}
-                      className="h-11"
-                      isMobile={isMobile}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="Въведете име на град"
+                        value={searchCity}
+                        onChange={(e) => {
+                          setSearchCity(e.target.value);
+                          debouncedSearchCities(e.target.value);
+                        }}
+                        className="h-11"
+                      />
+                      {loadingCities && (
+                        <div className="absolute right-3 top-3">
+                          <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                        </div>
+                      )}
+                    </div>
+                    {citySuggestions.length > 0 && (
+                      <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                        {citySuggestions.map((option) => (
+                          <div 
+                            key={option.value} 
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              handleCitySelected(option.value, 'officeCity');
+                              setSearchCity(option.label);
+                            }}
+                          >
+                            {option.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {form.formState.errors.officeCity && (
                       <p className="text-sm font-medium text-red-500 mt-1">
                         {form.formState.errors.officeCity.message}
@@ -1503,18 +1572,41 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Офис <span className="text-red-500">*</span></FormLabel>
-                      <Combobox
-                        options={officeSuggestions}
-                        placeholder={`Изберете офис на ${shippingMethod === 'speedy' ? 'Спиди' : 'Еконт'}`}
-                        loading={loadingOffices}
-                        value={field.value ?? ""}
-                        onChange={(value) => {
-                          field.onChange(value);
-                          handleOfficeSelected(value);
-                        }}
-                        className="h-11"
-                        isMobile={isMobile}
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="Изберете офис"
+                          value={field.value || ""}
+                          readOnly 
+                          className="h-11 pr-10 cursor-pointer"
+                          onClick={() => {
+                            // When clicked, show available offices
+                            if (selectedCityId) {
+                              searchOffices(selectedCityId);
+                            }
+                          }}
+                        />
+                        {loadingOffices && (
+                          <div className="absolute right-3 top-3">
+                            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                          </div>
+                        )}
+                      </div>
+                      {officeSuggestions.length > 0 && (
+                        <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                          {officeSuggestions.map((option) => (
+                            <div 
+                              key={option.value} 
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                              onClick={() => {
+                                field.onChange(option.value);
+                                handleOfficeSelected(option.value);
+                              }}
+                            >
+                              {option.label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {form.formState.errors.officeAddress && (
                         <p className="text-sm font-medium text-red-500 mt-1">
                           {form.formState.errors.officeAddress.message}
@@ -1536,21 +1628,38 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Град <span className="text-red-500">*</span></FormLabel>
-                    <Combobox
-                      options={citySuggestions}
-                      placeholder="Изберете град"
-                      loading={loadingCities}
-                      value={field.value ?? ""}
-                      onChange={(value) => {
-                        handleCitySelected(value, 'city');
-                      }}
-                      onSearch={(value) => {
-                        debouncedSearchCities(value);
-                        setSearchCity(value);
-                      }}
-                      className="h-11"
-                      isMobile={isMobile}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="Въведете име на град"
+                        value={searchCity}
+                        onChange={(e) => {
+                          setSearchCity(e.target.value);
+                          debouncedSearchCities(e.target.value);
+                        }}
+                        className="h-11"
+                      />
+                      {loadingCities && (
+                        <div className="absolute right-3 top-3">
+                          <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                        </div>
+                      )}
+                    </div>
+                    {citySuggestions.length > 0 && (
+                      <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                        {citySuggestions.map((option) => (
+                          <div 
+                            key={option.value} 
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              handleCitySelected(option.value, 'city');
+                              setSearchCity(option.label);
+                            }}
+                          >
+                            {option.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {form.formState.errors.city && (
                       <p className="text-sm font-medium text-red-500 mt-1">
                         {form.formState.errors.city.message}
@@ -1567,20 +1676,44 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Улица/Комплекс <span className="text-red-500">*</span></FormLabel>
-                      <Combobox
-                        options={filteredStreetSuggestions}
-                        placeholder="Улица/Комплекс"
-                        loading={loadingStreets}
-                        value={field.value ?? ""}
-                        onChange={(value) => {
-                          field.onChange(value);
-                        }}
-                        onSearch={(value) => {
-                          setSearchStreet(value);
-                        }}
-                        className="h-11"
-                        isMobile={isMobile}
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="Въведете улица/комплекс"
+                          value={searchStreet}
+                          onChange={(e) => {
+                            setSearchStreet(e.target.value);
+                            if (selectedCityId) {
+                              debouncedSearchStreets(selectedCityId, e.target.value);
+                            }
+                          }}
+                          className="h-11"
+                        />
+                        {loadingStreets && (
+                          <div className="absolute right-3 top-3">
+                            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                          </div>
+                        )}
+                      </div>
+                      {filteredStreetSuggestions.length > 0 && (
+                        <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                          {filteredStreetSuggestions.map((option) => (
+                            <div 
+                              key={option.value} 
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                              onClick={() => {
+                                field.onChange(option.value);
+                                handleStreetSelected(option.value);
+                                setSearchStreet(option.label);
+                              }}
+                            >
+                              {option.icon && (
+                                <span className="mr-2">{option.icon}</span>
+                              )}
+                              <span>{option.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {form.formState.errors.street && (
                         <p className="text-sm font-medium text-red-500 mt-1">
                           {form.formState.errors.street.message}
