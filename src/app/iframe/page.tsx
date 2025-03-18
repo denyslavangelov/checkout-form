@@ -328,6 +328,11 @@ export default function IframePage() {
   // Check if this is a Buy Now context from URL
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Add a flag check to prevent infinite loop
+      if ((window as any).buyNowAlreadyProcessed) {
+        return;
+      }
+      
       const urlParams = new URLSearchParams(window.location.search);
       const isBuyNow = urlParams.get('buyNow') === 'true';
       
@@ -335,6 +340,8 @@ export default function IframePage() {
         console.log('Buy Now context detected from URL');
         // Use a safer approach with window as an indexable type
         (window as any).isBuyNowContext = true;
+        // Set flag to prevent reprocessing
+        (window as any).buyNowAlreadyProcessed = true;
         
         // If cart data is missing or empty, create a default structure
         if (!cartData || (cartData.items && cartData.items.length === 0)) {
