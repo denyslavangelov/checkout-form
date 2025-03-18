@@ -1001,63 +1001,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   }, [streetSuggestions, searchStreet]);
 
   // Handle city selection
-  const handleCitySelected = (cityValue: string, fieldName: string) => {
-    if (cityValue) {
-      const parts = cityValue.split('|');
-      const cityName = parts[0];
-      const postalCode = parts[1];
-      const cityId = parts[2];
-      const prefix = parts[3] || 'гр.'; // Get the prefix or default to 'гр.'
+  const handleCitySelected = (cityId: string, fieldName: string) => {
+    const selectedCity = citySuggestions.find(city => city.value === cityId);
+    if (selectedCity) {
+      form.setValue(fieldName as keyof z.infer<typeof formSchema>, selectedCity.label);
+      setSelectedCityId(cityId);
+      setSearchCity(selectedCity.label);
+      setCityDropdownOpen(false);
       
-      // Set city name in the appropriate field, with prefix
-      form.setValue(fieldName as keyof z.infer<typeof formSchema>, `${prefix} ${cityName}`);
+      // Clear street selection when city changes
+      form.setValue('street', '');
+      setSearchStreet('');
       
-      // If this is for personal address, also set postal code if available
-      if (fieldName === 'city' && postalCode) {
-        form.setValue('postalCode', postalCode);
-        
-        // If this is for personal address and we have a cityId, fetch streets
-        if (selectedShippingMethod === 'address' && cityId) {
-          setSelectedCityId(cityId);
-          
-          // Fetch all streets for this city (empty search term = all streets)
-          searchStreets(cityId);
+      // Clear speedy office selection when city changes
+      if (selectedShippingMethod === 'speedy') {
+        // Since 'officeId' might not be in your form schema, update this accordingly
+        if (form.getValues().hasOwnProperty('officeAddress')) {
+          form.setValue('officeAddress', '');
         }
+        setSearchOffice('');
+        handleSpeedyOfficeSearch(cityId);
       }
-      
-      // For office selection, store the city ID for office search and set postal code
-      if (fieldName === 'officeCity' && cityId) {
-        setSelectedCityId(cityId);
-        // Always clear the office selection when changing city
-        form.setValue('officeAddress', '');
-        if (postalCode) {
-          form.setValue('officePostalCode', postalCode);
-        }
-        
-        // Fetch offices for this city
-        searchOffices(cityId)
-      }
-    } else {
-      // If the city was cleared, also clear related fields
-      if (fieldName === 'officeCity') {
-        form.setValue('officeAddress', '');
-        form.setValue('officePostalCode', '');
-        setSelectedCityId(null);
-        setOfficeSuggestions([]);
-      } else if (fieldName === 'city') {
-        form.setValue('postalCode', '');
-        form.setValue('street', '');
-        form.setValue('building', '');
-        form.setValue('entrance', '');
-        form.setValue('floor', '');
-        form.setValue('apartment', '');
-        setStreetSuggestions([]);
-        setFilteredStreetSuggestions([]);
-        if (selectedShippingMethod === 'address') {
-          setSelectedCityId(null);
-        }
-      }
-      form.setValue(fieldName as keyof z.infer<typeof formSchema>, '');
     }
   };
 
@@ -1536,11 +1500,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           placeholder="Въведете име на град"
                           value={searchCity}
                           onChange={(e) => {
-                            setSearchCity(e.target.value);
-                            debouncedSearchCities(e.target.value);
-                            setCityDropdownOpen(true);
+                            const value = e.target.value;
+                            setSearchCity(value);
+                            if (value.length >= 1) {
+                              setCityDropdownOpen(true);
+                              debouncedSearchCities(value);
+                            } else {
+                              setCityDropdownOpen(false);
+                            }
                           }}
-                          onFocus={() => setCityDropdownOpen(true)}
+                          onFocus={() => {
+                            if (searchCity.length >= 1) {
+                              setCityDropdownOpen(true);
+                            }
+                          }}
                           className="h-11 pl-10"
                         />
                         {loadingCities && (
@@ -1557,9 +1530,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             key={option.value} 
                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                             onClick={() => {
-                              handleCitySelected(option.value, 'officeCity');
+                              form.setValue('officeCity', option.label);
+                              setSelectedCityId(option.value);
                               setSearchCity(option.label);
                               setCityDropdownOpen(false);
+                              
+                              // Clear office selection when city changes
+                              form.setValue('officeAddress', '');
+                              
+                              // Fetch offices for this city
+                              searchOffices(option.value);
+                              // Open the office dropdown after a short delay
+                              setTimeout(() => {
+                                setOfficeDropdownOpen(true);
+                              }, 500);
                             }}
                           >
                             {option.label}
@@ -1599,12 +1583,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               }
                             }}
                           />
-                          {loadingOffices && (
+                          {loadingOffices ? (
                             <div className="absolute right-3 top-3">
                               <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
                             </div>
-                          )}
-                          {field.value && (
+                          ) : field.value && (
                             <button 
                               type="button"
                               className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
@@ -1618,21 +1601,32 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           )}
                         </div>
                       </div>
-                      {officeDropdownOpen && officeSuggestions.length > 0 && (
+                      {officeDropdownOpen && (
                         <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border z-50">
-                          {officeSuggestions.map((option) => (
-                            <div 
-                              key={option.value} 
-                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                              onClick={() => {
-                                field.onChange(option.value);
-                                handleOfficeSelected(option.value);
-                                setOfficeDropdownOpen(false);
-                              }}
-                            >
-                              {option.label}
+                          {loadingOffices ? (
+                            <div className="p-4 text-center">
+                              <div className="inline-block animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent mr-2"></div>
+                              <span>Зареждане на офиси...</span>
                             </div>
-                          ))}
+                          ) : officeSuggestions.length > 0 ? (
+                            officeSuggestions.map((option) => (
+                              <div 
+                                key={option.value} 
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                onClick={() => {
+                                  field.onChange(option.value);
+                                  handleOfficeSelected(option.value);
+                                  setOfficeDropdownOpen(false);
+                                }}
+                              >
+                                {option.label}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">
+                              Няма намерени офиси
+                            </div>
+                          )}
                         </div>
                       )}
                       {form.formState.errors.officeAddress && (
@@ -1663,11 +1657,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           placeholder="Въведете име на град"
                           value={searchCity}
                           onChange={(e) => {
-                            setSearchCity(e.target.value);
-                            debouncedSearchCities(e.target.value);
-                            setCityDropdownOpen(true);
+                            const value = e.target.value;
+                            setSearchCity(value);
+                            if (value.length >= 1) {
+                              setCityDropdownOpen(true);
+                              debouncedSearchCities(value);
+                            } else {
+                              setCityDropdownOpen(false);
+                            }
                           }}
-                          onFocus={() => setCityDropdownOpen(true)}
+                          onFocus={() => {
+                            if (searchCity.length >= 1) {
+                              setCityDropdownOpen(true);
+                            }
+                          }}
                           className="h-11 pl-10"
                         />
                         {loadingCities && (
@@ -1685,8 +1688,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                             onClick={() => {
                               handleCitySelected(option.value, 'city');
-                              setSearchCity(option.label);
-                              setCityDropdownOpen(false);
                             }}
                           >
                             {option.label}
@@ -1717,13 +1718,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             placeholder="Въведете улица/комплекс"
                             value={searchStreet}
                             onChange={(e) => {
-                              setSearchStreet(e.target.value);
-                              if (selectedCityId) {
-                                debouncedSearchStreets(selectedCityId, e.target.value);
+                              const value = e.target.value;
+                              setSearchStreet(value);
+                              if (selectedCityId && value.length >= 1) {
                                 setStreetDropdownOpen(true);
+                                debouncedSearchStreets(selectedCityId, value);
+                              } else {
+                                setStreetDropdownOpen(false);
                               }
                             }}
-                            onFocus={() => setStreetDropdownOpen(true)}
                             className="h-11 pl-10"
                           />
                           {loadingStreets && (
@@ -1738,18 +1741,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           {filteredStreetSuggestions.map((option) => (
                             <div 
                               key={option.value} 
-                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                               onClick={() => {
                                 field.onChange(option.value);
-                                handleStreetSelected(option.value);
                                 setSearchStreet(option.label);
                                 setStreetDropdownOpen(false);
                               }}
                             >
-                              {option.icon && (
-                                <span className="mr-2">{option.icon}</span>
-                              )}
-                              <span>{option.label}</span>
+                              {option.label}
                             </div>
                           ))}
                         </div>
@@ -2078,6 +2077,31 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Add a useEffect to fetch offices when a city is selected for Speedy
+  useEffect(() => {
+    if (selectedShippingMethod === 'speedy' && selectedCityId) {
+      handleSpeedyOfficeSearch(selectedCityId);
+    }
+  }, [selectedCityId, selectedShippingMethod]);
+
+  // Add the searchOffice state and handleSpeedyOfficeSearch function at the appropriate place in the component
+  const [searchOffice, setSearchOffice] = useState('');
+
+  // Add handleSpeedyOfficeSearch function
+  const handleSpeedyOfficeSearch = async (cityId: string) => {
+    if (!cityId) return;
+    
+    setLoadingOffices(true);
+    try {
+      // Use the existing searchOffices function instead of speedyApi
+      await searchOffices(cityId);
+    } catch (error) {
+      console.error('Error fetching Speedy offices:', error);
+    } finally {
+      setLoadingOffices(false);
+    }
+  };
 
   return (
     <Dialog 
