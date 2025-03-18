@@ -281,15 +281,15 @@ export function Combobox({
           )}
           {optionType === 'office' ? (
             <div className="w-full overflow-hidden">
-              <span className="font-medium text-blue-800 block break-words hyphens-auto" style={{ wordBreak: 'break-word' }}>{selectedOption.label.split(':')[0]}</span>
+              <span className={`font-medium text-blue-800 block break-words hyphens-auto ${isMobile ? 'text-sm' : ''}`} style={{ wordBreak: 'break-word' }}>{selectedOption.label.split(':')[0]}</span>
               {selectedOption.label.includes(':') && (
-                <span className="text-xs text-gray-600 block truncate">
+                <span className={`text-gray-600 block truncate ${isMobile ? 'text-xs' : 'text-xs'}`}>
                   {truncateText(extractOfficeAddress(selectedOption.label), isMobile ? 20 : 40)}
                 </span>
               )}
             </div>
           ) : (
-            <span className={`font-medium text-blue-800 truncate overflow-hidden ${isMobile ? 'max-w-[75%]' : ''}`}>
+            <span className={`font-medium text-blue-800 truncate overflow-hidden ${isMobile ? 'text-sm max-w-[75%]' : 'max-w-full'}`}>
               {selectedOption.label.split(':')[0]}
             </span>
           )}
