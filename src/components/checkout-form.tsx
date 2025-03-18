@@ -250,6 +250,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             console.log('Detected Buy Now button data:', event.data.cart);
           }
           
+          debugger;
+          
           const normalizedData = normalizeCartData(event.data.cart);
           if (normalizedData) {
             console.log('Setting cart data from message');
@@ -260,6 +262,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         // Also handle CART_DATA_UPDATE messages
         if (event.data?.type === 'CART_DATA_UPDATE' && event.data?.cartData) {
           console.log('Received cart data update from parent window:', event.data.cartData);
+          debugger;
           const normalizedData = normalizeCartData(event.data.cartData);
           if (normalizedData) {
             console.log('Setting cart data from update message');
