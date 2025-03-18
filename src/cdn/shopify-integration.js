@@ -176,8 +176,8 @@
   }
   
   function openCustomCheckout(event) {
-    console.log('Opening custom checkout...');
-    
+  console.log('Opening custom checkout...');
+  
     // Determine if this is a "Buy Now" button click
     let isBuyNowButton = false;
     let currentProduct = null;
@@ -391,34 +391,34 @@
     
     // Create and show the modal and iframe immediately
     let modal = document.createElement('div');
-    modal.id = 'custom-checkout-modal';
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    modal.style.zIndex = '9999';
-    modal.style.display = 'flex';
-    modal.style.justifyContent = 'center';
-    modal.style.alignItems = 'center';
-    
+        modal.id = 'custom-checkout-modal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        modal.style.zIndex = '9999';
+        modal.style.display = 'flex';
+        modal.style.justifyContent = 'center';
+        modal.style.alignItems = 'center';
+        
     // Create iframe immediately
-    const iframe = document.createElement('iframe');
-    iframe.id = 'checkout-iframe';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.maxWidth = '600px';
-    iframe.style.maxHeight = '90vh';
-    iframe.style.border = 'none';
-    iframe.style.borderRadius = '8px';
-    iframe.style.backgroundColor = 'white';
-    iframe.style.margin = 'auto';
-    
+        const iframe = document.createElement('iframe');
+        iframe.id = 'checkout-iframe';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.maxWidth = '600px';
+        iframe.style.maxHeight = '90vh';
+        iframe.style.border = 'none';
+        iframe.style.borderRadius = '8px';
+        iframe.style.backgroundColor = 'white';
+        iframe.style.margin = 'auto';
+        
     // Configure iframe URL
-    const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
-    iframeUrl.searchParams.append('hasCart', 'true');
-    
+        const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
+        iframeUrl.searchParams.append('hasCart', 'true');
+        
     // If this is a Buy Now button, add a flag to the URL
     if (isBuyNowButton) {
       iframeUrl.searchParams.append('buyNow', 'true');
@@ -431,22 +431,22 @@
     iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
     
     // Optimize for mobile/tablet immediately
-    if (window.innerWidth < 768) {
-      iframe.style.maxWidth = '100%';
-      iframe.style.maxHeight = '100%';
-      iframe.style.height = '100%';
-      iframe.style.borderRadius = '0';
-      iframeUrl.searchParams.append('isMobile', 'true');
-      modal.style.padding = '0';
-    } else if (window.innerWidth < 992) {
-      iframe.style.maxWidth = '90%';
-      iframe.style.maxHeight = '95vh';
-      iframeUrl.searchParams.append('isTablet', 'true');
-    }
-    
+        if (window.innerWidth < 768) {
+          iframe.style.maxWidth = '100%';
+          iframe.style.maxHeight = '100%';
+          iframe.style.height = '100%';
+          iframe.style.borderRadius = '0';
+          iframeUrl.searchParams.append('isMobile', 'true');
+          modal.style.padding = '0';
+        } else if (window.innerWidth < 992) {
+          iframe.style.maxWidth = '90%';
+          iframe.style.maxHeight = '95vh';
+          iframeUrl.searchParams.append('isTablet', 'true');
+        }
+        
     // Add viewport information
-    iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
-    iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
+        iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
+        iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
     
     // For Buy Now button, use the current product instead of cart data
     if (isBuyNowButton && currentProduct) {
@@ -566,12 +566,12 @@
             timestamp: new Date().toISOString()
           };
           
-          try {
-            localStorage.setItem('tempCartData', JSON.stringify(cartData));
-          } catch (e) {
-            console.warn('Could not store cart data in localStorage', e);
-          }
-
+        try {
+          localStorage.setItem('tempCartData', JSON.stringify(cartData));
+        } catch (e) {
+          console.warn('Could not store cart data in localStorage', e);
+        }
+        
           // Now set the iframe src after we have the data
           iframe.src = iframeUrl.toString();
           
@@ -729,11 +729,11 @@
               console.log('Sending fresh cart data to iframe:', cartData);
               if (event.source) {
                 event.source.postMessage({
-                  type: 'cart-data',
-                  cart: cartData,
-                  metadata: {
-                    timestamp: new Date().toISOString(),
-                    shopUrl: window.location.hostname,
+            type: 'cart-data',
+            cart: cartData,
+            metadata: {
+              timestamp: new Date().toISOString(),
+              shopUrl: window.location.hostname,
                     hasItems: cartData.items && cartData.items.length > 0,
                     itemCount: cartData.items?.length || 0,
                     isBuyNowContext: isBuyNowContext
@@ -819,15 +819,15 @@
                 
                 if (event.source) {
                   event.source.postMessage({
-                    type: 'cart-data',
-                    cart: cartData,
-                    metadata: {
-                      timestamp: new Date().toISOString(),
+              type: 'cart-data',
+              cart: cartData,
+              metadata: {
+                timestamp: new Date().toISOString(),
                       hasItems: cartData.items && cartData.items.length > 0,
                       itemCount: cartData.items?.length || 0,
                       isBuyNowContext: isBuyNowContext
-                    }
-                  }, '*');
+              }
+            }, '*');
                 }
               })
               .catch(error => console.error('Error fetching cart data:', error));
