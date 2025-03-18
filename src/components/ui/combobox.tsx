@@ -275,9 +275,9 @@ export function Combobox({
           )}
           {optionType === 'office' ? (
             <div className="w-full overflow-hidden">
-              <span className="font-medium text-blue-800 block break-words">{selectedOption.label.split(':')[0]}</span>
+              <span className="font-medium text-blue-800 block break-words hyphens-auto" style={{ wordBreak: 'break-word' }}>{selectedOption.label.split(':')[0]}</span>
               {selectedOption.label.includes(':') && (
-                <span className="text-xs text-gray-600 block break-words">
+                <span className="text-xs text-gray-600 block break-words hyphens-auto" style={{ wordBreak: 'break-word' }}>
                   {extractOfficeAddress(selectedOption.label)}
                 </span>
               )}
@@ -471,7 +471,7 @@ export function Combobox({
           className
         )}
         disabled={disabled}
-        style={{ maxWidth: '100%' }}
+        style={{ width: isMobile ? '100%' : '300px' }}
       >
         <div className="flex-1 min-w-0 overflow-hidden">
           {displayValue}
