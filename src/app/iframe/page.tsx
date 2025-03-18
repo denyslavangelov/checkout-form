@@ -325,6 +325,40 @@ export default function IframePage() {
     }
   }, [dataReceived, loadingRetries, isLoading]);
 
+  // Check if this is a Buy Now context from URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isBuyNow = urlParams.get('buyNow') === 'true';
+      
+      if (isBuyNow) {
+        console.log('Buy Now context detected from URL');
+        // Use a safer approach with window as an indexable type
+        (window as any).isBuyNowContext = true;
+        
+        // If cart data is missing or empty, create a default structure
+        if (!cartData || (cartData.items && cartData.items.length === 0)) {
+          const buyNowCartData = {
+            items: [],
+            total_price: 0,
+            items_subtotal_price: 0,
+            total_discount: 0,
+            item_count: 0,
+            currency: 'BGN',
+            cart_type: 'buy_now',
+            source: 'buy_now_button'
+          };
+          
+          console.log('Creating default Buy Now cart data structure');
+          setCartData(buyNowCartData);
+          
+          // Also store in window for access from checkout form
+          (window as any).cartData = buyNowCartData;
+        }
+      }
+    }
+  }, [cartData]);
+
   // This function will communicate back to the parent window
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)

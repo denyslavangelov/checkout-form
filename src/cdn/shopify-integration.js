@@ -305,6 +305,11 @@
     const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
     iframeUrl.searchParams.append('hasCart', 'true');
     
+    // If this is a Buy Now button, add a flag to the URL
+    if (isBuyNowButton) {
+      iframeUrl.searchParams.append('buyNow', 'true');
+    }
+    
     // Get and append the Shopify domain
     const shopifyDomain = Shopify.shop || window.Shopify.shop || 
       document.querySelector('meta[name="shopify-checkout-api-token"]')?.dataset?.shopifyDomain ||
@@ -372,6 +377,19 @@
       iframe.onload = function() {
         console.log('Iframe loaded, sending product data immediately');
         if (iframe.contentWindow) {
+          // Add the buyNow=true flag to the iframe URL
+          try {
+            const iframeWindow = iframe.contentWindow;
+            const currentUrl = new URL(iframeWindow.location.href);
+            currentUrl.searchParams.set('buyNow', 'true');
+            
+            // This won't actually navigate, but will make the param available to the iframe
+            iframeWindow.history.replaceState({}, '', currentUrl.toString());
+            console.log('Added buyNow=true to iframe URL:', currentUrl.toString());
+          } catch (e) {
+            console.error('Error adding buyNow param to iframe URL:', e);
+          }
+          
           iframe.contentWindow.postMessage({
             type: 'cart-data',
             cart: singleProductCart,
@@ -381,7 +399,8 @@
               shopifyDomain: shopifyDomain,
               source: 'buy_now_button',
               hasItems: true,
-              itemCount: singleProductCart.item_count || 1
+              itemCount: singleProductCart.item_count || 1,
+              isBuyNowContext: true
             }
           }, '*');
         }
@@ -505,6 +524,17 @@
               window.shopifyCart = cartData;
               window.cartData = cartData;
               
+              // Check if we're in a Buy Now context (even with empty cart)
+              const isBuyNowContext = window.location.href.includes('product') || 
+                                     document.querySelector('.shopify-payment-button') !== null;
+              
+              // Add Buy Now context to empty carts when appropriate
+              if (isBuyNowContext && (!cartData.items || cartData.items.length === 0)) {
+                console.log('Adding Buy Now context to empty cart in domain response:', cartData);
+                cartData.cart_type = 'buy_now';
+                cartData.source = 'buy_now_button';
+              }
+              
               console.log('Sending fresh cart data to iframe:', cartData);
               if (event.source) {
                 event.source.postMessage({
@@ -514,7 +544,8 @@
                     timestamp: new Date().toISOString(),
                     shopUrl: window.location.hostname,
                     hasItems: cartData.items && cartData.items.length > 0,
-                    itemCount: cartData.items?.length || 0
+                    itemCount: cartData.items?.length || 0,
+                    isBuyNowContext: isBuyNowContext
                   }
                 }, '*');
               }
@@ -584,6 +615,17 @@
                 window.shopifyCart = cartData;
                 window.cartData = cartData;
                 
+                // Check if we're in a Buy Now context (even with empty cart)
+                const isBuyNowContext = window.location.href.includes('product') || 
+                                      document.querySelector('.shopify-payment-button') !== null;
+                
+                // Add Buy Now context to empty carts when appropriate
+                if (isBuyNowContext && (!cartData.items || cartData.items.length === 0)) {
+                  console.log('Adding Buy Now context to empty cart in domain response:', cartData);
+                  cartData.cart_type = 'buy_now';
+                  cartData.source = 'buy_now_button';
+                }
+                
                 if (event.source) {
                   event.source.postMessage({
                     type: 'cart-data',
@@ -591,7 +633,8 @@
                     metadata: {
                       timestamp: new Date().toISOString(),
                       hasItems: cartData.items && cartData.items.length > 0,
-                      itemCount: cartData.items?.length || 0
+                      itemCount: cartData.items?.length || 0,
+                      isBuyNowContext: isBuyNowContext
                     }
                   }, '*');
                 }

@@ -220,8 +220,29 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
     
     // Check if the data has the expected structure
-    console.warn('Cart data has invalid format, missing items array', data);
-    return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+    if (!data.items || !Array.isArray(data.items)) {
+      console.warn('Cart data has invalid format, missing items array', data);
+      
+      // If this is an empty cart but we're in a Buy Now context, create a proper cart structure
+      const isBuyNowContext = (data.cart_type === 'buy_now' || data.source === 'buy_now_button' || 
+        window.location.href.includes('buyNow=true'));
+      
+      if (isBuyNowContext) {
+        console.log('Creating empty cart structure for Buy Now context');
+        return {
+          items: [],
+          total_price: 0,
+          items_subtotal_price: 0,
+          total_discount: 0,
+          item_count: 0,
+          currency: 'BGN',
+          cart_type: 'buy_now',
+          source: 'buy_now_button'
+        };
+      }
+      
+      return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+    }
   };
 
   // Initialize cart data with a reasonable default
@@ -782,11 +803,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         localCartData.source === 'buy_now_button' || 
         cartData?.cart_type === 'buy_now' || 
         cartData?.source === 'buy_now_button';
+
+      // Also check URL for buyNow parameter
+      const isBuyNowFromUrl = typeof window !== 'undefined' && 
+        window.location.href.includes('buyNow=true');
       
-      console.log('Cart is empty. Buy Now button?', { isBuyNowData, localCartData, cartData });
+      console.log('Cart is empty. Buy Now context?', { 
+        isBuyNowData, 
+        isBuyNowFromUrl,
+        localCartData, 
+        cartData 
+      });
       
       // Only close if it's not a Buy Now attempt
-      if (!isBuyNowData) {
+      if (!isBuyNowData && !isBuyNowFromUrl) {
         handleDialogClose();
       }
     }
