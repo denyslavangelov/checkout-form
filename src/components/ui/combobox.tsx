@@ -280,8 +280,10 @@ export function Combobox({
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
           {optionType === 'office' ? (
-            <div className="w-full overflow-hidden">
-              <span className={`font-medium text-blue-800 block break-words hyphens-auto ${isMobile ? 'text-sm' : ''}`} style={{ wordBreak: 'break-word' }}>{selectedOption.label.split(':')[0]}</span>
+            <div className="w-full overflow-hidden pr-6">
+              <span className={`font-medium text-blue-800 block break-words hyphens-auto ${isMobile ? 'text-sm' : ''}`} style={{ wordBreak: 'break-word' }}>
+                {isMobile ? truncateText(selectedOption.label.split(':')[0], 15) : selectedOption.label.split(':')[0]}
+              </span>
               {selectedOption.label.includes(':') && (
                 <span className={`text-gray-600 block truncate ${isMobile ? 'text-xs' : 'text-xs'}`}>
                   {truncateText(extractOfficeAddress(selectedOption.label), isMobile ? 20 : 40)}
@@ -482,7 +484,7 @@ export function Combobox({
         )}
         disabled={disabled}
       >
-        <div className="flex-1 min-w-0 overflow-hidden">
+        <div className={`min-w-0 overflow-hidden ${internalValue ? 'flex-grow' : 'flex-1'}`}>
           {displayValue}
         </div>
         {internalValue && !disabled && (
@@ -490,8 +492,8 @@ export function Combobox({
             type="button"
             onClick={handleClearSelection}
             className={cn(
-              "rounded-full hover:bg-gray-200 mr-1 focus:outline-none",
-              isMobile ? "p-1.5" : "p-1" // Larger touch target on mobile
+              "rounded-full hover:bg-gray-200 focus:outline-none flex-shrink-0",
+              isMobile ? "p-1" : "p-0.5" // Larger touch target on mobile
             )}
             aria-label="Clear selection"
           >
