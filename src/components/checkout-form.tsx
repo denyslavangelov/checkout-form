@@ -1339,7 +1339,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-sm truncate">{item.title}</h4>
-                {item.variant_title && <p className="text-xs text-gray-500 truncate">{item.variant_title}</p>}
+                {item.variant_title && !item.title.includes(item.variant_title) && 
+                  <p className="text-xs text-gray-500 truncate">{item.variant_title}</p>
+                }
                 
                 <div className="flex items-center mt-1 justify-between">
                   <div className="flex items-center">

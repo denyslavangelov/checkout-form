@@ -459,7 +459,7 @@
         source: 'buy_now_button',
         items: [{
           id: currentProduct.variant_id || currentProduct.id,
-          title: currentProduct.title,
+          title: currentProduct.title + (currentProduct.variant_title ? ` - ${currentProduct.variant_title}` : ''),
           quantity: currentProduct.quantity || 1,
           price: currentProduct.price,
           line_price: currentProduct.price * (currentProduct.quantity || 1),
@@ -666,7 +666,7 @@
               if (product) {
                 window.shopifyCart.items = [{
                   id: product.variant_id || product.id,
-                  title: product.title,
+                  title: product.title + (product.variant_title ? ` - ${product.variant_title}` : ''),
                   quantity: product.quantity || 1,
                   price: product.price,
                   line_price: product.price * (product.quantity || 1),
@@ -768,7 +768,7 @@
                 const product = window.shopifyCart.product;
                 window.shopifyCart.items = [{
                   id: product.variant_id || product.id,
-                  title: product.title,
+                  title: product.title + (product.variant_title ? ` - ${product.variant_title}` : ''),
                   quantity: product.quantity || 1,
                   price: product.price,
                   line_price: product.price * (product.quantity || 1),
