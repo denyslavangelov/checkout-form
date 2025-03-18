@@ -51,25 +51,17 @@ export function Combobox({
   const isFirstRender = React.useRef(true)
   const listRef = React.useRef<HTMLDivElement>(null)
   
-  // Manage body scroll when mobile fullscreen search is open
+  // Manage body scroll when dropdown is open
   React.useEffect(() => {
-    if (isMobile && open) {
-      // Prevent body scrolling when modal is open
-      document.body.style.overflow = 'hidden';
-      
-      // Focus the mobile input when opened
+    if (open) {
+      // Focus the input when opened
       setTimeout(() => {
-        if (mobileInputRef.current) {
-          mobileInputRef.current.focus();
+        if (inputRef.current) {
+          inputRef.current.focus();
         }
       }, 100);
-      
-      return () => {
-        // Restore body scrolling when modal is closed
-        document.body.style.overflow = '';
-      };
     }
-  }, [isMobile, open]);
+  }, [open]);
   
   // Debug mount/unmount
   React.useEffect(() => {
@@ -114,29 +106,27 @@ export function Combobox({
     }
   }, [value, options, type])
 
-  // Handle clicks outside to close the dropdown (desktop only)
+  // Handle clicks outside to close the dropdown
   React.useEffect(() => {
-    if (!isMobile) {
-      const handleClickOutside = (event: MouseEvent) => {
-        // Only close if the click is outside the container and dropdown
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-          setOpen(false);
-        }
-      }
-      
-      if (open) {
-        document.addEventListener("mousedown", handleClickOutside)
-      }
-      
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside)
+    const handleClickOutside = (event: MouseEvent) => {
+      // Only close if the click is outside the container and dropdown
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
       }
     }
-  }, [open, isMobile])
+    
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [open])
   
-  // When the dropdown opens, focus the input and reset search if it's not a value (desktop only)
+  // When the dropdown opens, focus the input and reset search if it's not a value
   React.useEffect(() => {
-    if (open && !isMobile) {
+    if (open) {
       const timer = setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
@@ -148,7 +138,7 @@ export function Combobox({
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [open, internalValue, isMobile]);
+  }, [open, internalValue]);
   
   const handleButtonClick = React.useCallback(() => {
     if (!disabled) {
@@ -173,15 +163,15 @@ export function Combobox({
     console.log('Search changed:', value);
     setSearchValue(value);
     
-    // Don't clear selection on mobile when typing
-    if (!isMobile && value === '' && internalValue) {
+    // Don't clear selection when typing
+    if (value === '' && internalValue) {
       console.log('Search field cleared, resetting selection');
       setInternalValue('');
       onChange('');
     }
     
     // Ensure dropdown stays open while searching
-    if (!open && !isMobile) {
+    if (!open) {
       setOpen(true);
     }
     
@@ -316,83 +306,6 @@ export function Combobox({
     onChange('');
   }, [onChange]);
 
-  // Render options list (shared between mobile and desktop views)
-  const renderOptionsList = React.useCallback(() => {
-    return (
-      <>
-        {loading && (
-          <div className={`text-gray-500 text-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-0 px-2'}`}>
-            {isMobile ? (
-              <div className="flex flex-col items-center justify-center py-6">
-                <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-3" />
-                <div className="text-base font-medium">Зареждане...</div>
-                <div className="text-sm text-gray-400 mt-1">Моля, изчакайте</div>
-              </div>
-            ) : (
-              <>
-                <div className="inline-block animate-spin mr-2">⏳</div>
-                Зареждане...
-              </>
-            )}
-          </div>
-        )}
-        
-        {!loading && options.length === 0 && (
-          <div className={`text-gray-500 text-center flex flex-col items-center justify-center ${isMobile ? 'py-6 px-3 mt-8 w-full' : 'py-0 px-2'}`}>
-            <Search className={isMobile ? "h-6 w-6 opacity-50 mb-2" : "h-4 w-4 opacity-50 mr-2"} />
-            <span className={isMobile ? "text-base font-medium" : "text-sm"}>
-              {searchValue.length >= 2 ? 
-                `${emptyText} за "${searchValue}"` : 
-                emptyText}
-            </span>
-            {isMobile && searchValue.length > 0 && (
-              <div className="text-sm text-gray-400 mt-2">
-                <p className="mb-1">Опитайте една от следните опции:</p>
-                <ul className="text-left list-disc pl-5 mt-1">
-                  <li>Различно изписване</li>
-                  <li>По-кратко търсене</li>
-                  <li>Проверете интернет връзката</li>
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {!loading && options.length > 0 && (
-          <div className={isMobile ? "pb-6 mt-6 w-full" : "py-0 m-0"}>
-            {options.map((option) => (
-              <div
-                key={option.value}
-                onClick={() => handleSelect(option.value)}
-                className={cn(
-                  "relative flex cursor-pointer select-none items-center outline-none",
-                  "transition-colors duration-150",
-                  "hover:bg-gray-100 hover:text-gray-900",
-                  internalValue === option.value ? "bg-blue-50 text-blue-600 font-medium" : "bg-transparent",
-                  isMobile ? 
-                    "py-4 px-4 text-base border-b border-gray-100 active:bg-blue-50/50 w-full flex-wrap overflow-hidden" : 
-                    "py-0.5 px-2 text-sm rounded-sm"
-                )}
-              >
-                <span className={cn(
-                  "mr-2 flex items-center justify-center flex-shrink-0",
-                  isMobile ? "h-5 w-5" : "h-4 w-4" // Larger icons on mobile
-                )}>
-                  {internalValue === option.value ? (
-                    <Check className={isMobile ? "h-5 w-5 text-blue-500" : "h-4 w-4 text-blue-500"} />
-                  ) : (
-                    getOptionIcon(option)
-                  )}
-                </span>
-                <span className={isMobile ? "truncate max-w-[80%] break-words" : "truncate"}>{option.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </>
-    );
-  }, [options, loading, emptyText, internalValue, isMobile, handleSelect, getOptionIcon, searchValue]);
-
   // Find where the dropdown list is rendered and modify its positioning and z-index for mobile
   const renderDropdownContent = () => (
     <div
@@ -400,45 +313,87 @@ export function Combobox({
       className={cn(
         "absolute w-full bg-white shadow-md rounded-md border border-gray-200 overflow-y-auto",
         isMobile ? 
-          "fixed left-0 right-0 bottom-0 top-auto max-h-[60vh] rounded-b-none shadow-lg z-20" : 
-          "mt-1 max-h-[300px] z-20"
+          "right-0 left-0 max-h-[300px] z-10 mt-1 shadow-lg rounded-lg" : 
+          "mt-1 max-h-[300px] z-10"
       )}
-      {...(isMobile ? { 
-        style: { top: "auto", bottom: 0, height: "60vh", zIndex: 20 } 
-      } : {})}
     >
-      {loading ? (
-        <div className="py-6 flex items-center justify-center">
-          <Loader2 className="animate-spin h-6 w-6 text-gray-400" />
-        </div>
-      ) : options.length === 0 ? (
-        <div className="p-4 text-center text-gray-500 text-sm">
-          {searchValue.length > 0 ? emptyText : (
-            type === 'default' ? 'Започнете да пишете, за да търсите' : emptyText
+      <div className="py-2 px-2">
+        {/* Search input inside dropdown */}
+        <div className="relative mb-2">
+          <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gray-400" />
+          </div>
+          
+          <input
+            ref={inputRef}
+            type="text"
+            className="w-full pl-8 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder={placeholder}
+            value={searchValue}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
+            autoCapitalize="off"
+          />
+          
+          {searchValue && (
+            <button
+              className="absolute inset-y-0 right-2 flex items-center"
+              onClick={() => {
+                setSearchValue("");
+                handleSearchChange("");
+                if (inputRef.current) {
+                  inputRef.current.focus();
+                }
+              }}
+            >
+              <X className="h-4 w-4 text-gray-400" />
+            </button>
           )}
         </div>
-      ) : (
-        <div className="py-1">
-          {options.map((option) => (
-            <div
-              key={option.value}
-              className={cn(
-                "flex items-center px-3 py-2 cursor-pointer",
-                option.value === internalValue ? "bg-gray-100" : "hover:bg-gray-50"
-              )}
-              onClick={() => handleSelect(option.value)}
-            >
-              {getOptionIcon(option)}
-              <span className={cn(
-                "truncate flex-1 text-sm",
-                option.value === internalValue ? "font-medium" : "font-normal"
-              )}>
-                {option.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+
+        {loading ? (
+          <div className="py-6 flex items-center justify-center">
+            <Loader2 className="animate-spin h-6 w-6 text-gray-400" />
+            <span className="ml-2 text-sm text-gray-500">Зареждане...</span>
+          </div>
+        ) : options.length === 0 ? (
+          <div className="p-4 text-center text-gray-500 text-sm">
+            {searchValue.length > 0 ? emptyText : (
+              type === 'default' ? 'Започнете да пишете, за да търсите' : emptyText
+            )}
+          </div>
+        ) : (
+          <div className={`py-1 overflow-y-auto ${isMobile ? 'max-h-[200px]' : 'max-h-[250px]'}`}>
+            {options.map((option) => (
+              <div
+                key={option.value}
+                className={cn(
+                  "flex items-center px-3 py-2 cursor-pointer rounded",
+                  option.value === internalValue ? "bg-blue-50" : "hover:bg-gray-50"
+                )}
+                onClick={() => handleSelect(option.value)}
+              >
+                <span className="mr-2 flex-shrink-0">
+                  {option.value === internalValue ? (
+                    <Check className="h-4 w-4 text-blue-500" />
+                  ) : (
+                    getOptionIcon(option)
+                  )}
+                </span>
+                <span className={cn(
+                  "truncate flex-1",
+                  isMobile ? "text-base" : "text-sm",
+                  option.value === internalValue ? "font-medium text-blue-700" : "font-normal"
+                )}>
+                  {option.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -458,7 +413,7 @@ export function Combobox({
           "hover:bg-gray-100/50",
           internalValue && "bg-blue-50/80 border-blue-200",
           disabled && "opacity-50 cursor-not-allowed",
-          isMobile ? "h-11 text-base min-h-[2.75rem] overflow-hidden" : "h-9", // Improved mobile handling
+          isMobile ? "h-11 text-base min-h-[2.75rem]" : "h-9",
           className
         )}
         disabled={disabled}
@@ -472,7 +427,7 @@ export function Combobox({
             onClick={handleClearSelection}
             className={cn(
               "rounded-full hover:bg-gray-200 mr-1 focus:outline-none",
-              isMobile ? "p-2" : "p-1" // Larger touch target on mobile
+              isMobile ? "p-1.5" : "p-1" // Larger touch target on mobile
             )}
             aria-label="Clear selection"
           >
@@ -489,90 +444,8 @@ export function Combobox({
         )} />
       </Button>
       
-      {/* Desktop dropdown */}
-      {open && !isMobile && (
-        <div
-          className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-[300px] overflow-y-auto"
-          style={{ zIndex: 20 }}
-        >
-          {loading ? (
-            <div className="p-3 text-center text-gray-500">
-              <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600 mr-2"></div>
-              <span className="text-sm">Зареждане...</span>
-            </div>
-          ) : options.length === 0 ? (
-            <div className="p-3 text-center text-sm text-gray-500">
-              {searchValue.length > 0 ? emptyText : 'Започнете да пишете, за да търсите'}
-            </div>
-          ) : (
-            <div className="py-1">
-              {renderOptionsList()}
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Mobile fullscreen dialog */}
-      {isMobile && open && (
-        <div 
-          className="fixed inset-0 bg-white flex flex-col z-20" 
-          style={{ touchAction: 'manipulation' }}
-        >
-          {/* Mobile search header - adjust button to have higher z-index */}
-          <div className="sticky top-0 flex items-center border-b p-3 gap-2 bg-white shadow-sm z-40">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setOpen(false)}
-              className="flex-shrink-0 z-50"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back</span>
-            </Button>
-            
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              
-              <input
-                ref={mobileInputRef}
-                type="text"
-                className="w-full pl-8 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder={placeholder}
-                value={searchValue}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-                autoCapitalize="off"
-              />
-              
-              {searchValue && (
-                <button
-                  className="absolute inset-y-0 right-2 flex items-center"
-                  onClick={() => {
-                    setSearchValue("")
-                    handleSearchChange("")
-                    if (mobileInputRef.current) {
-                      mobileInputRef.current.focus()
-                    }
-                  }}
-                >
-                  <X className="h-4 w-4 text-gray-400" />
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {/* Mobile search results - add padding to ensure content doesn't start immediately under header */}
-          <div className="flex-1 overflow-auto overflow-x-hidden pt-2 w-full" ref={listRef}>
-            <div className="divide-y divide-gray-100 w-full mt-2">
-              {renderOptionsList()}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dropdown - unified for mobile and desktop */}
+      {open && renderDropdownContent()}
     </div>
   )
 } 
