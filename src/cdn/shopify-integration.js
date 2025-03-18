@@ -926,7 +926,7 @@
       const data = await response.json();
       console.log('Order created successfully:', data);
 
-      if (data.success && data.order && data.order.order_status_url) {
+      if (data.success) {
         // First notify the iframe about successful order creation
         source.postMessage({
           type: 'order-created',
@@ -939,12 +939,28 @@
           message: 'Пренасочване към страницата на поръчката...'
         }, '*');
 
+        // Get order status URL from the response or construct it
+        let orderStatusUrl;
+        if (data.order && data.order.order_status_url) {
+          // If response has nested order object with status URL
+          orderStatusUrl = data.order.order_status_url;
+        } else if (data.order_status_url) {
+          // If URL is directly in the response
+          orderStatusUrl = data.order_status_url;
+        } else if (data.order_id) {
+          // If we have the order ID but no URL, construct it (Shopify standard format)
+          orderStatusUrl = `https://${requestPayload.shop_domain}/account/orders/${data.order_id}`;
+        } else {
+          // If we can't determine a URL, just reload the page
+          orderStatusUrl = window.location.href;
+        }
+
         // Short delay to show the success message
         setTimeout(() => {
-          window.location.href = data.order.order_status_url;
+          window.location.href = orderStatusUrl;
         }, 500);
       } else {
-        throw new Error('Invalid response format from API');
+        throw new Error(data.message || 'Failed to create order');
       }
 
     } catch (error) {
