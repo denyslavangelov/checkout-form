@@ -28,6 +28,32 @@ interface ComboboxProps {
   isMobile?: boolean
 }
 
+// Utility function to extract just the address without city and ID
+const extractOfficeAddress = (label: string) => {
+  if (!label.includes(':')) return '';
+  
+  const parts = label.split(':');
+  if (parts.length < 2) return parts[1] || '';
+  
+  // Assume format is typically: "Office Name:City, Address, Additional Info (ID)"
+  // We want to extract just the address part
+  let addressPart = parts[1];
+  
+  // Remove office ID if it's in parentheses at the end
+  addressPart = addressPart.replace(/\s*\([^)]*\)\s*$/, '');
+  
+  // If the address starts with city name followed by comma, remove it
+  if (addressPart.includes(',')) {
+    const addressPieces = addressPart.split(',');
+    if (addressPieces.length > 1) {
+      // Skip the first part (city) and join the rest
+      return addressPieces.slice(1).join(',').trim();
+    }
+  }
+  
+  return addressPart.trim();
+};
+
 export function Combobox({
   options,
   value,
@@ -424,32 +450,6 @@ export function Combobox({
       </div>
     </div>
   );
-
-  // Add a utility function to extract just the address without city and ID
-  const extractOfficeAddress = (label: string) => {
-    if (!label.includes(':')) return '';
-    
-    const parts = label.split(':');
-    if (parts.length < 2) return parts[1] || '';
-    
-    // Assume format is typically: "Office Name:City, Address, Additional Info (ID)"
-    // We want to extract just the address part
-    let addressPart = parts[1];
-    
-    // Remove office ID if it's in parentheses at the end
-    addressPart = addressPart.replace(/\s*\([^)]*\)\s*$/, '');
-    
-    // If the address starts with city name followed by comma, remove it
-    if (addressPart.includes(',')) {
-      const addressPieces = addressPart.split(',');
-      if (addressPieces.length > 1) {
-        // Skip the first part (city) and join the rest
-        return addressPieces.slice(1).join(',').trim();
-      }
-    }
-    
-    return addressPart.trim();
-  };
 
   return (
     <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
