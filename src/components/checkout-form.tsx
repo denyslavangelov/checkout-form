@@ -1943,11 +1943,15 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             
             {currentStep < steps.length - 1 ? (
               <Button 
-                onClick={() => {
-                  if (validateCurrentStep()) {
-                    handleSubmitOrder();
-                  }
-                }} 
+                onClick={nextStep} 
+                className="flex-1 h-11"
+                disabled={isSubmitting || !localCartData || localCartData.items.length === 0}
+              >
+                Продължи
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubmitOrder} 
                 className="flex-1 h-11 bg-green-600 hover:bg-green-700"
                 disabled={isSubmitting || !localCartData || localCartData.items.length === 0}
               >
@@ -1960,7 +1964,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   'Завърши поръчката'
                 )}
               </Button>
-            ) : null}
+            )}
           </div>
         </div>
       </DialogContent>
