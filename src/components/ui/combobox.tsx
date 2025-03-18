@@ -269,15 +269,29 @@ export function Combobox({
       const icon = optionType === 'city' ? <MapPin className="h-4 w-4 text-blue-600" /> : null
       
       return (
-        <div className="flex items-center w-full">
+        <div className="flex items-center w-full max-w-full overflow-hidden">
           {optionType === 'city' && (
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
           {optionType === 'office' ? (
-            <div className="w-full overflow-hidden">
-              <span className="font-medium text-blue-800 block break-words hyphens-auto" style={{ wordBreak: 'break-word' }}>{selectedOption.label.split(':')[0]}</span>
+            <div className="w-full overflow-hidden" style={{ 
+              maxWidth: '100%', 
+              overflow: 'hidden',
+              wordBreak: 'break-all'
+            }}>
+              <span className="font-medium text-blue-800 block" style={{ 
+                wordBreak: 'break-all', 
+                overflowWrap: 'break-word',
+                maxWidth: '100%'
+              }}>
+                {selectedOption.label.split(':')[0]}
+              </span>
               {selectedOption.label.includes(':') && (
-                <span className="text-xs text-gray-600 block break-words hyphens-auto" style={{ wordBreak: 'break-word' }}>
+                <span className="text-xs text-gray-600 block" style={{ 
+                  wordBreak: 'break-all', 
+                  overflowWrap: 'break-word',
+                  maxWidth: '100%'
+                }}>
                   {extractOfficeAddress(selectedOption.label)}
                 </span>
               )}
@@ -455,7 +469,12 @@ export function Combobox({
     <div 
       className={`relative combobox-container ${isMobile ? 'mobile-combobox' : ''}`} 
       ref={containerRef}
-      style={{ width: isMobile ? '100%' : '300px' }}
+      style={{ 
+        width: isMobile ? '100%' : '300px', 
+        maxWidth: '300px !important', 
+        boxSizing: 'border-box',
+        overflow: 'hidden'
+      }}
     >
       {/* Button that opens the combobox */}
       <Button
@@ -465,7 +484,7 @@ export function Combobox({
         type="button"
         onClick={handleButtonClick}
         className={cn(
-          "w-full justify-between px-3 text-sm rounded-lg",
+          "justify-between px-3 text-sm rounded-lg",
           "border-gray-200 bg-gray-50/50 text-left font-normal",
           "flex items-center transition-colors duration-200",
           "hover:bg-gray-100/50",
@@ -475,8 +494,24 @@ export function Combobox({
           className
         )}
         disabled={disabled}
+        style={{ 
+          maxWidth: '100%', 
+          width: '100%',
+          overflow: 'hidden',
+          flexShrink: 1,
+          flexGrow: 0
+        }}
       >
-        <div className="flex-1 min-w-0 overflow-hidden">
+        <div 
+          className="flex-1 min-w-0 overflow-hidden" 
+          style={{ 
+            maxWidth: 'calc(100% - 40px)',
+            overflow: 'hidden',
+            flexShrink: 1,
+            flexGrow: 0,
+            width: 'auto'
+          }}
+        >
           {displayValue}
         </div>
         {internalValue && !disabled && (

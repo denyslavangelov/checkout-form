@@ -1692,25 +1692,26 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 Град<span className="text-red-500 ml-0.5">*</span>
                               </FormLabel>
                               <div className="flex-1">
-                                <Combobox
-                                  options={citySuggestions}
-                                  value={field.value ?? ""}
-                                  onChange={(value) => {
-                                          console.log("Personal address city selected in form:", value);
-                                    handleCitySelected(value, 'officeCity');
-                                  }}
-                                  onSearch={(value) => {
-                                          console.log("Personal address city search term in form:", value);
-                                    debouncedSearchCities(value);
-                                    setSearchCity(value);
-                                  }}
-                                        placeholder="Изберете населено място"
-                                  loading={loadingCities}
-                                  emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
-                                  className="border-gray-200 focus:border-gray-400"
-                                  type="city"
-                                  isMobile={isMobile}
-                                />
+                                <div style={{ width: isMobile ? '100%' : '300px', maxWidth: '300px' }}>
+                                  <Combobox
+                                    options={citySuggestions}
+                                    value={field.value || ""}
+                                    onChange={(value) => {
+                                      handleCitySelected(value, 'officeCity');
+                                    }}
+                                    onSearch={(value) => {
+                                      console.log("Personal address city search term in form:", value);
+                                      debouncedSearchCities(value);
+                                      setSearchCity(value);
+                                    }}
+                                          placeholder="Изберете населено място"
+                                    loading={loadingCities}
+                                    emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
+                                    className="border-gray-200 focus:border-gray-400"
+                                    type="city"
+                                    isMobile={isMobile}
+                                  />
+                                </div>
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
                       </FormItem>
@@ -1730,23 +1731,25 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                   {getShippingMethodIcon(selectedShippingMethod)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <Combobox
-                                    options={filteredOfficeSuggestions}
-                                    value={field.value || ""}
-                                    onChange={(value) => {
-                                      console.log("Office selected in form:", value);
-                                      handleOfficeSelected(value);
-                                    }}
-                                    onSearch={handleOfficeSearch}
-                                    placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
-                                    loading={loadingOffices}
-                                    emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
-                                    disabled={!selectedCityId}
-                                    className="border-gray-200 focus:border-gray-400"
-                                    type="office"
-                                    courier={selectedShippingMethod as 'speedy' | 'econt'}
-                                    isMobile={isMobile}
-                                  />
+                                  <div style={{ width: isMobile ? '100%' : '300px', maxWidth: '300px' }}>
+                                    <Combobox
+                                      options={filteredOfficeSuggestions}
+                                      value={field.value || ""}
+                                      onChange={(value) => {
+                                        console.log("Office selected in form:", value);
+                                        handleOfficeSelected(value);
+                                      }}
+                                      onSearch={handleOfficeSearch}
+                                      placeholder={`Изберете ${getShippingMethodLabel(selectedShippingMethod)}`}
+                                      loading={loadingOffices}
+                                      emptyText={selectedCityId ? "Няма намерени офиси" : "Първо изберете град"}
+                                      disabled={!selectedCityId}
+                                      className="border-gray-200 focus:border-gray-400"
+                                      type="office"
+                                      courier={selectedShippingMethod as 'speedy' | 'econt'}
+                                      isMobile={isMobile}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                               <FormMessage className="text-red-500 text-xs" />
@@ -1792,25 +1795,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             Град<span className="text-red-500 ml-0.5">*</span>
                           </FormLabel>
                           <div className="flex-1">
-                            <Combobox
-                              options={citySuggestions}
-                              value={field.value || ""}
-                              onChange={(value) => {
-                                console.log("Personal address city selected in form:", value);
-                                handleCitySelected(value, 'city');
-                              }}
-                              onSearch={(value) => {
-                                console.log("Personal address city search term in form:", value);
-                                debouncedSearchCities(value);
-                                setSearchCity(value);
-                              }}
-                                        placeholder="Изберете населено място"
-                              loading={loadingCities}
-                              emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
-                              className="border-gray-200 focus:border-gray-400"
-                              type="city"
-                              isMobile={isMobile}
-                            />
+                            <div style={{ width: isMobile ? '100%' : '300px', maxWidth: '300px' }}>
+                              <Combobox
+                                options={citySuggestions}
+                                value={field.value || ""}
+                                onChange={(value) => {
+                                  console.log("Personal address city selected in form:", value);
+                                  handleCitySelected(value, 'city');
+                                }}
+                                onSearch={(value) => {
+                                  console.log("Personal address city search term in form:", value);
+                                  debouncedSearchCities(value);
+                                  setSearchCity(value);
+                                }}
+                                          placeholder="Изберете населено място"
+                                loading={loadingCities}
+                                emptyText={!searchCity ? "Започнете да пишете" : (isMobile ? "Няма намерени градове" : "Няма намерени резултати")}
+                                className="border-gray-200 focus:border-gray-400"
+                                type="city"
+                                isMobile={isMobile}
+                              />
+                            </div>
                           </div>
                           <FormMessage className="text-red-500 text-xs" />
                         </FormItem>
