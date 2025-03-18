@@ -939,22 +939,21 @@
           message: 'Пренасочване към страницата на поръчката...'
         }, '*');
 
-        // Get order status URL from the response or construct it
+        // Get the redirect URL directly from the API response
         let orderStatusUrl;
-        if (data.order && data.order.order_status_url) {
-          // If response has nested order object with status URL
-          orderStatusUrl = data.order.order_status_url;
+        
+        // Use the redirect_url or checkout_url if provided directly by the API
+        if (data.redirect_url) {
+          orderStatusUrl = data.redirect_url;
+        } else if (data.checkout_url) {
+          orderStatusUrl = data.checkout_url;
         } else if (data.order_status_url) {
-          // If URL is directly in the response
           orderStatusUrl = data.order_status_url;
-        } else if (data.order_id || data.order_name) {
-          // If we have the order ID or order name but no URL, use thank you page URL format
-          // This creates a guest-accessible URL that doesn't require login
-          const orderIdentifier = data.order_name ? data.order_name.replace('#', '') : data.order_id;
-          orderStatusUrl = `https://${requestPayload.shop_domain}/checkout/thank_you?order=${orderIdentifier}`;
+        } else if (data.order && data.order.order_status_url) {
+          orderStatusUrl = data.order.order_status_url;
         } else {
-          // If we can't determine a URL, just reload the page
-          orderStatusUrl = window.location.href;
+          // Fallback to homepage if no redirect URL provided
+          orderStatusUrl = `https://${requestPayload.shop_domain}`;
         }
 
         // Short delay to show the success message
