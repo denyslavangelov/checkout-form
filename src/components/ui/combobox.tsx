@@ -274,10 +274,10 @@ export function Combobox({
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
           {optionType === 'office' ? (
-            <div className="truncate overflow-hidden w-full">
-              <span className="font-medium text-blue-800 block">{selectedOption.label.split(':')[0]}</span>
+            <div className="w-full overflow-hidden">
+              <span className="font-medium text-blue-800 block break-words">{selectedOption.label.split(':')[0]}</span>
               {selectedOption.label.includes(':') && (
-                <span className="text-xs text-gray-600 block truncate">
+                <span className="text-xs text-gray-600 block break-words">
                   {extractOfficeAddress(selectedOption.label)}
                 </span>
               )}
@@ -467,10 +467,11 @@ export function Combobox({
           "hover:bg-gray-100/50",
           internalValue && "bg-blue-50/80 border-blue-200",
           disabled && "opacity-50 cursor-not-allowed",
-          isMobile ? "h-11 text-base min-h-[2.75rem]" : "h-9",
+          isMobile ? "h-auto min-h-[2.75rem] py-2" : "h-auto min-h-[2.25rem] py-1.5",
           className
         )}
         disabled={disabled}
+        style={{ maxWidth: '100%' }}
       >
         <div className="flex-1 min-w-0 overflow-hidden">
           {displayValue}
