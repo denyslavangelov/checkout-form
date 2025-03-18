@@ -1294,7 +1294,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               <FormItem className="space-y-3">
                 <FormControl>
                   <RadioGroup
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Update shipping cost immediately
+                      setShippingCost(SHIPPING_COSTS[value as keyof typeof SHIPPING_COSTS]);
+                    }}
                     defaultValue={field.value}
                     className="flex flex-col gap-4"
                   >
@@ -1899,74 +1903,79 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           </div>
         </div>
 
-        {/* Main content area with steps */}
-        <div className="flex-1 overflow-y-auto p-4 dialog-content-scroll">
-          {!localCartData ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-600">Зареждане на данните...</p>
-            </div>
-          ) : (
-            <div>
-              {currentStep === 0 && <CartReviewStep />}
-              {currentStep === 1 && <ShippingMethodStep />}
-              {currentStep === 2 && <CustomerDetailsStep />}
-              {currentStep === 3 && <PaymentStep />}
-            </div>
-          )}
-        </div>
-        
-        {/* Fixed bottom navigation */}
-        <div className="p-4 border-t bg-white sticky bottom-0 z-30">
-          {submitStatus === 'success' ? (
-            <div className="flex items-center justify-center p-2 bg-green-50 text-green-700 rounded-md mb-4">
-              <CheckIcon className="h-5 w-5 mr-2" />
-              <span>Вашата поръчка е приета успешно!</span>
-            </div>
-          ) : submitStatus === 'error' ? (
-            <div className="flex items-center justify-center p-2 bg-red-50 text-red-700 rounded-md mb-4">
-              <span>Възникна грешка. Моля, опитайте отново.</span>
-            </div>
-          ) : null}
-          
-          <div className="flex gap-3">
-            {currentStep > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={prevStep} 
-                className="flex-1 h-11"
-                disabled={isSubmitting}
-              >
-                Назад
-              </Button>
-            )}
-            
-            {currentStep < steps.length - 1 ? (
-              <Button 
-                onClick={nextStep} 
-                className="flex-1 h-11"
-                disabled={isSubmitting || !localCartData || localCartData.items.length === 0}
-              >
-                Продължи
-              </Button>
+        <Form {...form}>
+          {/* Main content area with steps */}
+          <div className="flex-1 overflow-y-auto p-4 dialog-content-scroll">
+            {!localCartData ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">Зареждане на данните...</p>
+              </div>
             ) : (
-              <Button 
-                onClick={handleSubmitOrder} 
-                className="flex-1 h-11 bg-green-600 hover:bg-green-700"
-                disabled={isSubmitting || !localCartData || localCartData.items.length === 0}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
-                    Обработване...
-                  </>
-                ) : (
-                  'Завърши поръчката'
-                )}
-              </Button>
+              <div>
+                {currentStep === 0 && <CartReviewStep />}
+                {currentStep === 1 && <ShippingMethodStep />}
+                {currentStep === 2 && <CustomerDetailsStep />}
+                {currentStep === 3 && <PaymentStep />}
+              </div>
             )}
           </div>
-        </div>
+          
+          {/* Fixed bottom navigation */}
+          <div className="p-4 border-t bg-white sticky bottom-0 z-30">
+            {submitStatus === 'success' ? (
+              <div className="flex items-center justify-center p-2 bg-green-50 text-green-700 rounded-md mb-4">
+                <CheckIcon className="h-5 w-5 mr-2" />
+                <span>Вашата поръчка е приета успешно!</span>
+              </div>
+            ) : submitStatus === 'error' ? (
+              <div className="flex items-center justify-center p-2 bg-red-50 text-red-700 rounded-md mb-4">
+                <span>Възникна грешка. Моля, опитайте отново.</span>
+              </div>
+            ) : null}
+            
+            <div className="flex gap-3">
+              {currentStep > 0 && (
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={prevStep} 
+                  className="flex-1 h-11"
+                  disabled={isSubmitting}
+                >
+                  Назад
+                </Button>
+              )}
+              
+              {currentStep < steps.length - 1 ? (
+                <Button 
+                  type="button"
+                  onClick={nextStep} 
+                  className="flex-1 h-11"
+                  disabled={isSubmitting || !localCartData || localCartData.items.length === 0}
+                >
+                  Продължи
+                </Button>
+              ) : (
+                <Button 
+                  type="button"
+                  onClick={handleSubmitOrder} 
+                  className="flex-1 h-11 bg-green-600 hover:bg-green-700"
+                  disabled={isSubmitting || !localCartData || localCartData.items.length === 0}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                      Обработване...
+                    </>
+                  ) : (
+                    'Завърши поръчката'
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </Form>
       </DialogContent>
     </Dialog>
   );
