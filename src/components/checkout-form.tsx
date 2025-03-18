@@ -142,10 +142,34 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       };
     }
 
+    // Debug print the data to see what image fields we have
+    if (data.product) {
+      console.log('Product image fields check:', {
+        featured_image: data.product.featured_image,
+        image: data.product.image,
+        image_src: data.product.image?.src,
+        images: data.product.images
+      });
+    }
+
     // Check for Buy Now data that might be sent directly in the message
     if (data.product && typeof window !== 'undefined') {
       console.log('Detected Buy Now button data:', data.product);
       const product = data.product;
+      
+      // Find the best available image
+      let imageUrl = null;
+      if (product.image && product.image.src) {
+        imageUrl = product.image.src;
+      } else if (product.featured_image) {
+        imageUrl = typeof product.featured_image === 'string' 
+          ? product.featured_image 
+          : product.featured_image.src || product.featured_image;
+      } else if (product.images && product.images.length > 0) {
+        imageUrl = typeof product.images[0] === 'string'
+          ? product.images[0]
+          : product.images[0].src || product.images[0];
+      }
       
       return {
         items: [{
@@ -160,7 +184,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           sku: product.sku || '',
           variant_title: product.variant_title || '',
           vendor: product.vendor || '',
-          image: product.image?.src || product.featured_image || null,
+          image: imageUrl,
           requires_shipping: true
         }],
         total_price: product.price * (product.quantity || 1),
@@ -174,11 +198,42 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     // Normal cart structure validation
     if (data.items && Array.isArray(data.items)) {
-      return data;
+      // Ensure all items have proper image field
+      const processedItems = data.items.map((item: any) => {
+        // Handle image field in various formats
+        let imageUrl = null;
+        if (item.image) {
+          imageUrl = typeof item.image === 'string' ? item.image : item.image.src || item.image;
+        } else if (item.featured_image) {
+          imageUrl = typeof item.featured_image === 'string' 
+            ? item.featured_image 
+            : item.featured_image.src || item.featured_image;
+        }
+        
+        return {
+          ...item,
+          image: imageUrl
+        };
+      });
+      
+      return {
+        ...data,
+        items: processedItems
+      };
     }
     
     // If it's just a single product (without proper cart structure)
     if (data.title && data.price) {
+      // Find the best available image
+      let imageUrl = null;
+      if (data.image) {
+        imageUrl = typeof data.image === 'string' ? data.image : data.image.src || data.image;
+      } else if (data.featured_image) {
+        imageUrl = typeof data.featured_image === 'string' 
+          ? data.featured_image 
+          : data.featured_image.src || data.featured_image;
+      }
+      
       return {
         items: [{
           id: data.variant_id || data.id || Date.now().toString(),
@@ -187,7 +242,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           price: data.price,
           line_price: data.price * (data.quantity || 1),
           original_line_price: data.price * (data.quantity || 1),
-          image: data.image?.src || data.featured_image || null
+          image: imageUrl
         }],
         total_price: data.price * (data.quantity || 1),
         items_subtotal_price: data.price * (data.quantity || 1),
@@ -201,47 +256,72 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (data.cart_type === 'buy_now' && (!data.items || data.items.length === 0) && typeof window !== 'undefined') {
       console.log('Detected Buy Now context with empty cart, checking for product data');
       
-      // Try to get product from window
-      let buyNowProduct = null;
-      if ((window as any).buyNowProduct) {
-        buyNowProduct = (window as any).buyNowProduct;
-        console.log('Found product in window.buyNowProduct:', buyNowProduct);
-      } else {
-        // Try localStorage as fallback
-        try {
-          const storedProduct = localStorage.getItem('buyNowProduct');
-          if (storedProduct) {
-            buyNowProduct = JSON.parse(storedProduct);
-            console.log('Found product in localStorage:', buyNowProduct);
-          }
-        } catch (e) {
-          console.error('Error getting product from localStorage:', e);
-        }
-      }
+      // Try to get product data from window
+      let productData = null;
       
-      if (buyNowProduct) {
-        return {
-          items: [{
-            id: buyNowProduct.variant_id || buyNowProduct.id,
-            title: buyNowProduct.title,
-            quantity: buyNowProduct.quantity || 1,
-            price: buyNowProduct.price,
-            line_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
-            original_line_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
-            variant_id: buyNowProduct.variant_id || buyNowProduct.id,
-            product_id: buyNowProduct.id,
-            sku: buyNowProduct.sku || '',
-            variant_title: buyNowProduct.variant_title || '',
-            vendor: buyNowProduct.vendor || '',
-            image: buyNowProduct.image?.src || buyNowProduct.featured_image || null,
-            requires_shipping: true
-          }],
-          total_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
-          items_subtotal_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
-          total_discount: 0,
-          item_count: buyNowProduct.quantity || 1,
-          currency: 'BGN'
-        };
+      if (typeof window !== 'undefined') {
+        // Try various sources
+        if ((window as any).buyNowProduct) {
+          console.log('Found product in window.buyNowProduct');
+          productData = (window as any).buyNowProduct;
+        } else if (data.product) {
+          console.log('Found product in localCartData.product');
+          productData = data.product;
+        } else {
+          // Try localStorage
+          try {
+            const storedProduct = localStorage.getItem('buyNowProduct');
+            if (storedProduct) {
+              productData = JSON.parse(storedProduct);
+              console.log('Found product in localStorage');
+            }
+          } catch (e) {
+            console.error('Error getting product from localStorage', e);
+          }
+        }
+        
+        // Add the product to the cart if we found it
+        if (productData) {
+          console.log('Adding product to cart:', productData);
+          
+          // Find the best available image
+          let imageUrl = null;
+          if (productData.image) {
+            imageUrl = typeof productData.image === 'string' ? productData.image : productData.image.src || productData.image;
+          } else if (productData.featured_image) {
+            imageUrl = typeof productData.featured_image === 'string' 
+              ? productData.featured_image 
+              : productData.featured_image.src || productData.featured_image;
+          } else if (productData.images && productData.images.length > 0) {
+            imageUrl = typeof productData.images[0] === 'string'
+              ? productData.images[0]
+              : productData.images[0].src || productData.images[0];
+          }
+          
+          return {
+            ...data,
+            items: [{
+              id: productData.variant_id || productData.id,
+              title: productData.title,
+              quantity: productData.quantity || 1,
+              price: productData.price,
+              line_price: productData.price * (productData.quantity || 1),
+              original_line_price: (productData.compare_at_price || productData.price) * (productData.quantity || 1),
+              variant_id: productData.variant_id || productData.id,
+              product_id: productData.id,
+              sku: productData.sku || '',
+              variant_title: productData.variant_title || '',
+              vendor: productData.vendor || '',
+              image: imageUrl,
+              requires_shipping: true
+            }],
+            total_price: productData.price * (productData.quantity || 1),
+            items_subtotal_price: productData.price * (productData.quantity || 1),
+            total_discount: productData.compare_at_price ? 
+              (productData.compare_at_price - productData.price) * (productData.quantity || 1) : 0,
+            item_count: productData.quantity || 1
+          };
+        }
       }
     }
     

@@ -298,7 +298,12 @@
               const imageElement = document.querySelector('.product-featured-image') ||
                                   document.querySelector('[data-product-featured-image]') ||
                                   document.querySelector('.product-single__photo') ||
-                                  document.querySelector('.product-image');
+                                  document.querySelector('img.product__media-item') ||
+                                  document.querySelector('.product__media img') ||
+                                  document.querySelector('.product-image') ||
+                                  document.querySelector('img[itemprop="image"]') ||
+                                  document.querySelector('.product-page img') ||
+                                  document.querySelector('.product-single img');
               
               if (priceElement && titleElement) {
                 // Extract price - remove currency and non-numeric characters
@@ -307,11 +312,28 @@
                 
                 const productId = window.location.pathname.match(/\/products\/([^\/\?#]+)/)?.[1] || 'unknown';
                 
+                // Get image information, look for high-quality versions
+                let imageSrc = null;
+                if (imageElement) {
+                  // Try data attributes first, which often contain better quality images
+                  imageSrc = imageElement.getAttribute('data-src') || 
+                            imageElement.getAttribute('data-srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
+                            imageElement.getAttribute('srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
+                            imageElement.src;
+                  console.log('Found image sources:', {
+                    dataSrc: imageElement.getAttribute('data-src'),
+                    dataSrcset: imageElement.getAttribute('data-srcset'),
+                    srcset: imageElement.getAttribute('srcset'),
+                    src: imageElement.src
+                  });
+                }
+                
                 currentProduct = {
                   id: productId,
                   title: titleElement.textContent.trim(),
                   price: isNaN(price) ? 0 : price,
-                  featured_image: imageElement?.src || null,
+                  featured_image: imageSrc,
+                  image: { src: imageSrc },
                   url: window.location.href,
                   quantity: 1
                 };
@@ -948,6 +970,12 @@
       if (productJson && productJson.textContent) {
         const product = JSON.parse(productJson.textContent);
         console.log('Found product JSON:', product);
+        // Ensure image is properly formatted for use in checkout form
+        if (product.featured_image && !product.image) {
+          product.image = { src: product.featured_image };
+        } else if (product.images && product.images.length > 0 && !product.image) {
+          product.image = { src: product.images[0] };
+        }
         return product;
       }
       
@@ -964,6 +992,7 @@
           title: title,
           price: parseFloat(price) * 100, // Convert to cents
           featured_image: image,
+          image: { src: image },
           url: url,
           quantity: 1
         };
@@ -982,18 +1011,34 @@
       const imageElement = document.querySelector('.product-featured-image') ||
                           document.querySelector('[data-product-featured-image]') ||
                           document.querySelector('.product-single__photo') ||
-                          document.querySelector('.product-image');
+                          document.querySelector('img.product__media-item') ||
+                          document.querySelector('.product__media img') ||
+                          document.querySelector('.product-image') ||
+                          document.querySelector('img[itemprop="image"]') ||
+                          document.querySelector('.product-page img') ||
+                          document.querySelector('.product-single img');
       
       if (priceElement && titleElement) {
         // Extract price - remove currency and non-numeric characters
         let priceText = priceElement.textContent.trim().replace(/[^\d.,]/g, '').replace(',', '.');
         const price = parseFloat(priceText) * 100; // Convert to cents
         
+        // Get image source with fallbacks
+        let imageSrc = null;
+        if (imageElement) {
+          // Try data attributes first, which often contain better quality images
+          imageSrc = imageElement.getAttribute('data-src') || 
+                    imageElement.getAttribute('data-srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
+                    imageElement.getAttribute('srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
+                    imageElement.src;
+        }
+        
         return {
           id: productId || 'unknown',
           title: titleElement.textContent.trim(),
           price: isNaN(price) ? 0 : price,
-          featured_image: imageElement?.src || null,
+          featured_image: imageSrc,
+          image: { src: imageSrc },
           url: window.location.href,
           quantity: 1
         };
