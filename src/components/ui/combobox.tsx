@@ -452,7 +452,11 @@ export function Combobox({
   );
 
   return (
-    <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
+    <div 
+      className={`relative combobox-container ${isMobile ? 'mobile-combobox' : ''}`} 
+      ref={containerRef}
+      style={{ width: isMobile ? '100%' : '300px' }}
+    >
       {/* Button that opens the combobox */}
       <Button
         variant="outline"
@@ -471,7 +475,6 @@ export function Combobox({
           className
         )}
         disabled={disabled}
-        style={{ width: isMobile ? '100%' : '300px' }}
       >
         <div className="flex-1 min-w-0 overflow-hidden">
           {displayValue}
