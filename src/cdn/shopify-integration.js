@@ -947,9 +947,11 @@
         } else if (data.order_status_url) {
           // If URL is directly in the response
           orderStatusUrl = data.order_status_url;
-        } else if (data.order_id) {
-          // If we have the order ID but no URL, construct it (Shopify standard format)
-          orderStatusUrl = `https://${requestPayload.shop_domain}/account/orders/${data.order_id}`;
+        } else if (data.order_id || data.order_name) {
+          // If we have the order ID or order name but no URL, use thank you page URL format
+          // This creates a guest-accessible URL that doesn't require login
+          const orderIdentifier = data.order_name ? data.order_name.replace('#', '') : data.order_id;
+          orderStatusUrl = `https://${requestPayload.shop_domain}/checkout/thank_you?order=${orderIdentifier}`;
         } else {
           // If we can't determine a URL, just reload the page
           orderStatusUrl = window.location.href;
