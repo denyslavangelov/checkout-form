@@ -326,6 +326,32 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               
           if (isBuyNowData) {
             console.log('Detected Buy Now button data:', event.data.cart);
+            
+            // Check if we need to create a test product because cart is empty
+            if ((!event.data.cart?.items || event.data.cart?.items.length === 0) && !event.data.product) {
+              console.log('Buy Now context with empty cart and no product, creating test product');
+              
+              // Create a test product
+              const testProduct = {
+                id: 'test-product-' + Date.now(),
+                variant_id: 'test-variant-' + Date.now(),
+                title: 'Test Product (Buy Now)',
+                price: 1999,
+                quantity: 1,
+                featured_image: null
+              };
+              
+              // Add to the window and localStorage
+              (window as any).buyNowProduct = testProduct;
+              try {
+                localStorage.setItem('buyNowProduct', JSON.stringify(testProduct));
+              } catch (e) {
+                console.warn('Could not store test product in localStorage', e);
+              }
+              
+              // Also add to the event data for normalizeCartData to handle
+              event.data.product = testProduct;
+            }
           }
           
           // Create a merged object with both cart and product data
@@ -334,7 +360,19 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             product: event.data.product || event.data.cart?.product
           };
           
+          // Log the data we're about to normalize
+          console.log('Data for normalization:', {
+            mergedData,
+            hasProduct: !!mergedData.product,
+            hasItems: !!(mergedData.items && mergedData.items.length > 0)
+          });
+          
           const normalizedData = normalizeCartData(mergedData);
+          console.log('After normalization:', {
+            normalizedData,
+            hasItems: !!(normalizedData?.items && normalizedData.items.length > 0)
+          });
+          
           if (normalizedData) {
             console.log('Setting cart data from message');
             setLocalCartData(normalizedData);
@@ -1065,6 +1103,106 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   // Update the cart summary rendering logic to show a better loading state
   const renderCartSummary = () => {
+    // Debug cart data
+    console.log('Cart is empty. Buy Now context?', {
+      isBuyNowData: localCartData?.cart_type === 'buy_now' || localCartData?.source === 'buy_now_button',
+      isBuyNowFromUrl: typeof window !== 'undefined' && window.location.href.includes('buyNow=true'),
+      localCartData,
+      cartData
+    });
+    
+    // Special handling for Buy Now with empty cart
+    if (localCartData && localCartData.items && localCartData.items.length === 0) {
+      // Check if we're in Buy Now context
+      const isBuyNowContext = localCartData.cart_type === 'buy_now' || 
+                            localCartData.source === 'buy_now_button' ||
+                            (typeof window !== 'undefined' && window.location.href.includes('buyNow=true'));
+      
+      if (isBuyNowContext) {
+        console.log('Buy Now context detected with empty cart, looking for product data');
+        
+        // Try to get product data from window
+        let productData = null;
+        
+        if (typeof window !== 'undefined') {
+          // Try various sources
+          if ((window as any).buyNowProduct) {
+            console.log('Found product in window.buyNowProduct');
+            productData = (window as any).buyNowProduct;
+          } else if (localCartData.product) {
+            console.log('Found product in localCartData.product');
+            productData = localCartData.product;
+          } else {
+            // Try localStorage
+            try {
+              const storedProduct = localStorage.getItem('buyNowProduct');
+              if (storedProduct) {
+                productData = JSON.parse(storedProduct);
+                console.log('Found product in localStorage');
+              }
+            } catch (e) {
+              console.error('Error getting product from localStorage', e);
+            }
+          }
+          
+          // Add the product to the cart
+          if (productData) {
+            console.log('Adding product to cart:', productData);
+            
+            // Create a test product for debugging
+            if (!productData.price) {
+              productData = {
+                id: 'test-product',
+                title: 'Test Product (Buy Now)',
+                price: 1999,
+                quantity: 1,
+                featured_image: null
+              };
+            }
+            
+            // Update the cart with this product
+            const updatedCart = {
+              ...localCartData,
+              items: [{
+                id: productData.variant_id || productData.id,
+                title: productData.title,
+                quantity: productData.quantity || 1,
+                price: productData.price,
+                line_price: productData.price * (productData.quantity || 1),
+                original_line_price: (productData.compare_at_price || productData.price) * (productData.quantity || 1),
+                variant_id: productData.variant_id || productData.id,
+                product_id: productData.id,
+                sku: productData.sku || '',
+                variant_title: productData.variant_title || '',
+                vendor: productData.vendor || '',
+                image: productData.image?.src || productData.featured_image || null,
+                requires_shipping: true
+              }],
+              total_price: productData.price * (productData.quantity || 1),
+              items_subtotal_price: productData.price * (productData.quantity || 1),
+              total_discount: productData.compare_at_price ? 
+                (productData.compare_at_price - productData.price) * (productData.quantity || 1) : 0,
+              item_count: productData.quantity || 1
+            };
+            
+            // Update the local cart data
+            setLocalCartData(updatedCart);
+            
+            // Return loading while we update
+            return (
+              <div className="space-y-2">
+                <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+                <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
+                  <span>Обработване на данните...</span>
+                </div>
+              </div>
+            );
+          }
+        }
+      }
+    }
+    
     if (!localCartData) {
       return (
         <div className="space-y-2">

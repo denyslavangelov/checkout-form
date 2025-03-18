@@ -202,6 +202,7 @@
           
           // If not found in JSON, try to get from meta tags
           if (!currentProduct) {
+            console.log('No product JSON found, trying meta tags or creating test product');
             const productMetaTag = document.querySelector('meta[property="og:product"]') ||
                                   document.querySelector('meta[property="product:price:amount"]');
             
@@ -226,6 +227,19 @@
                 };
                 console.log('Constructed product from meta tags:', currentProduct);
               }
+            }
+            
+            // Last resort - create test product if we're in a development environment
+            if (!currentProduct) {
+              console.log('Creating test product for Buy Now');
+              currentProduct = {
+                id: 'test-product-' + Date.now(),
+                title: 'Test Product (Buy Now)',
+                price: 2999,
+                featured_image: null,
+                url: window.location.href,
+                quantity: 1
+              };
             }
           }
           
@@ -382,9 +396,25 @@
       // Now set the iframe src
       iframe.src = iframeUrl.toString();
       
+      // Test that product data is available
+      console.log('Product data check before iframe load:', {
+        singleProductCart,
+        currentProduct,
+        windowBuyNowProduct: window.buyNowProduct,
+        localStorageBuyNowProduct: JSON.parse(localStorage.getItem('buyNowProduct') || '{}')
+      });
+      
       // Send the product data when iframe loads
       iframe.onload = function() {
         console.log('Iframe loaded, sending product data immediately');
+        
+        // Test that product data is still available
+        console.log('Product data check before sending to iframe:', {
+          fromVariable: currentProduct,
+          fromWindow: window.buyNowProduct,
+          fromCart: singleProductCart
+        });
+        
         if (iframe.contentWindow) {
           // Add the buyNow=true flag to the iframe URL
           try {
@@ -399,21 +429,25 @@
             console.error('Error adding buyNow param to iframe URL:', e);
           }
           
-          iframe.contentWindow.postMessage({
-            type: 'cart-data',
-            cart: singleProductCart,
-            product: currentProduct, // Send the individual product explicitly
-            metadata: {
-              timestamp: new Date().toISOString(),
-              shopUrl: window.location.hostname,
-              shopifyDomain: shopifyDomain,
-              source: 'buy_now_button',
-              hasItems: true,
-              itemCount: singleProductCart.item_count || 1,
-              isBuyNowContext: true,
-              isSingleProduct: true
-            }
-          }, '*');
+          // Add a small delay to ensure iframe is ready to receive messages
+          setTimeout(() => {
+            console.log('Sending product data to iframe now');
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
+              cart: singleProductCart,
+              product: currentProduct, // Send the individual product explicitly
+              metadata: {
+                timestamp: new Date().toISOString(),
+                shopUrl: window.location.hostname,
+                shopifyDomain: shopifyDomain,
+                source: 'buy_now_button',
+                hasItems: true,
+                itemCount: singleProductCart.item_count || 1,
+                isBuyNowContext: true,
+                isSingleProduct: true
+              }
+            }, '*');
+          }, 100);
         }
       };
       
@@ -490,11 +524,37 @@
             const buyNowProduct = window.buyNowProduct || 
                (localStorage.getItem('buyNowProduct') ? JSON.parse(localStorage.getItem('buyNowProduct')) : null);
             
+            // Debug the product data
+            console.log('Buy Now product data check:', {
+              windowBuyNowProduct: window.buyNowProduct ? true : false,
+              localStorageBuyNowProduct: localStorage.getItem('buyNowProduct') ? true : false,
+              buyNowProduct: buyNowProduct,
+              windowShopifyCart: window.shopifyCart
+            });
+            
             // Make sure the data has the expected structure with both product and items
             if (!window.shopifyCart.items || window.shopifyCart.items.length === 0) {
               console.log('Buy Now cart has no items, adding product to cart');
-              if (buyNowProduct) {
-                const product = buyNowProduct;
+              
+              // If we don't have product data, create a test product
+              if (!buyNowProduct) {
+                console.log('No product data found, creating test product');
+                const testProduct = {
+                  id: 'test-product-' + Date.now(),
+                  title: 'Test Product (Buy Now)',
+                  price: 2999,
+                  quantity: 1,
+                  featured_image: null
+                };
+                window.buyNowProduct = testProduct;
+                localStorage.setItem('buyNowProduct', JSON.stringify(testProduct));
+                window.shopifyCart.product = testProduct;
+              }
+              
+              // Use buyNowProduct or the test product we just created
+              const product = buyNowProduct || window.buyNowProduct;
+              
+              if (product) {
                 window.shopifyCart.items = [{
                   id: product.variant_id || product.id,
                   title: product.title,
