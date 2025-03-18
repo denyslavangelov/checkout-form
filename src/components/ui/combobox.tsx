@@ -247,9 +247,20 @@ export function Combobox({
           {optionType === 'city' && (
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
-          <span className={`font-medium text-blue-800 truncate overflow-hidden ${isMobile ? 'max-w-[75%]' : ''}`}>
-            {selectedOption.label.split(':')[0]}
-          </span>
+          {optionType === 'office' ? (
+            <div className="truncate overflow-hidden">
+              <span className="font-medium text-blue-800">{selectedOption.label.split(':')[0]}</span>
+              {selectedOption.label.includes(':') && (
+                <span className="text-xs text-gray-600 block truncate">
+                  {selectedOption.label.split(':').slice(1).join(':')}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className={`font-medium text-blue-800 truncate overflow-hidden ${isMobile ? 'max-w-[75%]' : ''}`}>
+              {selectedOption.label.split(':')[0]}
+            </span>
+          )}
         </div>
       )
     }
@@ -311,10 +322,10 @@ export function Combobox({
     <div
       ref={listRef}
       className={cn(
-        "absolute w-full bg-white shadow-md rounded-md border border-gray-200 overflow-y-auto",
+        "absolute bg-white shadow-md rounded-md border border-gray-200 overflow-y-auto",
         isMobile ? 
-          "right-0 left-0 max-h-[300px] z-10 mt-1 shadow-lg rounded-lg" : 
-          "mt-1 max-h-[300px] z-10"
+          "right-0 left-0 max-h-[300px] z-10 mt-1 shadow-lg rounded-lg max-w-[95vw] min-w-full" : 
+          "mt-1 max-h-[300px] z-10 min-w-full max-w-[400px] w-max"
       )}
     >
       <div className="py-2 px-2">
@@ -370,12 +381,17 @@ export function Combobox({
               <div
                 key={option.value}
                 className={cn(
-                  "flex items-center px-3 py-2 cursor-pointer rounded",
-                  option.value === internalValue ? "bg-blue-50" : "hover:bg-gray-50"
+                  "flex cursor-pointer rounded",
+                  "transition-colors duration-150",
+                  option.value === internalValue ? "bg-blue-50" : "hover:bg-gray-50",
+                  (option.type === 'office' || type === 'office') ? "px-3 py-3 items-start" : "px-3 py-2 items-center"
                 )}
                 onClick={() => handleSelect(option.value)}
               >
-                <span className="mr-2 flex-shrink-0">
+                <span className={cn(
+                  "mr-2 flex-shrink-0", 
+                  (option.type === 'office' || type === 'office') ? "mt-0.5" : ""
+                )}>
                   {option.value === internalValue ? (
                     <Check className="h-4 w-4 text-blue-500" />
                   ) : (
@@ -383,11 +399,23 @@ export function Combobox({
                   )}
                 </span>
                 <span className={cn(
-                  "truncate flex-1",
+                  "flex-1",
+                  (option.type === 'office' || type === 'office') ? "break-words whitespace-normal" : "truncate",
                   isMobile ? "text-base" : "text-sm",
                   option.value === internalValue ? "font-medium text-blue-700" : "font-normal"
                 )}>
-                  {option.label}
+                  {(option.type === 'office' || type === 'office') ? (
+                    <>
+                      <span className="font-medium block">{option.label.split(':')[0]}</span>
+                      {option.label.includes(':') && (
+                        <span className="text-gray-600 text-xs block mt-0.5">
+                          {option.label.split(':').slice(1).join(':')}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    option.label
+                  )}
                 </span>
               </div>
             ))}
