@@ -193,7 +193,8 @@
           // Get product data from the page meta tags or JSON
           const productJson = document.getElementById('ProductJson-product-template') || 
                              document.getElementById('ProductJson-product') ||
-                             document.querySelector('[id^="ProductJson-"]');
+                             document.querySelector('[id^="ProductJson-"]') ||
+                             document.querySelector('script[type="application/json"][data-product-json]');
           
           if (productJson && productJson.textContent) {
             currentProduct = JSON.parse(productJson.textContent);
@@ -202,44 +203,121 @@
           
           // If not found in JSON, try to get from meta tags
           if (!currentProduct) {
-            console.log('No product JSON found, trying meta tags or creating test product');
-            const productMetaTag = document.querySelector('meta[property="og:product"]') ||
-                                  document.querySelector('meta[property="product:price:amount"]');
+            console.log('No product JSON found, trying meta tags and other methods');
             
-            if (productMetaTag) {
-              // This is just a fallback with limited information
-              const price = document.querySelector('meta[property="product:price:amount"]')?.content;
-              const title = document.querySelector('meta[property="og:title"]')?.content;
-              const image = document.querySelector('meta[property="og:image"]')?.content;
-              const url = window.location.href;
-              
-              // Try to extract product ID from URL
-              const productId = url.match(/\/products\/([^\/\?#]+)/)?.[1];
-              
-              if (price && title) {
-                currentProduct = {
-                  id: productId || 'unknown',
-                  title: title,
-                  price: parseFloat(price) * 100, // Convert to cents
-                  featured_image: image,
-                  url: url,
-                  quantity: 1
-                };
-                console.log('Constructed product from meta tags:', currentProduct);
+            // Try data-product-json attribute first (common in many themes)
+            const productDataElements = document.querySelectorAll('[data-product-json]');
+            for (const element of productDataElements) {
+              try {
+                if (element.textContent) {
+                  currentProduct = JSON.parse(element.textContent);
+                  console.log('Found product from data-product-json attribute:', currentProduct);
+                  break;
+                }
+              } catch (e) {
+                console.warn('Failed to parse product data from element:', e);
               }
             }
             
-            // Last resort - create test product if we're in a development environment
+            // Try finding JSON in any script tag that contains product data
             if (!currentProduct) {
-              console.log('Creating test product for Buy Now');
-              currentProduct = {
-                id: 'test-product-' + Date.now(),
-                title: 'Test Product (Buy Now)',
-                price: 2999,
-                featured_image: null,
-                url: window.location.href,
-                quantity: 1
-              };
+              const scriptTags = document.querySelectorAll('script:not([src])');
+              for (const script of scriptTags) {
+                try {
+                  if (script.textContent && 
+                     (script.textContent.includes('"product":') || 
+                      script.textContent.includes('"variants":')) && 
+                     script.textContent.includes('"price":')) {
+                    
+                    // Try to extract just the product object
+                    const matches = script.textContent.match(/\{(?:[^{}]|(\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}/g);
+                    if (matches) {
+                      for (const jsonText of matches) {
+                        try {
+                          const parsed = JSON.parse(jsonText);
+                          if (parsed.id && parsed.title && parsed.price !== undefined) {
+                            currentProduct = parsed;
+                            console.log('Found product in script content:', currentProduct);
+                            break;
+                          }
+                        } catch (e) {
+                          // Skip invalid JSON
+                        }
+                      }
+                    }
+                    
+                    if (currentProduct) break;
+                  }
+                } catch (e) {
+                  // Skip errors
+                }
+              }
+            }
+            
+            // Try meta tags as last resort
+            if (!currentProduct) {
+              const productMetaTag = document.querySelector('meta[property="og:product"]') ||
+                                    document.querySelector('meta[property="product:price:amount"]');
+              
+              if (productMetaTag) {
+                // This is just a fallback with limited information
+                const price = document.querySelector('meta[property="product:price:amount"]')?.content;
+                const title = document.querySelector('meta[property="og:title"]')?.content;
+                const image = document.querySelector('meta[property="og:image"]')?.content;
+                const url = window.location.href;
+                
+                // Try to extract product ID from URL
+                const productId = url.match(/\/products\/([^\/\?#]+)/)?.[1];
+                
+                if (price && title) {
+                  currentProduct = {
+                    id: productId || 'unknown',
+                    title: title,
+                    price: parseFloat(price) * 100, // Convert to cents
+                    featured_image: image,
+                    url: url,
+                    quantity: 1
+                  };
+                  console.log('Constructed product from meta tags:', currentProduct);
+                }
+              }
+            }
+            
+            // Try extracting directly from the page HTML
+            if (!currentProduct) {
+              // Look for price elements
+              const priceElement = document.querySelector('.price') || 
+                                  document.querySelector('[data-product-price]') ||
+                                  document.querySelector('.product-price') ||
+                                  document.querySelector('[data-price]');
+              
+              const titleElement = document.querySelector('h1') || 
+                                  document.querySelector('.product-title') ||
+                                  document.querySelector('[data-product-title]');
+              
+              const imageElement = document.querySelector('.product-featured-image') ||
+                                  document.querySelector('[data-product-featured-image]') ||
+                                  document.querySelector('.product-single__photo') ||
+                                  document.querySelector('.product-image');
+              
+              if (priceElement && titleElement) {
+                // Extract price - remove currency and non-numeric characters
+                let priceText = priceElement.textContent.trim().replace(/[^\d.,]/g, '').replace(',', '.');
+                const price = parseFloat(priceText) * 100; // Convert to cents
+                
+                const productId = window.location.pathname.match(/\/products\/([^\/\?#]+)/)?.[1] || 'unknown';
+                
+                currentProduct = {
+                  id: productId,
+                  title: titleElement.textContent.trim(),
+                  price: isNaN(price) ? 0 : price,
+                  featured_image: imageElement?.src || null,
+                  url: window.location.href,
+                  quantity: 1
+                };
+                
+                console.log('Constructed product from page elements:', currentProduct);
+              }
             }
           }
           
@@ -538,17 +616,26 @@
               
               // If we don't have product data, create a test product
               if (!buyNowProduct) {
-                console.log('No product data found, creating test product');
-                const testProduct = {
-                  id: 'test-product-' + Date.now(),
-                  title: 'Test Product (Buy Now)',
-                  price: 2999,
-                  quantity: 1,
-                  featured_image: null
-                };
-                window.buyNowProduct = testProduct;
-                localStorage.setItem('buyNowProduct', JSON.stringify(testProduct));
-                window.shopifyCart.product = testProduct;
+                console.log('No product data found for Buy Now. Current page product data is required.');
+                
+                // Try to extract product data from the page again
+                const pageProduct = extractProductFromPage();
+                
+                if (pageProduct) {
+                  console.log('Extracted product from page:', pageProduct);
+                  window.buyNowProduct = pageProduct;
+                  localStorage.setItem('buyNowProduct', JSON.stringify(pageProduct));
+                  window.shopifyCart.product = pageProduct;
+                } else {
+                  console.error('Could not extract product data from the page.');
+                  if (event.source) {
+                    event.source.postMessage({
+                      type: 'error-message',
+                      message: 'Не можахме да намерим информация за продукта. Моля, опитайте отново.'
+                    }, '*');
+                  }
+                  return;
+                }
               }
               
               // Use buyNowProduct or the test product we just created
@@ -844,6 +931,78 @@
         type: 'order-error',
         error: error.message
       }, '*');
+    }
+  }
+
+  // Helper function to extract product data from the page
+  function extractProductFromPage() {
+    try {
+      console.log('Attempting to extract product data from page elements...');
+      
+      // Try JSON first
+      const productJson = document.getElementById('ProductJson-product-template') || 
+                         document.getElementById('ProductJson-product') ||
+                         document.querySelector('[id^="ProductJson-"]') ||
+                         document.querySelector('script[type="application/json"][data-product-json]');
+                         
+      if (productJson && productJson.textContent) {
+        const product = JSON.parse(productJson.textContent);
+        console.log('Found product JSON:', product);
+        return product;
+      }
+      
+      // Try meta tags
+      const price = document.querySelector('meta[property="product:price:amount"]')?.content;
+      const title = document.querySelector('meta[property="og:title"]')?.content;
+      const image = document.querySelector('meta[property="og:image"]')?.content;
+      const url = window.location.href;
+      const productId = url.match(/\/products\/([^\/\?#]+)/)?.[1];
+      
+      if (price && title) {
+        return {
+          id: productId || 'unknown',
+          title: title,
+          price: parseFloat(price) * 100, // Convert to cents
+          featured_image: image,
+          url: url,
+          quantity: 1
+        };
+      }
+      
+      // Try extracting directly from the page HTML
+      const priceElement = document.querySelector('.price') || 
+                          document.querySelector('[data-product-price]') ||
+                          document.querySelector('.product-price') ||
+                          document.querySelector('[data-price]');
+      
+      const titleElement = document.querySelector('h1') || 
+                          document.querySelector('.product-title') ||
+                          document.querySelector('[data-product-title]');
+      
+      const imageElement = document.querySelector('.product-featured-image') ||
+                          document.querySelector('[data-product-featured-image]') ||
+                          document.querySelector('.product-single__photo') ||
+                          document.querySelector('.product-image');
+      
+      if (priceElement && titleElement) {
+        // Extract price - remove currency and non-numeric characters
+        let priceText = priceElement.textContent.trim().replace(/[^\d.,]/g, '').replace(',', '.');
+        const price = parseFloat(priceText) * 100; // Convert to cents
+        
+        return {
+          id: productId || 'unknown',
+          title: titleElement.textContent.trim(),
+          price: isNaN(price) ? 0 : price,
+          featured_image: imageElement?.src || null,
+          url: window.location.href,
+          quantity: 1
+        };
+      }
+      
+      return null;
+    } catch (e) {
+      console.error('Error extracting product from page:', e);
+      return null;
     }
   }
 

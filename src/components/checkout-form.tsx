@@ -327,30 +327,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           if (isBuyNowData) {
             console.log('Detected Buy Now button data:', event.data.cart);
             
-            // Check if we need to create a test product because cart is empty
+            // Check if we need to show an error because we have empty cart with no product
             if ((!event.data.cart?.items || event.data.cart?.items.length === 0) && !event.data.product) {
-              console.log('Buy Now context with empty cart and no product, creating test product');
+              console.warn('Buy Now context with empty cart and no product data');
               
-              // Create a test product
-              const testProduct = {
-                id: 'test-product-' + Date.now(),
-                variant_id: 'test-variant-' + Date.now(),
-                title: 'Test Product (Buy Now)',
-                price: 1999,
-                quantity: 1,
-                featured_image: null
-              };
-              
-              // Add to the window and localStorage
-              (window as any).buyNowProduct = testProduct;
-              try {
-                localStorage.setItem('buyNowProduct', JSON.stringify(testProduct));
-              } catch (e) {
-                console.warn('Could not store test product in localStorage', e);
-              }
-              
-              // Also add to the event data for normalizeCartData to handle
-              event.data.product = testProduct;
+              // Update the error handling to not create a test product
+              console.error('Product data not found for Buy Now. This is an error condition.');
             }
           }
           
@@ -377,6 +359,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             console.log('Setting cart data from message');
             setLocalCartData(normalizedData);
           }
+        }
+        
+        // Also handle error messages
+        if (event.data?.type === 'error-message') {
+          console.error('Received error message from parent:', event.data.message);
+          // Could display an error message here
         }
         
         // Also handle CART_DATA_UPDATE messages
@@ -1145,20 +1133,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             }
           }
           
-          // Add the product to the cart
+          // Add the product to the cart if we found it
           if (productData) {
             console.log('Adding product to cart:', productData);
-            
-            // Create a test product for debugging
-            if (!productData.price) {
-              productData = {
-                id: 'test-product',
-                title: 'Test Product (Buy Now)',
-                price: 1999,
-                quantity: 1,
-                featured_image: null
-              };
-            }
             
             // Update the cart with this product
             const updatedCart = {
@@ -1195,6 +1172,28 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                 <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
                   <span>Обработване на данните...</span>
+                </div>
+              </div>
+            );
+          } else {
+            // Display error message if no product data found
+            return (
+              <div className="space-y-2">
+                <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+                <div className="bg-yellow-50 p-4 rounded-md">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">Информация за продукта не е намерена</h3>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <p>Моля, опитайте отново от страницата на продукта.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
