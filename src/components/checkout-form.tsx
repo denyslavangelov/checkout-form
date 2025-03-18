@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { X, Trash2, Home, Route, Building2, CheckIcon, CreditCardIcon } from "lucide-react"
+import { X, Trash2, Home, Route, Building2, CheckIcon, CreditCardIcon, MapPin } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -110,6 +110,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     { id: 'details', title: 'Данни' },
     { id: 'payment', title: 'Плащане' }
   ];
+
+  // Add state for controlling dropdown visibility
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const [officeDropdownOpen, setOfficeDropdownOpen] = useState(false);
+  const [streetDropdownOpen, setStreetDropdownOpen] = useState(false);
 
   // Function to advance to the next step
   const nextStep = async () => {
@@ -1525,23 +1530,28 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   <FormItem>
                     <FormLabel>Град <span className="text-red-500">*</span></FormLabel>
                     <div className="relative">
-                      <Input
-                        placeholder="Въведете име на град"
-                        value={searchCity}
-                        onChange={(e) => {
-                          setSearchCity(e.target.value);
-                          debouncedSearchCities(e.target.value);
-                        }}
-                        className="h-11"
-                      />
-                      {loadingCities && (
-                        <div className="absolute right-3 top-3">
-                          <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-                        </div>
-                      )}
+                      <div className="flex items-center relative">
+                        <MapPin className="absolute left-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          placeholder="Въведете име на град"
+                          value={searchCity}
+                          onChange={(e) => {
+                            setSearchCity(e.target.value);
+                            debouncedSearchCities(e.target.value);
+                            setCityDropdownOpen(true);
+                          }}
+                          onFocus={() => setCityDropdownOpen(true)}
+                          className="h-11 pl-10"
+                        />
+                        {loadingCities && (
+                          <div className="absolute right-3 top-3">
+                            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {citySuggestions.length > 0 && (
-                      <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                    {cityDropdownOpen && citySuggestions.length > 0 && (
+                      <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border z-50">
                         {citySuggestions.map((option) => (
                           <div 
                             key={option.value} 
@@ -1549,6 +1559,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             onClick={() => {
                               handleCitySelected(option.value, 'officeCity');
                               setSearchCity(option.label);
+                              setCityDropdownOpen(false);
                             }}
                           >
                             {option.label}
@@ -1573,26 +1584,42 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     <FormItem>
                       <FormLabel>Офис <span className="text-red-500">*</span></FormLabel>
                       <div className="relative">
-                        <Input
-                          placeholder="Изберете офис"
-                          value={field.value || ""}
-                          readOnly 
-                          className="h-11 pr-10 cursor-pointer"
-                          onClick={() => {
-                            // When clicked, show available offices
-                            if (selectedCityId) {
-                              searchOffices(selectedCityId);
-                            }
-                          }}
-                        />
-                        {loadingOffices && (
-                          <div className="absolute right-3 top-3">
-                            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-                          </div>
-                        )}
+                        <div className="flex items-center relative">
+                          <Building2 className="absolute left-3 h-5 w-5 text-gray-400" />
+                          <Input
+                            placeholder="Изберете офис"
+                            value={field.value || ""}
+                            readOnly 
+                            className="h-11 pl-10 pr-10 cursor-pointer"
+                            onClick={() => {
+                              // When clicked, show available offices
+                              if (selectedCityId) {
+                                searchOffices(selectedCityId);
+                                setOfficeDropdownOpen(true);
+                              }
+                            }}
+                          />
+                          {loadingOffices && (
+                            <div className="absolute right-3 top-3">
+                              <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                            </div>
+                          )}
+                          {field.value && (
+                            <button 
+                              type="button"
+                              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                field.onChange("");
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {officeSuggestions.length > 0 && (
-                        <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                      {officeDropdownOpen && officeSuggestions.length > 0 && (
+                        <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border z-50">
                           {officeSuggestions.map((option) => (
                             <div 
                               key={option.value} 
@@ -1600,6 +1627,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                               onClick={() => {
                                 field.onChange(option.value);
                                 handleOfficeSelected(option.value);
+                                setOfficeDropdownOpen(false);
                               }}
                             >
                               {option.label}
@@ -1629,23 +1657,28 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   <FormItem>
                     <FormLabel>Град <span className="text-red-500">*</span></FormLabel>
                     <div className="relative">
-                      <Input
-                        placeholder="Въведете име на град"
-                        value={searchCity}
-                        onChange={(e) => {
-                          setSearchCity(e.target.value);
-                          debouncedSearchCities(e.target.value);
-                        }}
-                        className="h-11"
-                      />
-                      {loadingCities && (
-                        <div className="absolute right-3 top-3">
-                          <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-                        </div>
-                      )}
+                      <div className="flex items-center relative">
+                        <MapPin className="absolute left-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          placeholder="Въведете име на град"
+                          value={searchCity}
+                          onChange={(e) => {
+                            setSearchCity(e.target.value);
+                            debouncedSearchCities(e.target.value);
+                            setCityDropdownOpen(true);
+                          }}
+                          onFocus={() => setCityDropdownOpen(true)}
+                          className="h-11 pl-10"
+                        />
+                        {loadingCities && (
+                          <div className="absolute right-3 top-3">
+                            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {citySuggestions.length > 0 && (
-                      <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                    {cityDropdownOpen && citySuggestions.length > 0 && (
+                      <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border z-50">
                         {citySuggestions.map((option) => (
                           <div 
                             key={option.value} 
@@ -1653,6 +1686,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                             onClick={() => {
                               handleCitySelected(option.value, 'city');
                               setSearchCity(option.label);
+                              setCityDropdownOpen(false);
                             }}
                           >
                             {option.label}
@@ -1677,25 +1711,30 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     <FormItem>
                       <FormLabel>Улица/Комплекс <span className="text-red-500">*</span></FormLabel>
                       <div className="relative">
-                        <Input
-                          placeholder="Въведете улица/комплекс"
-                          value={searchStreet}
-                          onChange={(e) => {
-                            setSearchStreet(e.target.value);
-                            if (selectedCityId) {
-                              debouncedSearchStreets(selectedCityId, e.target.value);
-                            }
-                          }}
-                          className="h-11"
-                        />
-                        {loadingStreets && (
-                          <div className="absolute right-3 top-3">
-                            <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-                          </div>
-                        )}
+                        <div className="flex items-center relative">
+                          <Route className="absolute left-3 h-5 w-5 text-gray-400" />
+                          <Input
+                            placeholder="Въведете улица/комплекс"
+                            value={searchStreet}
+                            onChange={(e) => {
+                              setSearchStreet(e.target.value);
+                              if (selectedCityId) {
+                                debouncedSearchStreets(selectedCityId, e.target.value);
+                                setStreetDropdownOpen(true);
+                              }
+                            }}
+                            onFocus={() => setStreetDropdownOpen(true)}
+                            className="h-11 pl-10"
+                          />
+                          {loadingStreets && (
+                            <div className="absolute right-3 top-3">
+                              <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {filteredStreetSuggestions.length > 0 && (
-                        <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border">
+                      {streetDropdownOpen && filteredStreetSuggestions.length > 0 && (
+                        <div className="bg-white shadow-lg rounded-md max-h-60 overflow-auto mt-1 border z-50">
                           {filteredStreetSuggestions.map((option) => (
                             <div 
                               key={option.value} 
@@ -1704,6 +1743,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                 field.onChange(option.value);
                                 handleStreetSelected(option.value);
                                 setSearchStreet(option.label);
+                                setStreetDropdownOpen(false);
                               }}
                             >
                               {option.icon && (
@@ -1999,6 +2039,45 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       setIsSubmitting(false);
     }
   };
+
+  // Add an effect to close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Close city dropdown if clicking outside
+      const cityInputs = document.querySelectorAll('input[placeholder="Въведете име на град"]');
+      let clickedInsideCity = false;
+      cityInputs.forEach(input => {
+        if (input.contains(event.target as Node) || 
+           (input.nextElementSibling && input.nextElementSibling.contains(event.target as Node))) {
+          clickedInsideCity = true;
+        }
+      });
+      
+      if (!clickedInsideCity) {
+        setCityDropdownOpen(false);
+      }
+      
+      // Close office dropdown if clicking outside
+      const officeInput = document.querySelector('input[placeholder="Изберете офис"]');
+      if (officeInput && !officeInput.contains(event.target as Node) && 
+          (!officeInput.nextElementSibling || !officeInput.nextElementSibling.contains(event.target as Node))) {
+        setOfficeDropdownOpen(false);
+      }
+      
+      // Close street dropdown if clicking outside
+      const streetInput = document.querySelector('input[placeholder="Въведете улица/комплекс"]');
+      if (streetInput && !streetInput.contains(event.target as Node) && 
+          (!streetInput.nextElementSibling || !streetInput.nextElementSibling.contains(event.target as Node))) {
+        setStreetDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <Dialog 
