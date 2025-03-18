@@ -274,8 +274,8 @@ export function Combobox({
             <span className="mr-2 flex-shrink-0">{icon}</span>
           )}
           {optionType === 'office' ? (
-            <div className="truncate overflow-hidden">
-              <span className="font-medium text-blue-800">{selectedOption.label.split(':')[0]}</span>
+            <div className="truncate overflow-hidden w-full">
+              <span className="font-medium text-blue-800 block">{selectedOption.label.split(':')[0]}</span>
               {selectedOption.label.includes(':') && (
                 <span className="text-xs text-gray-600 block truncate">
                   {extractOfficeAddress(selectedOption.label)}
@@ -350,8 +350,8 @@ export function Combobox({
       className={cn(
         "absolute bg-white shadow-md rounded-md border border-gray-200 overflow-y-auto",
         isMobile ? 
-          "right-0 left-0 max-h-[300px] z-10 mt-1 shadow-lg rounded-lg max-w-[95vw] min-w-full" : 
-          "mt-1 max-h-[300px] z-10 min-w-full max-w-[400px] w-max"
+          "right-0 left-0 max-h-[300px] z-10 mt-1 shadow-lg rounded-lg w-full" : 
+          "mt-1 max-h-[300px] z-10 w-full"
       )}
     >
       <div className="py-2 px-2">
@@ -426,7 +426,7 @@ export function Combobox({
                 </span>
                 <span className={cn(
                   "flex-1",
-                  (option.type === 'office' || type === 'office') ? "break-words whitespace-normal" : "truncate",
+                  (option.type === 'office' || type === 'office') ? "break-words whitespace-normal w-full" : "truncate",
                   isMobile ? "text-base" : "text-sm",
                   option.value === internalValue ? "font-medium text-blue-700" : "font-normal"
                 )}>
@@ -434,7 +434,7 @@ export function Combobox({
                     <>
                       <span className="font-medium block">{option.label.split(':')[0]}</span>
                       {option.label.includes(':') && (
-                        <span className="text-gray-600 text-xs block mt-0.5">
+                        <span className="text-gray-600 text-xs block mt-0.5 break-words">
                           {extractOfficeAddress(option.label)}
                         </span>
                       )}
