@@ -99,29 +99,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     hasCartData: !!cartData,
     cartDataType: cartData ? typeof cartData : 'null/undefined',
     cartItemsCount: cartData?.items?.length || 0,
-    isMobile,
-    componentOrigin: 'CheckoutForm component'
+    componentOrigin: 'CheckoutForm component',
+    isMobile
   });
-
-  // Create a default test cart for development/testing
-  const defaultTestCart = {
-    items: [
-      {
-        id: 'test-item-1',
-        title: 'Test Product',
-        quantity: 1,
-        price: 2999,
-        line_price: 2999,
-        original_line_price: 2999,
-        image: null
-      }
-    ],
-    total_price: 2999,
-    items_subtotal_price: 2999,
-    total_discount: 0,
-    item_count: 1,
-    currency: 'BGN'
-  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -147,102 +127,149 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     },
   })
 
-  // Helper function to normalize cart data
+  // Function to normalize cart data between different formats
   const normalizeCartData = (data: any) => {
-    if (!data) return null;
-    
-    // If it's a single product (from Buy Now), convert it to cart format
-    if (data.product) {
-      const productPrice = data.product.price;
-      const productCompareAtPrice = data.product.compare_at_price || data.product.original_price || productPrice;
-      const quantity = data.product.quantity || 1;
-      const isOnSale = productCompareAtPrice > productPrice;
-      
-      console.log('Processing Buy Now product data:', data.product);
+    if (!data) {
+      // Return empty cart structure
+      console.log('No cart data to normalize, returning empty structure');
+      return {
+        items: [],
+        total_price: 0,
+        items_subtotal_price: 0,
+        total_discount: 0,
+        item_count: 0,
+        currency: 'BGN'
+      };
+    }
+
+    // Check for Buy Now data that might be sent directly in the message
+    if (data.product && typeof window !== 'undefined') {
+      console.log('Detected Buy Now button data:', data.product);
+      const product = data.product;
       
       return {
         items: [{
-          id: data.product.variant_id || data.product.id,
-          title: data.product.title,
-          quantity: quantity,
-          price: productPrice,
-          line_price: productPrice * quantity,
-          original_line_price: isOnSale ? productCompareAtPrice * quantity : productPrice * quantity,
-          variant_id: data.product.variant_id || data.product.id,
-          product_id: data.product.id,
-          sku: data.product.sku || '',
-          variant_title: data.product.variant_title || '',
-          vendor: data.product.vendor || '',
-          image: data.product.image?.src || data.product.featured_image || null,
+          id: product.variant_id || product.id,
+          title: product.title,
+          quantity: product.quantity || 1,
+          price: product.price,
+          line_price: product.price * (product.quantity || 1),
+          original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
+          variant_id: product.variant_id || product.id,
+          product_id: product.id,
+          sku: product.sku || '',
+          variant_title: product.variant_title || '',
+          vendor: product.vendor || '',
+          image: product.image?.src || product.featured_image || null,
           requires_shipping: true
         }],
-        total_price: productPrice * quantity,
-        items_subtotal_price: productPrice * quantity,
-        total_discount: isOnSale ? (productCompareAtPrice - productPrice) * quantity : 0,
-        item_count: quantity,
-        currency: 'BGN',
-        cart_type: 'buy_now',
-        source: 'buy_now_button'
+        total_price: product.price * (product.quantity || 1),
+        items_subtotal_price: product.price * (product.quantity || 1),
+        total_discount: product.compare_at_price ? 
+          (product.compare_at_price - product.price) * (product.quantity || 1) : 0,
+        item_count: product.quantity || 1,
+        currency: 'BGN'
       };
     }
     
-    // If we receive data that already has items, use it (e.g. from Buy Now handling in CDN)
-    if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-      // Check if this is a Buy Now type
-      if (data.cart_type === 'buy_now' || data.source === 'buy_now_button') {
-        console.log('Using pre-normalized Buy Now data with items:', data);
-        return {
-          ...data,
-          cart_type: 'buy_now',
-          source: 'buy_now_button'
-        };
-      }
-      
-      // Regular cart data, just normalize it
-      console.log('Using regular cart data with items:', data.items.length);
-      const normalizedItems = data.items.map((item: any) => {
-        if (!item.original_line_price || item.original_line_price === item.line_price) {
-          // If original_line_price is missing or same as line_price, check for compare_at_price
-          if (item.compare_at_price && item.compare_at_price > item.price) {
-            return {
-              ...item,
-              original_line_price: item.compare_at_price * item.quantity
-            };
-          }
-        }
-        return item;
-      });
-      
+    // Normal cart structure validation
+    if (data.items && Array.isArray(data.items)) {
+      return data;
+    }
+    
+    // If it's just a single product (without proper cart structure)
+    if (data.title && data.price) {
       return {
-        ...data,
-        items: normalizedItems
+        items: [{
+          id: data.variant_id || data.id || Date.now().toString(),
+          title: data.title,
+          quantity: data.quantity || 1,
+          price: data.price,
+          line_price: data.price * (data.quantity || 1),
+          original_line_price: data.price * (data.quantity || 1),
+          image: data.image?.src || data.featured_image || null
+        }],
+        total_price: data.price * (data.quantity || 1),
+        items_subtotal_price: data.price * (data.quantity || 1),
+        total_discount: 0,
+        item_count: data.quantity || 1,
+        currency: 'BGN'
       };
     }
     
-    // Check if the data has the expected structure
-    if (!data.items || !Array.isArray(data.items)) {
-      console.warn('Cart data has invalid format, missing items array', data);
+    // Buy Now context with empty cart - check window for product
+    if (data.cart_type === 'buy_now' && (!data.items || data.items.length === 0) && typeof window !== 'undefined') {
+      console.log('Detected Buy Now context with empty cart, checking for product data');
       
-      // If this is an empty cart but we're in a Buy Now context, create a proper cart structure
-      const isBuyNowContext = (data.cart_type === 'buy_now' || data.source === 'buy_now_button' || 
-        window.location.href.includes('buyNow=true'));
-      
-      if (isBuyNowContext) {
-        console.log('Creating empty cart structure for Buy Now context');
-        return {
-          items: [],
-          total_price: 0,
-          items_subtotal_price: 0,
-          total_discount: 0,
-          item_count: 0,
-          currency: 'BGN',
-          cart_type: 'buy_now',
-          source: 'buy_now_button'
-        };
+      // Try to get product from window
+      let buyNowProduct = null;
+      if ((window as any).buyNowProduct) {
+        buyNowProduct = (window as any).buyNowProduct;
+        console.log('Found product in window.buyNowProduct:', buyNowProduct);
+      } else {
+        // Try localStorage as fallback
+        try {
+          const storedProduct = localStorage.getItem('buyNowProduct');
+          if (storedProduct) {
+            buyNowProduct = JSON.parse(storedProduct);
+            console.log('Found product in localStorage:', buyNowProduct);
+          }
+        } catch (e) {
+          console.error('Error getting product from localStorage:', e);
+        }
       }
       
-      return process.env.NODE_ENV === 'development' ? defaultTestCart : null;
+      if (buyNowProduct) {
+        return {
+          items: [{
+            id: buyNowProduct.variant_id || buyNowProduct.id,
+            title: buyNowProduct.title,
+            quantity: buyNowProduct.quantity || 1,
+            price: buyNowProduct.price,
+            line_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
+            original_line_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
+            variant_id: buyNowProduct.variant_id || buyNowProduct.id,
+            product_id: buyNowProduct.id,
+            sku: buyNowProduct.sku || '',
+            variant_title: buyNowProduct.variant_title || '',
+            vendor: buyNowProduct.vendor || '',
+            image: buyNowProduct.image?.src || buyNowProduct.featured_image || null,
+            requires_shipping: true
+          }],
+          total_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
+          items_subtotal_price: buyNowProduct.price * (buyNowProduct.quantity || 1),
+          total_discount: 0,
+          item_count: buyNowProduct.quantity || 1,
+          currency: 'BGN'
+        };
+      }
     }
+    
+    // Last resort - use development test cart
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Using test cart in development mode');
+      return {
+        items: [
+          {
+            id: 'test-item-1',
+            title: 'Test Product',
+            quantity: 1,
+            price: 2999,
+            line_price: 2999,
+            original_line_price: 2999,
+            image: null
+          }
+        ],
+        total_price: 2999,
+        items_subtotal_price: 2999,
+        total_discount: 0,
+        item_count: 1,
+        currency: 'BGN'
+      };
+    }
+    
+    // Return the unmodified data if we can't normalize it
+    return data;
   };
 
   // Initialize cart data with a reasonable default
@@ -273,19 +300,41 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (typeof window !== 'undefined') {
       const messageHandler = (event: MessageEvent) => {
         // Handle cart data messages
-        if (event.data?.type === 'cart-data' && event.data?.cart) {
+        if (event.data?.type === 'cart-data' && (event.data?.cart || event.data?.product)) {
           console.log('Received cart data from parent window:', event.data.cart);
           
+          // Check if there's a direct product reference first
+          if (event.data.product) {
+            console.log('Received product data directly:', event.data.product);
+            // Store in window for future reference
+            (window as any).buyNowProduct = event.data.product;
+            
+            // Try to store in localStorage too
+            try {
+              localStorage.setItem('buyNowProduct', JSON.stringify(event.data.product));
+            } catch (e) {
+              console.warn('Could not store product data in localStorage', e);
+            }
+          }
+          
           // Special handling for Buy Now button data
-          const isBuyNowData = event.data.cart.cart_type === 'buy_now' || 
-                              event.data.cart.source === 'buy_now_button' ||
-                              event.data.metadata?.source === 'buy_now_button';
+          const isBuyNowData = 
+            event.data.cart?.cart_type === 'buy_now' || 
+            event.data.cart?.source === 'buy_now_button' ||
+            event.data.metadata?.source === 'buy_now_button' ||
+            event.data.metadata?.isBuyNowContext === true;
                               
           if (isBuyNowData) {
             console.log('Detected Buy Now button data:', event.data.cart);
           }
           
-          const normalizedData = normalizeCartData(event.data.cart);
+          // Create a merged object with both cart and product data
+          const mergedData = {
+            ...event.data.cart,
+            product: event.data.product || event.data.cart?.product
+          };
+          
+          const normalizedData = normalizeCartData(mergedData);
           if (normalizedData) {
             console.log('Setting cart data from message');
             setLocalCartData(normalizedData);
@@ -1394,7 +1443,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                           {selectedShippingMethod !== "address" ? (
                             <>
                               {/* Office delivery fields */}
-                              {form.watch('officeCity') && (
+                              {form.watch('officePostalCode') && (
                                 <FormField
                                   control={form.control}
                                   name="officePostalCode"
@@ -1428,11 +1477,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                                         options={citySuggestions}
                                         value={field.value ?? ""}
                                         onChange={(value) => {
-                                          console.log("City selected in form:", value);
+                                          console.log("Personal address city selected in form:", value);
                                           handleCitySelected(value, 'officeCity');
                                         }}
                                         onSearch={(value) => {
-                                          console.log("City search term in form:", value);
+                                          console.log("Personal address city search term in form:", value);
                                           debouncedSearchCities(value);
                                           setSearchCity(value);
                                         }}

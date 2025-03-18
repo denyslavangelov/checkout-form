@@ -369,6 +369,15 @@
       // Store this data globally
       window.shopifyCart = singleProductCart;
       window.cartData = singleProductCart;
+      window.buyNowProduct = currentProduct; // Store the individual product
+      
+      // Store in localStorage for backup
+      try {
+        localStorage.setItem('tempCartData', JSON.stringify(singleProductCart));
+        localStorage.setItem('buyNowProduct', JSON.stringify(currentProduct));
+      } catch (e) {
+        console.warn('Could not store Buy Now data in localStorage', e);
+      }
       
       // Now set the iframe src
       iframe.src = iframeUrl.toString();
@@ -393,6 +402,7 @@
           iframe.contentWindow.postMessage({
             type: 'cart-data',
             cart: singleProductCart,
+            product: currentProduct, // Send the individual product explicitly
             metadata: {
               timestamp: new Date().toISOString(),
               shopUrl: window.location.hostname,
@@ -400,7 +410,8 @@
               source: 'buy_now_button',
               hasItems: true,
               itemCount: singleProductCart.item_count || 1,
-              isBuyNowContext: true
+              isBuyNowContext: true,
+              isSingleProduct: true
             }
           }, '*');
         }
@@ -475,42 +486,53 @@
           if (window.shopifyCart && window.shopifyCart.cart_type === 'buy_now') {
             console.log('We have Buy Now data, sending it directly to iframe');
             
+            // Make sure we have product data
+            const buyNowProduct = window.buyNowProduct || 
+               (localStorage.getItem('buyNowProduct') ? JSON.parse(localStorage.getItem('buyNowProduct')) : null);
+            
             // Make sure the data has the expected structure with both product and items
-            if (!window.shopifyCart.items && window.shopifyCart.product) {
-              const product = window.shopifyCart.product;
-              window.shopifyCart.items = [{
-                id: product.variant_id || product.id,
-                title: product.title,
-                quantity: product.quantity || 1,
-                price: product.price,
-                line_price: product.price * (product.quantity || 1),
-                original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-                variant_id: product.variant_id || product.id,
-                product_id: product.id,
-                sku: product.sku || '',
-                variant_title: product.variant_title || '',
-                vendor: product.vendor || '',
-                image: product.image?.src || product.featured_image || null,
-                requires_shipping: true
-              }];
-              window.shopifyCart.total_price = product.price * (product.quantity || 1);
-              window.shopifyCart.items_subtotal_price = product.price * (product.quantity || 1);
-              window.shopifyCart.total_discount = product.compare_at_price ? 
-                (product.compare_at_price - product.price) * (product.quantity || 1) : 0;
-              window.shopifyCart.item_count = product.quantity || 1;
-              window.shopifyCart.currency = 'BGN';
+            if (!window.shopifyCart.items || window.shopifyCart.items.length === 0) {
+              console.log('Buy Now cart has no items, adding product to cart');
+              if (buyNowProduct) {
+                const product = buyNowProduct;
+                window.shopifyCart.items = [{
+                  id: product.variant_id || product.id,
+                  title: product.title,
+                  quantity: product.quantity || 1,
+                  price: product.price,
+                  line_price: product.price * (product.quantity || 1),
+                  original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
+                  variant_id: product.variant_id || product.id,
+                  product_id: product.id,
+                  sku: product.sku || '',
+                  variant_title: product.variant_title || '',
+                  vendor: product.vendor || '',
+                  image: product.image?.src || product.featured_image || null,
+                  requires_shipping: true
+                }];
+                window.shopifyCart.total_price = product.price * (product.quantity || 1);
+                window.shopifyCart.items_subtotal_price = product.price * (product.quantity || 1);
+                window.shopifyCart.total_discount = product.compare_at_price ? 
+                  (product.compare_at_price - product.price) * (product.quantity || 1) : 0;
+                window.shopifyCart.item_count = product.quantity || 1;
+                window.shopifyCart.currency = 'BGN';
+                window.shopifyCart.product = product; // Make sure product data is included
+              }
             }
             
             if (event.source) {
               event.source.postMessage({
                 type: 'cart-data',
                 cart: window.shopifyCart,
+                product: buyNowProduct, // Send the individual product explicitly
                 metadata: {
                   timestamp: new Date().toISOString(),
                   shopUrl: window.location.hostname,
                   source: 'buy_now_button',
                   hasItems: true,
-                  itemCount: window.shopifyCart.item_count || 1
+                  itemCount: window.shopifyCart.item_count || 1,
+                  isBuyNowContext: true,
+                  isSingleProduct: true
                 }
               }, '*');
             }
