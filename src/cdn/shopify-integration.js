@@ -917,6 +917,8 @@
         body: JSON.stringify(requestPayload)
       });
 
+      debugger;
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response from API:', errorText);
@@ -941,7 +943,7 @@
 
         // Get the redirect URL directly from the API response
         let orderStatusUrl;
-        debugger;
+        
         // Use the redirect_url or checkout_url if provided directly by the API
         if (data.redirect_url) {
           orderStatusUrl = data.redirect_url;
