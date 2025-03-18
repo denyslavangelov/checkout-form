@@ -252,7 +252,7 @@ export function Combobox({
               <span className="font-medium text-blue-800">{selectedOption.label.split(':')[0]}</span>
               {selectedOption.label.includes(':') && (
                 <span className="text-xs text-gray-600 block truncate">
-                  {selectedOption.label.split(':').slice(1).join(':')}
+                  {extractOfficeAddress(selectedOption.label)}
                 </span>
               )}
             </div>
@@ -409,7 +409,7 @@ export function Combobox({
                       <span className="font-medium block">{option.label.split(':')[0]}</span>
                       {option.label.includes(':') && (
                         <span className="text-gray-600 text-xs block mt-0.5">
-                          {option.label.split(':').slice(1).join(':')}
+                          {extractOfficeAddress(option.label)}
                         </span>
                       )}
                     </>
@@ -424,6 +424,32 @@ export function Combobox({
       </div>
     </div>
   );
+
+  // Add a utility function to extract just the address without city and ID
+  const extractOfficeAddress = (label: string) => {
+    if (!label.includes(':')) return '';
+    
+    const parts = label.split(':');
+    if (parts.length < 2) return parts[1] || '';
+    
+    // Assume format is typically: "Office Name:City, Address, Additional Info (ID)"
+    // We want to extract just the address part
+    let addressPart = parts[1];
+    
+    // Remove office ID if it's in parentheses at the end
+    addressPart = addressPart.replace(/\s*\([^)]*\)\s*$/, '');
+    
+    // If the address starts with city name followed by comma, remove it
+    if (addressPart.includes(',')) {
+      const addressPieces = addressPart.split(',');
+      if (addressPieces.length > 1) {
+        // Skip the first part (city) and join the rest
+        return addressPieces.slice(1).join(',').trim();
+      }
+    }
+    
+    return addressPart.trim();
+  };
 
   return (
     <div className={`relative w-full combobox-container ${isMobile ? 'mobile-combobox' : ''}`} ref={containerRef}>
