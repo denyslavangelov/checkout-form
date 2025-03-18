@@ -152,6 +152,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (!data) return null;
     
     // If it's a single product (from Buy Now), convert it to cart format
+    debugger;
     if (data.product) {
       const productPrice = data.product.price;
       const productCompareAtPrice = data.product.compare_at_price || data.product.original_price || productPrice;
