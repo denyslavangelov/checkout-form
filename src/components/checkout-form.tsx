@@ -152,6 +152,58 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       });
     }
 
+    // Check for new Buy Now structure with nested product field and price object
+    if (data.price && data.product && typeof data.price.amount === 'number') {
+      console.log('Detected new Buy Now format with price object and nested product:', data);
+      
+      // Extract price from price object - convert from dollars to cents
+      const price = Math.round(data.price.amount * 100); // Convert to cents and ensure it's a whole number
+      const currency = data.price.currencyCode || 'BGN';
+      
+      // Find the best available image
+      let imageUrl = null;
+      if (data.image && data.image.src) {
+        imageUrl = data.image.src;
+      } else if (data.product.featuredImage) {
+        imageUrl = data.product.featuredImage.src;
+      }
+      
+      // Use product title from the nested product object
+      const productTitle = data.product.title || 'Product';
+      // Use variant title from root title if different from product title
+      const variantTitle = data.title !== data.product.title ? data.title : '';
+      
+      // Log the conversion for debugging
+      console.log('Price conversion:', {
+        originalAmount: data.price.amount,
+        convertedCents: price,
+        calculatedLinePrice: price * (data.quantity || 1)
+      });
+      
+      return {
+        items: [{
+          id: data.id,
+          title: productTitle,
+          quantity: data.quantity || 1,
+          price: price,
+          line_price: price * (data.quantity || 1),
+          original_line_price: price * (data.quantity || 1),
+          variant_id: data.id,
+          product_id: data.product.id,
+          sku: data.sku || '',
+          variant_title: variantTitle,
+          vendor: data.product.vendor || '',
+          image: imageUrl,
+          requires_shipping: true
+        }],
+        total_price: price * (data.quantity || 1),
+        items_subtotal_price: price * (data.quantity || 1),
+        total_discount: 0,
+        item_count: data.quantity || 1,
+        currency: currency
+      };
+    }
+
     // Check for Buy Now data that might be sent directly in the message
     if (data.product && typeof window !== 'undefined') {
       console.log('Detected Buy Now button data:', data.product);
@@ -264,9 +316,30 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         if ((window as any).buyNowProduct) {
           console.log('Found product in window.buyNowProduct');
           productData = (window as any).buyNowProduct;
-        } else if (data.product) {
+          
+          // Check if it's the new Buy Now format with nested product structure
+          if (productData.price && productData.product) {
+            console.log('Found product in window.buyNowProduct with new format, normalizing directly');
+            const buyNowNormalizedData = normalizeCartData(productData);
+            
+            if (buyNowNormalizedData && buyNowNormalizedData.items.length > 0) {
+              setLocalCartData(buyNowNormalizedData);
+              
+              // Return loading while we update
+              return (
+                <div className="space-y-2">
+                  <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+                  <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
+                    <span>Обработване на данните...</span>
+                  </div>
+                </div>
+              );
+            }
+          }
+        } else if (localCartData.product) {
           console.log('Found product in localCartData.product');
-          productData = data.product;
+          productData = localCartData.product;
         } else {
           // Try localStorage
           try {
@@ -379,7 +452,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const messageHandler = (event: MessageEvent) => {
-        debugger;
         // Handle cart data messages
         if (event.data?.type === 'cart-data' && (event.data?.cart || event.data?.product)) {
           console.log('Received cart data from parent window:', event.data.cart);
@@ -395,6 +467,17 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               localStorage.setItem('buyNowProduct', JSON.stringify(event.data.product));
             } catch (e) {
               console.warn('Could not store product data in localStorage', e);
+            }
+
+            // If it's the new Buy Now format with nested product structure, pass directly to normalizeCartData
+            if (event.data.product.price && event.data.product.product) {
+              console.log('Detected new Buy Now format, normalizing directly');
+              const buyNowNormalizedData = normalizeCartData(event.data.product);
+              console.log('Normalized new Buy Now product:', buyNowNormalizedData);
+              if (buyNowNormalizedData && buyNowNormalizedData.items.length > 0) {
+                setLocalCartData(buyNowNormalizedData);
+                return; // Skip further processing
+              }
             }
           }
           
@@ -1198,6 +1281,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           if ((window as any).buyNowProduct) {
             console.log('Found product in window.buyNowProduct');
             productData = (window as any).buyNowProduct;
+            
+            // Check if it's the new Buy Now format with nested product structure
+            if (productData.price && productData.product) {
+              console.log('Found product in window.buyNowProduct with new format, normalizing directly');
+              const buyNowNormalizedData = normalizeCartData(productData);
+              
+              if (buyNowNormalizedData && buyNowNormalizedData.items.length > 0) {
+                setLocalCartData(buyNowNormalizedData);
+                
+                // Return loading while we update
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+                    <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
+                      <span>Обработване на данните...</span>
+                    </div>
+                  </div>
+                );
+              }
+            }
           } else if (localCartData.product) {
             console.log('Found product in localCartData.product');
             productData = localCartData.product;
@@ -1218,7 +1322,26 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           if (productData) {
             console.log('Adding product to cart:', productData);
             
-            // Update the cart with this product
+            // Check if it's the new Buy Now format
+            if (productData.price && productData.product) {
+              const buyNowNormalizedData = normalizeCartData(productData);
+              if (buyNowNormalizedData && buyNowNormalizedData.items.length > 0) {
+                setLocalCartData(buyNowNormalizedData);
+                
+                // Return loading while we update
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
+                    <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
+                      <span>Обработване на данните...</span>
+                    </div>
+                  </div>
+                );
+              }
+            }
+            
+            // Legacy format - update the cart with this product
             const updatedCart = {
               ...localCartData,
               items: [{
@@ -1247,13 +1370,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             setLocalCartData(updatedCart);
             
             // Return loading while we update
-      return (
-        <div className="space-y-2">
+            return (
+              <div className="space-y-2">
                 <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
                 <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
                   <span>Обработване на данните...</span>
-          </div>
+                </div>
               </div>
             );
           } else {
@@ -1275,9 +1398,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       </div>
                     </div>
                   </div>
-          </div>
-        </div>
-      );
+                </div>
+              </div>
+            );
           }
         }
       }
