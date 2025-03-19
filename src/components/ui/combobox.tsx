@@ -282,7 +282,7 @@ export function Combobox({
           {optionType === 'office' ? (
             <div className="w-full overflow-hidden pr-6">
               <span className={`font-medium text-blue-800 block break-words hyphens-auto ${isMobile ? 'text-sm' : ''}`} style={{ wordBreak: 'break-word' }}>
-                {isMobile ? truncateText(selectedOption.label.split(':')[0], 20) : truncateText(selectedOption.label.split(':')[0], 40)}
+                {isMobile ? truncateText(selectedOption.label.split(':')[0], 20) : truncateText(selectedOption.label.split(':')[0], 60)}
               </span>
               {selectedOption.label.includes(':') && (
                 <span className={`text-gray-600 block truncate ${isMobile ? 'text-xs' : 'text-xs'}`}>
