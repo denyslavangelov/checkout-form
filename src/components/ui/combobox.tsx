@@ -286,7 +286,7 @@ export function Combobox({
               </span>
               {selectedOption.label.includes(':') && (
                 <span className={`text-gray-600 block truncate ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                  {truncateText(extractOfficeAddress(selectedOption.label), isMobile ? 20 : 40)}
+                  {truncateText(extractOfficeAddress(selectedOption.label), isMobile ? 20 : 60)}
                 </span>
               )}
             </div>
