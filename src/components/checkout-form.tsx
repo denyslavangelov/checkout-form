@@ -379,6 +379,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const messageHandler = (event: MessageEvent) => {
+        debugger;
         // Handle cart data messages
         if (event.data?.type === 'cart-data' && (event.data?.cart || event.data?.product)) {
           console.log('Received cart data from parent window:', event.data.cart);
