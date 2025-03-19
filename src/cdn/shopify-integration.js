@@ -607,6 +607,7 @@
       // Only accept messages from our checkout form
       if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
 
+      debugger;
       console.log('Received message from iframe:', event.data?.type || event.data);
 
       // Handle messages from iframe
