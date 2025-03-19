@@ -1458,23 +1458,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         aria-describedby="checkout-form-description"
       >
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
-          <DialogHeader className={`p-4 pb-2 border-b ${isMobile ? 'bg-white' : 'shrink-0'}`}>
+          <DialogHeader className={`p-4 pb-2 border-b fixed top-0 left-0 right-0 z-10 ${isMobile ? 'bg-white' : 'bg-white'}`}>
             <div className="flex items-center justify-between">
-          <DialogTitle className="text-lg font-medium tracking-tight text-black">
-            Поръчайте с наложен платеж
-          </DialogTitle>
-              <DialogClose className="rounded-full opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" onClick={handleDialogClose}>
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </DialogClose>
+              <DialogTitle className="text-lg font-medium tracking-tight text-black">
+                Поръчайте с наложен платеж
+              </DialogTitle>
             </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <div id="checkout-form-description" className="sr-only">
-          Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
+          <div id="checkout-form-description" className="sr-only">
+            Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
           </div>
-
-          <div className="px-4 py-3 space-y-4">
+          
+          {/* Add padding to account for fixed header */}
+          <div className="px-4 py-3 space-y-4 mt-14">
           {/* Cart Summary */}
           {renderCartSummary()}
 
