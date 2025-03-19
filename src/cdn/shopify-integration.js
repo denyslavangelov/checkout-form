@@ -865,6 +865,7 @@
         message: 'Създаване на поръчка..'
       }, '*');
       
+      debugger;
       // Format cart data to match API expectations
       const cartItems = formData.cartData.items.map(item => ({
         id: item.id,
