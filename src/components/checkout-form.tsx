@@ -1609,7 +1609,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       >
         {/* Show loading screen when processing order */}
         {(submitStatus === 'loading' || submitStatus === 'processing') && (
-          <div className="absolute inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-white bg-opacity-95 z-[100] flex items-center justify-center">
             <div className="text-center p-6 max-w-sm mx-auto">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <h3 className="text-lg font-semibold mb-2">
@@ -1626,7 +1626,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         
         {/* Show thank you screen on success */}
         {submitStatus === 'success' && orderData && (
-          <div className="absolute inset-0 bg-white z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1664,7 +1664,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         
         {/* Show error screen */}
         {submitStatus === 'error' && (
-          <div className="absolute inset-0 bg-white bg-opacity-90 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-white bg-opacity-95 z-[100] flex items-center justify-center">
             <div className="text-center p-6 max-w-sm mx-auto">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <X className="h-6 w-6 text-red-600" />
@@ -1681,7 +1681,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           </div>
         )}
 
-        <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
+        <div className="overflow-y-auto flex-1">
           <DialogHeader className={`p-4 pb-2 border-b fixed top-0 left-0 right-0 z-10 ${isMobile ? 'bg-white' : 'bg-white'}`}>
             <div className="flex items-center justify-between">
           <DialogTitle className="text-lg font-medium tracking-tight text-black">
