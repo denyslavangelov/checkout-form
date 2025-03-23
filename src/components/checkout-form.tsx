@@ -91,16 +91,6 @@ interface CitySearchResult {
   label: string;
 }
 
-// Add new types for order processing states
-type OrderProcessingState = 'idle' | 'loading' | 'processing' | 'success' | 'error';
-
-interface OrderData {
-  orderNumber: string;
-  totalAmount: string;
-  shippingMethod: string;
-  shippingAddress: string;
-}
-
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
   // Enhanced debug logging for cart data
   console.log('CheckoutForm rendered with props:', { 
@@ -1130,23 +1120,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
 
   // Add a state for submit status
-  const [submitStatus, setSubmitStatus] = useState<OrderProcessingState>('idle');
-  const [orderData, setOrderData] = useState<OrderData | null>(null);
-
-  // Add new message handler for order processing states
-  useEffect(() => {
-    const handleOrderProcessing = (event: MessageEvent) => {
-      if (event.data?.type === 'order-processing') {
-        setSubmitStatus(event.data.state);
-        if (event.data.state === 'success' && event.data.orderData) {
-          setOrderData(event.data.orderData);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleOrderProcessing);
-    return () => window.removeEventListener('message', handleOrderProcessing);
-  }, []);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   // Format money helper
   const formatMoney = (cents: number) => {
@@ -1603,85 +1577,11 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       modal={true}
     >
       <DialogContent 
-        className={`sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col relative
+        className={`sm:max-w-[500px] max-h-[90vh] p-0 gap-0 bg-white overflow-hidden flex flex-col
           ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
         aria-describedby="checkout-form-description"
       >
-        {/* Show loading screen when processing order */}
-        {(submitStatus === 'loading' || submitStatus === 'processing') && (
-          <div className="fixed inset-0 bg-white bg-opacity-95 z-[100] flex items-center justify-center">
-            <div className="text-center p-6 max-w-sm mx-auto">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold mb-2">
-                {submitStatus === 'loading' ? 'Обработка на поръчката' : 'Създаване на поръчката'}
-              </h3>
-              <p className="text-gray-600">
-                {submitStatus === 'loading' 
-                  ? 'Моля, изчакайте докато обработваме вашата поръчка...'
-                  : 'Изпращане на данните...'}
-              </p>
-            </div>
-          </div>
-        )}
-        
-        {/* Show thank you screen on success */}
-        {submitStatus === 'success' && orderData && (
-          <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckIcon className="h-8 w-8 text-green-600" />
-                </div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Поръчката е създадена успешно!</h2>
-                <p className="text-gray-600">Благодарим ви за поръчката. Ще получите потвърждение на посочения телефон.</p>
-              </div>
-              
-              <div className="border-t border-b py-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Номер на поръчка:</span>
-                  <span className="font-medium">{orderData.orderNumber}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Обща сума:</span>
-                  <span className="font-medium">{orderData.totalAmount}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Метод на доставка:</span>
-                  <span className="font-medium">{orderData.shippingMethod}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Адрес за доставка:</span>
-                  <span className="font-medium text-right">{orderData.shippingAddress}</span>
-                </div>
-              </div>
-              
-              <p className="text-sm text-gray-500 text-center mt-4">
-                Пренасочване към страницата на поръчката...
-              </p>
-            </div>
-          </div>
-        )}
-        
-        {/* Show error screen */}
-        {submitStatus === 'error' && (
-          <div className="fixed inset-0 bg-white bg-opacity-95 z-[100] flex items-center justify-center">
-            <div className="text-center p-6 max-w-sm mx-auto">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-red-600 mb-2">Възникна грешка</h3>
-              <p className="text-gray-600 mb-4">За съжаление възникна грешка при създаването на поръчката. Моля, опитайте отново или се свържете с нас.</p>
-              <button
-                onClick={() => setSubmitStatus('idle')}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
-              >
-                Опитайте отново
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="overflow-y-auto flex-1">
+        <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
           <DialogHeader className={`p-4 pb-2 border-b fixed top-0 left-0 right-0 z-10 ${isMobile ? 'bg-white' : 'bg-white'}`}>
             <div className="flex items-center justify-between">
           <DialogTitle className="text-lg font-medium tracking-tight text-black">

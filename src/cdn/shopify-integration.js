@@ -917,14 +917,14 @@
     try {
       console.log('Creating order with data:', formData);
       
-      // Show loading screen in the iframe
+      debugger;
+      // Show loading state in the iframe
       source.postMessage({
         type: 'order-processing',
-        state: 'loading',
-        title: 'Обработка на поръчката',
-        message: 'Моля, изчакайте докато обработваме вашата поръчка...'
+        message: 'Създаване на поръчка..'
       }, '*');
       
+      debugger;
       // Format cart data to match API expectations
       const cartItems = formData.cartData.items.map(item => ({
         id: item.id,
@@ -970,14 +970,6 @@
 
       console.log('Sending formatted request:', requestPayload);
       
-      // Update loading message
-      source.postMessage({
-        type: 'order-processing',
-        state: 'processing',
-        title: 'Създаване на поръчката',
-        message: 'Изпращане на данните...'
-      }, '*');
-
       const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-order', {
         method: 'POST',
         headers: {
@@ -986,28 +978,34 @@
         body: JSON.stringify(requestPayload)
       });
 
-      const data = await response.json();
-      console.log('Order API response:', data);
+      debugger;
 
-      // Check if the response indicates success
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from API:', errorText);
+        throw new Error(`Failed to create order: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Order created successfully:', data);
+
       if (data.success) {
-        // Show success screen
+        // First notify the iframe about successful order creation
         source.postMessage({
-          type: 'order-processing',
-          state: 'success',
-          title: 'Поръчката е създадена успешно!',
-          message: 'Благодарим ви за поръчката. Ще получите потвърждение на посочения телефон.',
-          orderData: {
-            orderNumber: data.order?.name || 'N/A',
-            totalAmount: `${((formData.cartData.total_price + formData.shipping_price) / 100).toFixed(2)} лв.`,
-            shippingMethod: formData.shipping_method_data.name,
-            shippingAddress: formData.address
-          }
+          type: 'order-created',
+          data: data
+        }, '*');
+
+        // Show success message before redirect
+        source.postMessage({
+          type: 'order-redirect',
+          message: 'Пренасочване към страницата на поръчката...'
         }, '*');
 
         // Get the redirect URL directly from the API response
         let orderStatusUrl;
         
+        // Use the redirect_url or checkout_url if provided directly by the API
         if (data.redirect_url) {
           orderStatusUrl = data.redirect_url;
         } else if (data.checkout_url) {
@@ -1017,38 +1015,24 @@
         } else if (data.order && data.order.order_status_url) {
           orderStatusUrl = data.order.order_status_url;
         } else {
+          // Fallback to homepage if no redirect URL provided
           orderStatusUrl = `https://${requestPayload.shop_domain}`;
         }
 
-        // Wait a few seconds to show the success message before redirecting
+        // Short delay to show the success message
         setTimeout(() => {
-          source.postMessage({
-            type: 'order-redirect',
-            message: 'Пренасочване към страницата на поръчката...',
-            url: orderStatusUrl
-          }, '*');
-          
-          // Short delay before actual redirect
-          setTimeout(() => {
-            window.location.href = orderStatusUrl;
-          }, 500);
-        }, 3000);
+          window.location.href = orderStatusUrl;
+        }, 500);
       } else {
-        // If the API response indicates failure
         throw new Error(data.message || 'Failed to create order');
       }
+
     } catch (error) {
       console.error('Error creating order:', error);
-      // Show error screen only if we haven't already shown success
-      if (!error.message?.includes('success')) {
-        source.postMessage({
-          type: 'order-processing',
-          state: 'error',
-          title: 'Възникна грешка',
-          message: 'За съжаление възникна грешка при създаването на поръчката. Моля, опитайте отново или се свържете с нас.',
-          error: error.message
-        }, '*');
-      }
+      source.postMessage({
+        type: 'order-error',
+        error: error.message
+      }, '*');
     }
   }
 
