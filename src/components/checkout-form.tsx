@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { X, Trash2, Home, Route, Building2 } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { CheckIcon } from "lucide-react"
 import { CreditCardIcon } from "lucide-react"
 
@@ -1570,6 +1570,107 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     );
   };
 
+  // Add states for thank you page and follow-up popup
+  const [showThankYou, setShowThankYou] = useState(false);
+  const [showFollowUpPopup, setShowFollowUpPopup] = useState(false);
+  const thankYouTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add effect to handle thank you page and follow-up popup timing
+  useEffect(() => {
+    if (submitStatus === 'success' && !showThankYou) {
+      setShowThankYou(true);
+      
+      // Set timer to show follow-up popup after 3 seconds
+      thankYouTimerRef.current = setTimeout(() => {
+        setShowFollowUpPopup(true);
+      }, 3000);
+    }
+    
+    return () => {
+      if (thankYouTimerRef.current) {
+        clearTimeout(thankYouTimerRef.current);
+      }
+    };
+  }, [submitStatus, showThankYou]);
+  
+  // Add thank you page component
+  const renderThankYouPage = () => {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckIcon className="h-8 w-8 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Благодарим за поръчката!</h2>
+          <p className="text-gray-600 mb-4">
+            Вашата поръчка беше успешно създадена. Ще получите имейл с потвърждение скоро.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Поръчката ще бъде обработена възможно най-скоро и ще бъдете уведомени за напредъка.
+          </p>
+          <Button 
+            className="w-full bg-blue-600 text-white" 
+            onClick={() => {
+              handleDialogClose();
+            }}
+          >
+            Затвори
+          </Button>
+        </div>
+      </div>
+    );
+  };
+  
+  // Add follow-up popup component
+  const renderFollowUpPopup = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+          <button 
+            onClick={() => setShowFollowUpPopup(false)}
+            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          
+          <div className="text-center mb-4">
+            <h3 className="text-xl font-bold">Специално предложение!</h3>
+            <p className="text-gray-600 mt-2">
+              Благодарим ви за поръчката! Бихте ли искали да разгледате още някои от нашите продукти?
+            </p>
+          </div>
+          
+          <div className="flex flex-col space-y-3 mt-4">
+            <Button 
+              className="w-full bg-blue-600 text-white"
+              onClick={() => {
+                // Redirect to products page or specific offer
+                if (typeof window !== 'undefined' && window.parent) {
+                  window.parent.postMessage({ type: 'navigate-to-special-offer' }, '*');
+                }
+                setShowFollowUpPopup(false);
+              }}
+            >
+              Разгледай специалните предложения
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full border-gray-300 text-gray-700"
+              onClick={() => {
+                setShowFollowUpPopup(false);
+                handleDialogClose();
+              }}
+            >
+              Не, благодаря
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -1581,6 +1682,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
         aria-describedby="checkout-form-description"
       >
+        {/* Show Thank You page if order was successful */}
+        {showThankYou && renderThankYouPage()}
+        
+        {/* Show Follow-up popup after thank you page */}
+        {showFollowUpPopup && renderFollowUpPopup()}
+        
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
           <DialogHeader className={`p-4 pb-2 border-b fixed top-0 left-0 right-0 z-10 ${isMobile ? 'bg-white' : 'bg-white'}`}>
             <div className="flex items-center justify-between">
@@ -2254,6 +2361,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
                 setSubmitStatus('success');
                 console.log('Order created successfully');
+                // No need to close the dialog here - we'll show thank you page instead
               } catch (err) {
                 console.error('Error creating order:', err);
                 setSubmitStatus('error');
