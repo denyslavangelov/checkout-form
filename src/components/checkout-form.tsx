@@ -98,8 +98,10 @@ const formatVariantId = (id: string | number) => {
   if (String(id).startsWith('gid://shopify/ProductVariant/')) {
     return String(id);
   }
-  // Otherwise, format it correctly
-  return `gid://shopify/ProductVariant/${String(id).replace(/\D/g, '')}`;
+  // Clean the ID - remove any non-digit characters
+  const cleanId = String(id).replace(/\D/g, '');
+  // Format it as a Shopify Global ID
+  return `gid://shopify/ProductVariant/${cleanId}`;
 };
 
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
