@@ -1611,6 +1611,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           <Button 
             className="w-full bg-blue-600 text-white" 
             onClick={() => {
+              // Signal the parent that we're done and ready to redirect to order status page
+              if (typeof window !== 'undefined' && window.parent) {
+                window.parent.postMessage({ type: 'follow-up-complete' }, '*');
+              }
               handleDialogClose();
             }}
           >
@@ -1660,6 +1664,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               className="w-full border-gray-300 text-gray-700"
               onClick={() => {
                 setShowFollowUpPopup(false);
+                // Signal the parent that we're done with the follow-up and ready to proceed
+                if (typeof window !== 'undefined' && window.parent) {
+                  window.parent.postMessage({ type: 'follow-up-complete' }, '*');
+                }
                 handleDialogClose();
               }}
             >

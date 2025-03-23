@@ -747,6 +747,72 @@
             });
           break;
 
+        case 'navigate-to-special-offer':
+          console.log('Received navigate-to-special-offer request');
+          
+          // Get the shop domain for the url
+          const shopDomain = window.location.hostname;
+          
+          // Default to collection/all with a special parameter
+          let specialOfferUrl = `https://${shopDomain}/collections/all?special_offer=true`;
+          
+          // Check if there's a specific special offers collection
+          const specialOffersCollections = [
+            '/collections/special-offers',
+            '/collections/special',
+            '/collections/deals',
+            '/collections/promotions',
+            '/collections/sale'
+          ];
+          
+          // Try each possible special offers URL
+          const checkSpecialOfferCollection = async () => {
+            for (const collection of specialOffersCollections) {
+              try {
+                // Try a HEAD request to see if the collection exists
+                const response = await fetch(`https://${shopDomain}${collection}`, {
+                  method: 'HEAD'
+                });
+                
+                if (response.ok) {
+                  console.log(`Found special offers collection: ${collection}`);
+                  return `https://${shopDomain}${collection}?from_checkout=true`;
+                }
+              } catch (error) {
+                // Continue to next collection
+              }
+            }
+            
+            // If no specific collection found, return default
+            return specialOfferUrl;
+          };
+          
+          // Navigate to the special offers page
+          checkSpecialOfferCollection()
+            .then(url => {
+              console.log(`Navigating to special offers page: ${url}`);
+              window.location.href = url;
+            })
+            .catch(error => {
+              console.error('Error finding special offers page:', error);
+              // Navigate to default as fallback
+              window.location.href = specialOfferUrl;
+            });
+          break;
+          
+        case 'follow-up-complete':
+          console.log('Follow-up popup interaction complete, proceeding to order status page');
+          
+          // Check if we have the order status URL saved from order creation
+          if (window.orderStatusUrl) {
+            console.log('Redirecting to order status page:', window.orderStatusUrl);
+            window.location.href = window.orderStatusUrl;
+          } else {
+            console.log('No order status URL found, redirecting to home page');
+            window.location.href = `https://${window.location.hostname}`;
+          }
+          break;
+
         case 'GET_SHOPIFY_DOMAIN':
           event.source.postMessage({
             type: 'SHOPIFY_DOMAIN_RESPONSE',
@@ -858,14 +924,12 @@
     try {
       console.log('Creating order with data:', formData);
       
-      debugger;
       // Show loading state in the iframe
       source.postMessage({
         type: 'order-processing',
         message: 'Създаване на поръчка..'
       }, '*');
       
-      debugger;
       // Format cart data to match API expectations
       const cartItems = formData.cartData.items.map(item => ({
         id: item.id,
@@ -919,8 +983,6 @@
         body: JSON.stringify(requestPayload)
       });
 
-      debugger;
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response from API:', errorText);
@@ -931,16 +993,10 @@
       console.log('Order created successfully:', data);
 
       if (data.success) {
-        // First notify the iframe about successful order creation
+        // Notify the iframe about successful order creation
         source.postMessage({
           type: 'order-created',
           data: data
-        }, '*');
-
-        // Show success message before redirect
-        source.postMessage({
-          type: 'order-redirect',
-          message: 'Пренасочване към страницата на поръчката...'
         }, '*');
 
         // Get the redirect URL directly from the API response
@@ -960,10 +1016,15 @@
           orderStatusUrl = `https://${requestPayload.shop_domain}`;
         }
 
-        // Short delay to show the success message
-        setTimeout(() => {
-          window.location.href = orderStatusUrl;
-        }, 500);
+        // Store the order status URL for later use
+        window.orderStatusUrl = orderStatusUrl;
+        
+        // Allow the thank you page and follow-up popup to display
+        // We will not redirect immediately - we'll wait for user interaction
+        console.log('Waiting for follow-up popup interaction before redirecting to:', orderStatusUrl);
+        
+        // Don't automatically redirect - the checkout form will handle showing
+        // the thank you page and special offer popup
       } else {
         throw new Error(data.message || 'Failed to create order');
       }
