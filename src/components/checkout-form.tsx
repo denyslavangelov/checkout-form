@@ -48,7 +48,7 @@ const formSchema = z.object({
     message: "Адресът трябва да бъде поне 5 символа.",
   }),
   street: z.string().min(2, {
-    message: "Устиетот/комплексът трябва да бъде поне 2 символа.",
+    message: "Улицата/комплексът трябва да бъде поне 2 символа.",
   }).optional(),
   number: z.string().min(1, {
     message: "Моля, въведете номер/блок.",
@@ -112,9 +112,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   const [showFollowUpPopup, setShowFollowUpPopup] = useState(false);
   const thankYouTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  
-  // Add an ordered flow state to better control the sequence
-  const [orderFlowStep, setOrderFlowStep] = useState<'idle' | 'processing' | 'thank-you' | 'upsell' | 'completed'>('idle');
   
   // Form setup with react-hook-form and zod validation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -1013,37 +1010,35 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   // Add effect to handle thank you page and follow-up popup timing
   useEffect(() => {
-    if (submitStatus === 'success') {
-      if (orderFlowStep === 'idle') {
-        console.log('🚀 Order successful, setting flow to thank-you');
-        setOrderFlowStep('thank-you');
-        
-        // Show thank you message
-        setShowThankYou(true);
-        
-        // Set a timer to show the upsell popup after 2 seconds
-        const upsellTimer = setTimeout(() => {
-          console.log('⭐ Moving from thank-you to upsell step');
-          setOrderFlowStep('upsell');
-          setShowFollowUpPopup(true);
-        }, 2000);
-        
-        // Cleanup timer if component unmounts
-        return () => clearTimeout(upsellTimer);
-      }
+    if (submitStatus === 'success' && !showThankYou) {
+      console.log('🚀 Order successful, showing thank you page first');
+      setShowThankYou(true);
+      
+      // Show the follow-up popup after a short delay
+      console.log('⏱️ Setting timer to show follow-up popup');
+      thankYouTimerRef.current = setTimeout(() => {
+        console.log('⭐ Now showing follow-up popup');
+        setShowFollowUpPopup(true);
+      }, 1000);
     }
-  }, [submitStatus, orderFlowStep]);
+    
+    return () => {
+      if (thankYouTimerRef.current) {
+        clearTimeout(thankYouTimerRef.current);
+      }
+    };
+  }, [submitStatus, showThankYou]);
 
-  // Add separate effect to log when flow state changes
+  // Add separate effect to log when popup state changes
   useEffect(() => {
-    console.log('👀 Order flow step changed:', orderFlowStep);
-  }, [orderFlowStep]);
+    console.log('👀 Popup state changed:', { showThankYou, showFollowUpPopup });
+  }, [showThankYou, showFollowUpPopup]);
 
   // Handle dialog close
   const handleDialogClose = (forcedClose = false) => {
-    // Don't close if we're in the thank-you or upsell flow, unless forced
-    if (!forcedClose && (orderFlowStep === 'thank-you' || orderFlowStep === 'upsell')) {
-      console.log('🛑 Prevented dialog close during order completion flow');
+    // Don't close if we're showing thank you page or popup, unless forced
+    if (!forcedClose && (showThankYou || showFollowUpPopup)) {
+      console.log('🛑 Prevented dialog close during thank you/popup sequence');
       return;
     }
 
@@ -1086,7 +1081,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     // This prevents closing immediately on initial load when data might not be ready yet
     if (localCartData && localCartData.items && localCartData.items.length === 0) {
       // Don't close the form if we're showing thank you page or popup
-      if (orderFlowStep === 'thank-you' || orderFlowStep === 'upsell') {
+      if (showThankYou || showFollowUpPopup) {
         return;
       }
       
@@ -1114,7 +1109,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         handleDialogClose();
       }
     }
-  }, [localCartData, cartData, orderFlowStep]);
+  }, [localCartData, cartData, showThankYou, showFollowUpPopup]);
 
   // Add a state for filtered office suggestions
   const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);
@@ -1617,25 +1612,25 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
     );
   };
-
-  // Updated thank you page render function
+  
+  // Update the thank you page component to use the forced close
   const renderThankYouPage = () => {
     return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-[300px] text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+      <div className="p-6 flex flex-col items-center justify-center text-center h-full">
+        <div className="rounded-full bg-green-100 p-3 mb-4">
           <CheckIcon className="h-8 w-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Благодарим за поръчката!</h2>
+        <h2 className="text-xl font-bold mb-2">Благодарим за поръчката!</h2>
         <p className="text-gray-600 mb-4">
           Вашата поръчка беше успешно създадена. Ще получите имейл с потвърждение скоро.
         </p>
-        <p className="text-gray-500 text-sm mb-6">
+        <p className="text-gray-500 text-sm">
           Поръчката ще бъде обработена възможно най-скоро и ще бъдете уведомени за напредъка.
         </p>
       </div>
     );
   };
-
+  
   // The renderFollowUpPopup function
   const renderFollowUpPopup = () => {
     // Sample upsell product data - in production this would come from your backend
@@ -1647,57 +1642,106 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       description: "Идеален комплект за пътуване с мини версии на най-популярните ни продукти"
     };
 
+    const handleAcceptOffer = () => {
+      console.log("✅ Add to cart button clicked");
+      
+      // Add product to order by sending message to parent
+      if (typeof window !== 'undefined' && window.parent) {
+        window.parent.postMessage({ 
+          type: 'add-upsell-product', 
+          product: upsellProduct,
+          orderId: "latest" // Add to the latest order
+        }, '*');
+      }
+      
+      // Show success message and close the popup
+      setTimeout(() => {
+        // First hide the popup
+        setShowFollowUpPopup(false);
+        
+        // Keep thank you message visible for a moment
+        setTimeout(() => {
+          // Finally close everything
+          handleDialogClose(true);
+        }, 2000);
+      }, 1000);
+    };
+    
+    const handleDeclineOffer = () => {
+      console.log("❌ No, thanks button clicked");
+      
+      // Hide the popup but keep thank you visible
+      setShowFollowUpPopup(false);
+      
+      // Show thank you for a moment
+      setTimeout(() => {
+        handleDialogClose(true);
+      }, 2000);
+    };
+
     return (
-      <div style={{ 
-        position: 'fixed', 
-        inset: 0, 
-        zIndex: 99999,
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}>
-        <div style={{ 
-          position: 'relative',
-          background: 'white', 
-          borderRadius: '8px', 
-          padding: '24px', 
-          maxWidth: '90%', 
-          width: '400px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>Специална оферта!</h3>
-            <p style={{ color: '#666', marginTop: '8px' }}>
-              Добавете този продукт към вашата поръчка с безплатна доставка:
-            </p>
-          </div>
+      <div 
+        style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          zIndex: 99999,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'all', // Ensure clicks work
+        }}
+      >
+        <div 
+          style={{ 
+            background: 'white', 
+            borderRadius: '8px', 
+            padding: '20px', 
+            maxWidth: '90%', 
+            width: '400px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+            position: 'relative',
+          }}
+        >
+          <h3 style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '16px' }}>
+            Специална оферта!
+          </h3>
+          
+          <p style={{ color: '#666', textAlign: 'center', marginBottom: '20px' }}>
+            Добавете този продукт към вашата поръчка с безплатна доставка:
+          </p>
           
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '16px', 
             padding: '12px', 
-            backgroundColor: '#f7f7f7', 
+            backgroundColor: '#f8f9fa', 
             borderRadius: '8px', 
             marginBottom: '20px' 
           }}>
             <img 
-              src={"https://via.placeholder.com/80"}
-              alt={upsellProduct.title}
+              src={"https://via.placeholder.com/80"} 
+              alt="Product image"
               style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }}
             />
             
-            <div style={{ flex: '1' }}>
-              <h4 style={{ fontWeight: '500', fontSize: '16px' }}>{upsellProduct.title}</h4>
-              <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>{upsellProduct.description}</p>
-              <div style={{ fontWeight: 'bold', color: '#2563eb' }}>{formatMoney(upsellProduct.price)}</div>
+            <div>
+              <h4 style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '4px' }}>
+                {upsellProduct.title}
+              </h4>
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+                {upsellProduct.description}
+              </p>
+              <div style={{ fontWeight: 'bold', color: '#2563eb' }}>
+                {formatMoney(upsellProduct.price)}
+              </div>
             </div>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button 
+              onClick={handleAcceptOffer}
               style={{
                 backgroundColor: '#2563eb',
                 color: 'white',
@@ -1705,43 +1749,33 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                 borderRadius: '6px',
                 fontWeight: 'bold',
                 border: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.2s',
               }}
-              onClick={() => {
-                console.log("✅ Add to cart button clicked");
-                
-                // Add to cart via parent window message
-                if (typeof window !== 'undefined' && window.parent) {
-                  window.parent.postMessage({ 
-                    type: 'add-upsell-product', 
-                    product: upsellProduct
-                  }, '*');
-                }
-                
-                // Show success toast
-                alert("Продуктът е добавен към поръчката ви!");
-                
-                // Close popup and return to thank you page
-                setShowFollowUpPopup(false);
-                setOrderFlowStep('completed');
-              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
             >
               Добавете към поръчката
             </button>
             
             <button 
+              onClick={handleDeclineOffer}
               style={{
-                backgroundColor: 'transparent',
-                color: '#555',
+                backgroundColor: 'white',
+                color: '#4b5563',
                 padding: '12px',
                 borderRadius: '6px',
-                border: '1px solid #ddd',
-                cursor: 'pointer'
+                border: '1px solid #d1d5db',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
               }}
-              onClick={() => {
-                console.log("❌ No, thanks button clicked");
-                setShowFollowUpPopup(false);
-                setOrderFlowStep('completed');
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f9fafb';
+                e.currentTarget.style.borderColor = '#9ca3af';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'white';
+                e.currentTarget.style.borderColor = '#d1d5db';
               }}
             >
               Не, благодаря
@@ -1758,7 +1792,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       const handlePostPurchaseMessages = (event: MessageEvent) => {
         // Handle order completion message from parent window
         if (event.data?.type === 'order-completed') {
-          console.log('Order completed successfully:', event.data);
+          console.log('✅ Order completed successfully:', event.data);
           
           // Set submission status to success to trigger thank you flow
           setSubmitStatus('success');
@@ -1766,10 +1800,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         
         // Handle confirmation of upsell product being added to cart
         if (event.data?.type === 'upsell-product-added') {
-          console.log('Upsell product successfully added to cart:', event.data);
-          
-          // Close form after product has been added
-          handleDialogClose(true);
+          console.log('🛒 Upsell product successfully added to cart:', event.data);
         }
       };
       
@@ -1781,52 +1812,12 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, []);
 
-  // Handle form submission
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    if (submitStatus === 'loading') return;
-    
-    console.log('Form submitted with data:', data);
-    setSubmitStatus('loading');
-    
-    try {
-      // Prepare the order data including cart items, shipping, payment method
-      const orderData = {
-        ...data,
-        items: localCartData?.items || [],
-        total: localCartData?.total_price + shippingCost,
-        shippingCost,
-        currency: localCartData?.currency || 'BGN'
-      };
-      
-      // Send order data to parent window
-      if (typeof window !== 'undefined' && window.parent) {
-        window.parent.postMessage({
-          type: 'submit-order',
-          orderData
-        }, '*');
-        
-        // For demo purposes, simulate success after a delay
-        // In production, you'd wait for confirmation from the parent
-        setTimeout(() => {
-          setSubmitStatus('success');
-        }, 1500);
-      } else {
-        console.error('Could not find parent window to submit order');
-        setSubmitStatus('error');
-      }
-    } catch (error) {
-      console.error('Error submitting order:', error);
-      setSubmitStatus('error');
-    }
-  };
-
-  // Update the DialogContent to use the new flow state
   return (
     <Dialog 
       open={open} 
       onOpenChange={(newOpenState) => {
         // Only allow dialog to close if not showing thank you or popup
-        if (newOpenState === false && (orderFlowStep === 'thank-you' || orderFlowStep === 'upsell')) {
+        if (newOpenState === false && (showThankYou || showFollowUpPopup)) {
           // Prevent automatic closing during thank you/popup sequence
           console.log('🔒 Dialog tried to close automatically but was prevented');
           return;
@@ -1840,117 +1831,50 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           ${isMobile ? 'max-w-full h-full max-h-full rounded-none' : ''}`}
         aria-describedby="checkout-form-description"
       >
-        {/* Display different content based on the current flow step */}
-        {orderFlowStep === 'idle' && (
+        {/* Show main form if not in thank you state */}
+        {!showThankYou && (
           <>
-            <DialogHeader className="p-6 pb-0">
-              <DialogTitle className="text-xl font-bold">Поръчка</DialogTitle>
-              <DialogDescription id="checkout-form-description">
-                Попълнете адреса си за доставка и метод за плащане.
-              </DialogDescription>
-              <DialogClose
-                className="absolute right-4 top-4 rounded-full p-1.5 opacity-70 hover:bg-gray-100 focus:outline-none"
-                onClick={() => handleDialogClose()}
-              >
-                <X className="h-4 w-4" />
-              </DialogClose>
+            {/* Header */}
+            <DialogHeader className="px-6 pt-6 pb-0">
+              <DialogTitle className="text-xl font-bold">
+                {localCartData?.items?.length > 0 || isLoadingCart ? "Финализиране на поръчката" : "Празна кошница"}
+              </DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto p-6 pt-2">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                  {renderCartSummary()}
-                  {renderOrderSummary()}
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-base font-medium">Лични данни</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Име *" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Фамилия *" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Телефон *" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Имейл" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    {/* More form fields omitted for brevity */}
-                    
-                    <div className="pt-2">
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={submitStatus === 'loading'}
-                      >
-                        {submitStatus === 'loading' ? (
-                          <span className="flex items-center">
-                            <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full" /> 
-                            Обработване...
-                          </span>
-                        ) : (
-                          <span className="flex items-center">
-                            <CreditCardIcon className="mr-2 h-4 w-4" /> 
-                            Завърши поръчката
-                          </span>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </form>
-              </Form>
+            {/* Main content */}
+            <div className={`flex-1 overflow-auto ${isMobile ? 'pb-[180px]' : 'pb-[140px]'}`}>
+              <div className="px-6 pt-4">
+                {/* Cart items */}
+                {!isLoadingCart && localCartData?.items?.length > 0 && renderCartSummary()}
+              
+                {/* Form fields */}
+                {localCartData?.items?.length > 0 && (
+                  <Form {...form}>
+                    <form className="space-y-6" onSubmit={(e) => {
+                      e.preventDefault();
+                      // Form submission is handled by the submit button outside the form
+                    }}>
+                      {/* Form fields are here */}
+                    </form>
+                  </Form>
+                )}
+              </div>
             </div>
+            
+            {/* Order summary fixed at bottom */}
+            {localCartData?.items?.length > 0 && (
+              <div className={`absolute left-0 right-0 bottom-0 border-t border-gray-200 bg-white ${isMobile ? 'p-4' : 'p-6'}`}>
+                {renderOrderSummary()}
+              </div>
+            )}
           </>
         )}
         
         {/* Show Thank You page if order was successful */}
-        {(orderFlowStep === 'thank-you' || orderFlowStep === 'completed') && renderThankYouPage()}
+        {showThankYou && renderThankYouPage()}
         
-        {/* Show Follow-up popup when in upsell step */}
-        {orderFlowStep === 'upsell' && renderFollowUpPopup()}
+        {/* Show Follow-up popup as an overlay on top of thank you page */}
+        {showFollowUpPopup && renderFollowUpPopup()}
       </DialogContent>
     </Dialog>
   );
