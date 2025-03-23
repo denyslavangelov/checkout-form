@@ -1621,8 +1621,17 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     );
   };
   
-  // Add follow-up popup component
+  // Add follow-up popup component with product offer
   const renderFollowUpPopup = () => {
+    // Sample upsell product data - in production this would come from your backend
+    const upsellProduct = {
+      id: "upsell-product-1",
+      title: "Комплект козметика за път",
+      price: 1999, // 19.99 in cents
+      image: "/assets/upsell-product.jpg", // Replace with actual image path
+      description: "Идеален комплект за пътуване с мини версии на най-популярните ни продукти"
+    };
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
@@ -1635,24 +1644,76 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           </button>
           
           <div className="text-center mb-4">
-            <h3 className="text-xl font-bold">Специално предложение!</h3>
+            <h3 className="text-xl font-bold">Специална оферта!</h3>
             <p className="text-gray-600 mt-2">
-              Благодарим ви за поръчката! Бихте ли искали да разгледате още някои от нашите продукти?
+              Добавете този продукт към вашата поръчка с безплатна доставка:
             </p>
           </div>
           
-          <div className="flex flex-col space-y-3 mt-4">
+          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg mb-5">
+            {upsellProduct.image ? (
+              <img 
+                src={upsellProduct.image}
+                alt={upsellProduct.title}
+                className="w-20 h-20 object-cover rounded-md"
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  (e.target as HTMLImageElement).src = "https://via.placeholder.com/80";
+                }}
+              />
+            ) : (
+              <div className="w-20 h-20 bg-gray-200 rounded-md flex items-center justify-center">
+                <span className="text-gray-500 text-xs">Няма изображение</span>
+              </div>
+            )}
+            
+            <div className="flex-1">
+              <h4 className="font-medium text-base">{upsellProduct.title}</h4>
+              <p className="text-sm text-gray-500 mb-2">{upsellProduct.description}</p>
+              <div className="font-bold text-blue-600">{formatMoney(upsellProduct.price)}</div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col space-y-3 mt-4" data-upsell-buttons>
             <Button 
               className="w-full bg-blue-600 text-white"
               onClick={() => {
-                // Redirect to products page or specific offer
+                // Add to cart via parent window message
                 if (typeof window !== 'undefined' && window.parent) {
-                  window.parent.postMessage({ type: 'navigate-to-special-offer' }, '*');
+                  window.parent.postMessage({ 
+                    type: 'add-upsell-product', 
+                    product: upsellProduct
+                  }, '*');
+                  
+                  // Show a success message
+                  const successMessage = document.createElement('div');
+                  successMessage.className = 'text-center text-green-600 font-medium py-2';
+                  successMessage.textContent = 'Продуктът е добавен към поръчката ви!';
+                  
+                  // Find the button container and insert before it
+                  const buttonContainer = document.querySelector('[data-upsell-buttons]');
+                  if (buttonContainer && buttonContainer.parentNode) {
+                    buttonContainer.parentNode.insertBefore(successMessage, buttonContainer);
+                  }
+                  
+                  // Disable the "Add to cart" button
+                  const addButton = document.querySelector('[data-upsell-add-button]') as HTMLButtonElement;
+                  if (addButton) {
+                    addButton.disabled = true;
+                    addButton.classList.add('bg-gray-400');
+                    addButton.classList.remove('bg-blue-600');
+                  }
+                  
+                  // Wait a moment, then close the popup
+                  setTimeout(() => {
+                    setShowFollowUpPopup(false);
+                    handleDialogClose();
+                  }, 2000);
                 }
-                setShowFollowUpPopup(false);
               }}
+              data-upsell-add-button
             >
-              Разгледай специалните предложения
+              Добавете към поръчката
             </Button>
             
             <Button 
@@ -1671,6 +1732,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     );
   };
 
+  // Add listener for parent window messages to handle the post-purchase flow
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handlePostPurchaseMessages = (event: MessageEvent) => {
+        // Handle confirmation of upsell product being added to cart
+        if (event.data?.type === 'upsell-product-added') {
+          console.log('Upsell product successfully added to cart:', event.data);
+          
+          // Close form after product has been added
+          handleDialogClose();
+        }
+      };
+      
+      window.addEventListener('message', handlePostPurchaseMessages);
+      
+      return () => {
+        window.removeEventListener('message', handlePostPurchaseMessages);
+      };
+    }
+  }, []);
+
   return (
     <Dialog 
       open={open} 
@@ -1685,7 +1767,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         {/* Show Thank You page if order was successful */}
         {showThankYou && renderThankYouPage()}
         
-        {/* Show Follow-up popup after thank you page */}
+        {/* Show Follow-up popup after thank you page with product offer */}
         {showFollowUpPopup && renderFollowUpPopup()}
         
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
