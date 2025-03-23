@@ -3,10 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { X, Trash2, Home, Route, Building2 } from "lucide-react"
+import { X, Trash2, Home, Route, Building2, CheckIcon, CreditCardIcon } from "lucide-react"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { CheckIcon } from "lucide-react"
-import { CreditCardIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,10 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,7 +28,10 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { ComboboxOption, Combobox } from "@/components/ui/combobox"
-import { debounce } from "@/lib/utils"
+import { cn, debounce } from "@/lib/utils"
+
+// Add custom styles for animations
+import "./popup-animations.css"
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -1008,32 +1011,39 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Add effect to handle thank you page and follow-up popup timing
   useEffect(() => {
     if (submitStatus === 'success' && !showThankYou) {
-      console.log('Order successful, showing thank you page');
+      console.log('🚀 Order successful, showing thank you page');
       setShowThankYou(true);
       
-      // Set timer to show follow-up popup after 3 seconds
+      // Set timer to show follow-up popup sooner (1.5 seconds instead of 3)
+      console.log('⏰ Setting timer to show follow-up popup in 1.5 seconds');
       thankYouTimerRef.current = setTimeout(() => {
-        console.log('Showing follow-up popup');
+        console.log('⭐ Timer expired, now showing follow-up popup');
         setShowFollowUpPopup(true);
-      }, 3000);
+      }, 1500);
     }
     
     return () => {
       if (thankYouTimerRef.current) {
+        console.log('⚠️ Clearing thank you timer during cleanup');
         clearTimeout(thankYouTimerRef.current);
       }
     };
   }, [submitStatus, showThankYou]);
 
+  // Add separate effect to log when popup state changes
+  useEffect(() => {
+    console.log('👀 Popup state changed:', { showThankYou, showFollowUpPopup });
+  }, [showThankYou, showFollowUpPopup]);
+
   // Handle dialog close
   const handleDialogClose = (forcedClose = false) => {
     // Don't close if we're showing thank you page or popup, unless forced
     if (!forcedClose && (showThankYou || showFollowUpPopup)) {
-      console.log('Prevented dialog close during thank you/popup sequence');
+      console.log('🛑 Prevented dialog close during thank you/popup sequence');
       return;
     }
 
-    console.log('Closing checkout dialog');
+    console.log('👋 Closing checkout dialog');
     
     // First notify parent window to close iframe
     if (typeof window !== 'undefined' && window.parent) {
@@ -1645,11 +1655,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+      <div className="special-offer-popup animate-fade-in">
+        <div className="special-offer-content">
           <button 
-            onClick={() => setShowFollowUpPopup(false)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+            onClick={() => {
+              console.log("❌ Closing popup manually");
+              setShowFollowUpPopup(false);
+            }}
+            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -1688,9 +1701,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           
           <div className="flex flex-col space-y-3 mt-4" data-upsell-buttons>
             <Button 
-              className="w-full bg-blue-600 text-white"
+              className="w-full add-to-cart-button"
               onClick={() => {
                 // Add to cart via parent window message
+                console.log("✅ Add to cart button clicked");
                 if (typeof window !== 'undefined' && window.parent) {
                   window.parent.postMessage({ 
                     type: 'add-upsell-product', 
@@ -1699,7 +1713,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   
                   // Show a success message
                   const successMessage = document.createElement('div');
-                  successMessage.className = 'text-center text-green-600 font-medium py-2';
+                  successMessage.className = 'text-center text-green-600 font-medium py-2 animate-fade-in';
                   successMessage.textContent = 'Продуктът е добавен към поръчката ви!';
                   
                   // Find the button container and insert before it
@@ -1718,6 +1732,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   
                   // Wait a moment, then close the popup
                   setTimeout(() => {
+                    console.log("⏱️ Auto-closing popup after adding product");
                     setShowFollowUpPopup(false);
                     // Force close the dialog
                     handleDialogClose(true);
@@ -1727,18 +1742,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               data-upsell-add-button
             >
               Добавете към поръчката
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full border-gray-300 text-gray-700"
-              onClick={() => {
-                setShowFollowUpPopup(false);
-                // Force close the dialog
-                handleDialogClose(true);
-              }}
-            >
-              Не, благодаря
             </Button>
           </div>
         </div>
@@ -1782,6 +1785,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         // Only allow dialog to close if not showing thank you or popup
         if (newOpenState === false && (showThankYou || showFollowUpPopup)) {
           // Prevent automatic closing during thank you/popup sequence
+          console.log('🔒 Dialog tried to close automatically but was prevented');
           return;
         }
         handleDialogClose();
@@ -1794,7 +1798,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         aria-describedby="checkout-form-description"
       >
         {/* Show Thank You page if order was successful */}
-        {showThankYou && renderThankYouPage()}
+        {showThankYou && !showFollowUpPopup && renderThankYouPage()}
         
         {/* Show Follow-up popup after thank you page with product offer */}
         {showFollowUpPopup && renderFollowUpPopup()}
