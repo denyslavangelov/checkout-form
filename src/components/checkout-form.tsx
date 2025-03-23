@@ -92,7 +92,7 @@ interface CitySearchResult {
 }
 
 // Helper function to format variant ID
-const formatVariantId = (id: string | number) => {
+const formatVariantId = (id: string | number | null) => {
   if (!id) return null;
   
   const idString = String(id);
@@ -102,22 +102,15 @@ const formatVariantId = (id: string | number) => {
     return idString;
   }
   
-  // If ID is a full URL, extract just the ID part
-  if (idString.includes('/products/') && idString.includes('/variants/')) {
-    const matches = idString.match(/\/variants\/(\d+)/);
-    if (matches && matches[1]) {
-      return `gid://shopify/ProductVariant/${matches[1]}`;
-    }
+  // Extract just the numeric part from any format
+  const numericId = idString.replace(/\D/g, '');
+  if (!numericId) {
+    console.error('Invalid variant ID format:', id);
+    return null;
   }
   
-  // If it's just a number or contains a number, extract it
-  const numericId = idString.match(/\d+/)?.[0];
-  if (numericId) {
-    return `gid://shopify/ProductVariant/${numericId}`;
-  }
-  
-  // If we couldn't parse it, return the original ID
-  return idString;
+  // Return the properly formatted Shopify Global ID
+  return `gid://shopify/ProductVariant/${numericId}`;
 };
 
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
@@ -2255,18 +2248,27 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     form.getValues('officeCity') || '';
 
                   // Inside the onClick handler of the submit button, before sending the message
+                  const preparedCartData = {
+                    ...localCartData,
+                    items: localCartData.items.map((item: any) => {
+                      const formattedVariantId = formatVariantId(item.variant_id || item.id);
+                      if (!formattedVariantId) {
+                        console.error('Failed to format variant ID for item:', item);
+                        throw new Error('Invalid variant ID format');
+                      }
+                      return {
+                        ...item,
+                        variant_id: formattedVariantId,
+                        merchandiseId: formattedVariantId
+                      };
+                    })
+                  };
+
                   window.parent.postMessage({
                     type: 'submit-checkout',
                     formData: {
                       shop_domain: shopifyDomain,
-                      cartData: {
-                        ...localCartData,
-                        items: localCartData.items.map((item: any) => ({
-                          ...item,
-                          variant_id: formatVariantId(item.variant_id || item.id),
-                          merchandiseId: formatVariantId(item.variant_id || item.id)
-                        }))
-                      },
+                      cartData: preparedCartData,
                       shippingMethod: selectedShippingMethod,
                       shipping_method: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
                       shipping_price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
