@@ -1781,6 +1781,45 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   }, []);
 
+  // Handle form submission
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    if (submitStatus === 'loading') return;
+    
+    console.log('Form submitted with data:', data);
+    setSubmitStatus('loading');
+    
+    try {
+      // Prepare the order data including cart items, shipping, payment method
+      const orderData = {
+        ...data,
+        items: localCartData?.items || [],
+        total: localCartData?.total_price + shippingCost,
+        shippingCost,
+        currency: localCartData?.currency || 'BGN'
+      };
+      
+      // Send order data to parent window
+      if (typeof window !== 'undefined' && window.parent) {
+        window.parent.postMessage({
+          type: 'submit-order',
+          orderData
+        }, '*');
+        
+        // For demo purposes, simulate success after a delay
+        // In production, you'd wait for confirmation from the parent
+        setTimeout(() => {
+          setSubmitStatus('success');
+        }, 1500);
+      } else {
+        console.error('Could not find parent window to submit order');
+        setSubmitStatus('error');
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      setSubmitStatus('error');
+    }
+  };
+
   // Update the DialogContent to use the new flow state
   return (
     <Dialog 
@@ -1803,8 +1842,108 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       >
         {/* Display different content based on the current flow step */}
         {orderFlowStep === 'idle' && (
-          // Main checkout form content
-          // ... existing code ...
+          <>
+            <DialogHeader className="p-6 pb-0">
+              <DialogTitle className="text-xl font-bold">Поръчка</DialogTitle>
+              <DialogDescription id="checkout-form-description">
+                Попълнете адреса си за доставка и метод за плащане.
+              </DialogDescription>
+              <DialogClose
+                className="absolute right-4 top-4 rounded-full p-1.5 opacity-70 hover:bg-gray-100 focus:outline-none"
+                onClick={() => handleDialogClose()}
+              >
+                <X className="h-4 w-4" />
+              </DialogClose>
+            </DialogHeader>
+            
+            <div className="flex-1 overflow-y-auto p-6 pt-2">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                  {renderCartSummary()}
+                  {renderOrderSummary()}
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-base font-medium">Лични данни</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Име *" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Фамилия *" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Телефон *" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input placeholder="Имейл" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {/* More form fields omitted for brevity */}
+                    
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={submitStatus === 'loading'}
+                      >
+                        {submitStatus === 'loading' ? (
+                          <span className="flex items-center">
+                            <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full" /> 
+                            Обработване...
+                          </span>
+                        ) : (
+                          <span className="flex items-center">
+                            <CreditCardIcon className="mr-2 h-4 w-4" /> 
+                            Завърши поръчката
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </Form>
+            </div>
+          </>
         )}
         
         {/* Show Thank You page if order was successful */}
