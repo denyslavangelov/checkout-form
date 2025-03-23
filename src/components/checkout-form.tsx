@@ -1291,13 +1291,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                 setLocalCartData(buyNowNormalizedData);
                 
                 // Return loading while we update
-                return (
-                  <div className="space-y-2">
+      return (
+        <div className="space-y-2">
                     <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
                     <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
                       <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
                       <span>Обработване на данните...</span>
-                    </div>
+          </div>
                   </div>
                 );
               }
@@ -1335,9 +1335,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
                       <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
                       <span>Обработване на данните...</span>
-                    </div>
-                  </div>
-                );
+          </div>
+        </div>
+      );
               }
             }
             
@@ -1370,13 +1370,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             setLocalCartData(updatedCart);
             
             // Return loading while we update
-            return (
-              <div className="space-y-2">
+  return (
+        <div className="space-y-2">
                 <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
                 <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-600"></div>
                   <span>Обработване на данните...</span>
-                </div>
+          </div>
               </div>
             );
           } else {
@@ -1398,16 +1398,16 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
+          </div>
+        </div>
+      );
           }
         }
       }
     }
     
     if (!localCartData) {
-  return (
+      return (
         <div className="space-y-2">
           <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
           <div className="flex flex-col items-center justify-center py-6 space-y-2 text-gray-500">
@@ -1417,10 +1417,10 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         </div>
       );
     }
-    
+
     if (!localCartData.items || !Array.isArray(localCartData.items)) {
-      return (
-        <div className="space-y-2">
+    return (
+      <div className="space-y-2">
           <h3 className="text-base font-medium mb-2">Продукти в кошницата</h3>
           <div className="flex items-center justify-center py-4 text-gray-500">
             <span>Невалидни данни на кошницата</span>
@@ -1569,7 +1569,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
     );
   };
-
+  
   // Add states for thank you page and follow-up popup
   const [showThankYou, setShowThankYou] = useState(false);
   const [showFollowUpPopup, setShowFollowUpPopup] = useState(false);
@@ -1611,10 +1611,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           <Button 
             className="w-full bg-blue-600 text-white" 
             onClick={() => {
-              // Signal the parent that we're done and ready to redirect to order status page
-              if (typeof window !== 'undefined' && window.parent) {
-                window.parent.postMessage({ type: 'follow-up-complete' }, '*');
-              }
               handleDialogClose();
             }}
           >
@@ -1664,10 +1660,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               className="w-full border-gray-300 text-gray-700"
               onClick={() => {
                 setShowFollowUpPopup(false);
-                // Signal the parent that we're done with the follow-up and ready to proceed
-                if (typeof window !== 'undefined' && window.parent) {
-                  window.parent.postMessage({ type: 'follow-up-complete' }, '*');
-                }
                 handleDialogClose();
               }}
             >
@@ -1699,16 +1691,16 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
           <DialogHeader className={`p-4 pb-2 border-b fixed top-0 left-0 right-0 z-10 ${isMobile ? 'bg-white' : 'bg-white'}`}>
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-lg font-medium tracking-tight text-black">
-                Поръчайте с наложен платеж
-              </DialogTitle>
+          <DialogTitle className="text-lg font-medium tracking-tight text-black">
+            Поръчайте с наложен платеж
+          </DialogTitle>
             </div>
-          </DialogHeader>
+        </DialogHeader>
 
-          <div id="checkout-form-description" className="sr-only">
-            Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
+        <div id="checkout-form-description" className="sr-only">
+          Форма за поръчка с наложен платеж, където можете да въведете данни за доставка и да изберете метод за доставка
           </div>
-          
+
           {/* Add padding to account for fixed header */}
           <div className="px-4 py-3 space-y-4 mt-14">
           {/* Cart Summary */}

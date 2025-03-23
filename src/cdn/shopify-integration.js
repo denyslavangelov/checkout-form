@@ -747,72 +747,6 @@
             });
           break;
 
-        case 'navigate-to-special-offer':
-          console.log('Received navigate-to-special-offer request');
-          
-          // Get the shop domain for the url
-          const shopDomain = window.location.hostname;
-          
-          // Default to collection/all with a special parameter
-          let specialOfferUrl = `https://${shopDomain}/collections/all?special_offer=true`;
-          
-          // Check if there's a specific special offers collection
-          const specialOffersCollections = [
-            '/collections/special-offers',
-            '/collections/special',
-            '/collections/deals',
-            '/collections/promotions',
-            '/collections/sale'
-          ];
-          
-          // Try each possible special offers URL
-          const checkSpecialOfferCollection = async () => {
-            for (const collection of specialOffersCollections) {
-              try {
-                // Try a HEAD request to see if the collection exists
-                const response = await fetch(`https://${shopDomain}${collection}`, {
-                  method: 'HEAD'
-                });
-                
-                if (response.ok) {
-                  console.log(`Found special offers collection: ${collection}`);
-                  return `https://${shopDomain}${collection}?from_checkout=true`;
-                }
-              } catch (error) {
-                // Continue to next collection
-              }
-            }
-            
-            // If no specific collection found, return default
-            return specialOfferUrl;
-          };
-          
-          // Navigate to the special offers page
-          checkSpecialOfferCollection()
-            .then(url => {
-              console.log(`Navigating to special offers page: ${url}`);
-              window.location.href = url;
-            })
-            .catch(error => {
-              console.error('Error finding special offers page:', error);
-              // Navigate to default as fallback
-              window.location.href = specialOfferUrl;
-            });
-          break;
-          
-        case 'follow-up-complete':
-          console.log('Follow-up popup interaction complete, proceeding to order status page');
-          
-          // Check if we have the order status URL saved from order creation
-          if (window.orderStatusUrl) {
-            console.log('Redirecting to order status page:', window.orderStatusUrl);
-            window.location.href = window.orderStatusUrl;
-          } else {
-            console.log('No order status URL found, redirecting to home page');
-            window.location.href = `https://${window.location.hostname}`;
-          }
-          break;
-
         case 'GET_SHOPIFY_DOMAIN':
           event.source.postMessage({
             type: 'SHOPIFY_DOMAIN_RESPONSE',
@@ -924,12 +858,14 @@
     try {
       console.log('Creating order with data:', formData);
       
+      debugger;
       // Show loading state in the iframe
       source.postMessage({
         type: 'order-processing',
         message: 'Създаване на поръчка..'
       }, '*');
       
+      debugger;
       // Format cart data to match API expectations
       const cartItems = formData.cartData.items.map(item => ({
         id: item.id,
@@ -983,6 +919,8 @@
         body: JSON.stringify(requestPayload)
       });
 
+      debugger;
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response from API:', errorText);
@@ -993,10 +931,16 @@
       console.log('Order created successfully:', data);
 
       if (data.success) {
-        // Notify the iframe about successful order creation
+        // First notify the iframe about successful order creation
         source.postMessage({
           type: 'order-created',
           data: data
+        }, '*');
+
+        // Show success message before redirect
+        source.postMessage({
+          type: 'order-redirect',
+          message: 'Пренасочване към страницата на поръчката...'
         }, '*');
 
         // Get the redirect URL directly from the API response
@@ -1016,15 +960,10 @@
           orderStatusUrl = `https://${requestPayload.shop_domain}`;
         }
 
-        // Store the order status URL for later use
-        window.orderStatusUrl = orderStatusUrl;
-        
-        // Allow the thank you page and follow-up popup to display
-        // We will not redirect immediately - we'll wait for user interaction
-        console.log('Waiting for follow-up popup interaction before redirecting to:', orderStatusUrl);
-        
-        // Don't automatically redirect - the checkout form will handle showing
-        // the thank you page and special offer popup
+        // Short delay to show the success message
+        setTimeout(() => {
+          window.location.href = orderStatusUrl;
+        }, 500);
       } else {
         throw new Error(data.message || 'Failed to create order');
       }
@@ -1153,5 +1092,219 @@
         window.cartData = cartData;
       })
       .catch(error => console.error('Error fetching cart data:', error));
+      
+    // Start monitoring for thank you / order confirmation pages
+    startOrderConfirmationMonitor();
   });
+  
+  // Function to monitor for order confirmation pages
+  function startOrderConfirmationMonitor() {
+    console.log('Starting order confirmation page monitor');
+    
+    // Check immediately in case we're already on a thank you page
+    checkForOrderConfirmationPage();
+    
+    // Set up a listener for URL changes
+    let lastUrl = location.href; 
+    
+    // Create a new observer to watch for URL changes
+    const observer = new MutationObserver(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        checkForOrderConfirmationPage();
+      }
+    });
+    
+    // Start observing
+    observer.observe(document, { subtree: true, childList: true });
+    
+    // Also check periodically in case the observer misses something
+    setInterval(checkForOrderConfirmationPage, 2000);
+  }
+  
+  // Function to check if current page is an order confirmation page
+  function checkForOrderConfirmationPage() {
+    const currentUrl = window.location.href;
+    console.log('Checking URL for order confirmation:', currentUrl);
+    
+    // Check if this URL has already shown a popup
+    const hasShownPopup = sessionStorage.getItem('thank_you_popup_shown_for_' + currentUrl);
+    if (hasShownPopup) {
+      console.log('Popup already shown for this URL');
+      return;
+    }
+    
+    // Order confirmation URL patterns
+    const orderConfirmationPatterns = [
+      '/account/order',
+      '/thank_you',
+      '/checkout/thank_you',
+      '/orders/',
+      'order_status_url',
+      'order-received'
+    ];
+    
+    // Check if URL matches any pattern
+    const isOrderConfirmationPage = orderConfirmationPatterns.some(pattern => 
+      currentUrl.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (isOrderConfirmationPage) {
+      console.log('Order confirmation page detected!');
+      // Show popup after a short delay to allow page to fully load
+      setTimeout(showThankYouPopup, 1500);
+      // Mark this URL as having shown a popup
+      sessionStorage.setItem('thank_you_popup_shown_for_' + currentUrl, 'true');
+    }
+  }
+  
+  // Function to create and show thank you popup
+  function showThankYouPopup() {
+    console.log('Showing thank you popup');
+    
+    // Create popup container
+    const popup = document.createElement('div');
+    popup.id = 'shopify-custom-thank-you-popup';
+    popup.style.position = 'fixed';
+    popup.style.top = '0';
+    popup.style.left = '0';
+    popup.style.width = '100%';
+    popup.style.height = '100%';
+    popup.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    popup.style.zIndex = '9999999';
+    popup.style.display = 'flex';
+    popup.style.justifyContent = 'center';
+    popup.style.alignItems = 'center';
+    
+    // Create popup content
+    const content = document.createElement('div');
+    content.style.backgroundColor = '#fff';
+    content.style.borderRadius = '8px';
+    content.style.padding = '20px';
+    content.style.maxWidth = '500px';
+    content.style.width = '90%';
+    content.style.textAlign = 'center';
+    content.style.position = 'relative';
+    content.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+    
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '&times;';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '10px';
+    closeButton.style.right = '10px';
+    closeButton.style.background = 'none';
+    closeButton.style.border = 'none';
+    closeButton.style.fontSize = '24px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.onclick = () => document.body.removeChild(popup);
+    
+    // Add title
+    const title = document.createElement('h2');
+    title.textContent = 'Специално предложение!';
+    title.style.marginBottom = '15px';
+    title.style.color = '#333';
+    
+    // Add message
+    const message = document.createElement('p');
+    message.textContent = 'Благодарим ви за поръчката! Бихте ли искали да разгледате още някои от нашите продукти?';
+    message.style.marginBottom = '20px';
+    message.style.color = '#666';
+    
+    // Add view offers button
+    const viewOffersBtn = document.createElement('button');
+    viewOffersBtn.textContent = 'Разгледай специалните предложения';
+    viewOffersBtn.style.backgroundColor = '#4A90E2';
+    viewOffersBtn.style.color = 'white';
+    viewOffersBtn.style.border = 'none';
+    viewOffersBtn.style.borderRadius = '4px';
+    viewOffersBtn.style.padding = '10px 20px';
+    viewOffersBtn.style.marginBottom = '10px';
+    viewOffersBtn.style.width = '100%';
+    viewOffersBtn.style.cursor = 'pointer';
+    viewOffersBtn.onclick = navigateToSpecialOffers;
+    
+    // Add No Thanks button
+    const noThanksBtn = document.createElement('button');
+    noThanksBtn.textContent = 'Не, благодаря';
+    noThanksBtn.style.backgroundColor = '#fff';
+    noThanksBtn.style.color = '#666';
+    noThanksBtn.style.border = '1px solid #ddd';
+    noThanksBtn.style.borderRadius = '4px';
+    noThanksBtn.style.padding = '10px 20px';
+    noThanksBtn.style.width = '100%';
+    noThanksBtn.style.cursor = 'pointer';
+    noThanksBtn.onclick = () => document.body.removeChild(popup);
+    
+    // Assemble popup
+    content.appendChild(closeButton);
+    content.appendChild(title);
+    content.appendChild(message);
+    content.appendChild(viewOffersBtn);
+    content.appendChild(document.createElement('br'));
+    content.appendChild(noThanksBtn);
+    popup.appendChild(content);
+    
+    // Add to body
+    document.body.appendChild(popup);
+    
+    // Auto-close after 30 seconds
+    setTimeout(() => {
+      if (document.body.contains(popup)) {
+        document.body.removeChild(popup);
+      }
+    }, 30000);
+  }
+  
+  // Function to navigate to special offers
+  function navigateToSpecialOffers() {
+    // Get the shop domain for the url
+    const shopDomain = window.location.hostname;
+    
+    // Default to collection/all with a special parameter
+    let specialOfferUrl = `https://${shopDomain}/collections/all?special_offer=true`;
+    
+    // Check if there's a specific special offers collection
+    const specialOffersCollections = [
+      '/collections/special-offers',
+      '/collections/special',
+      '/collections/deals',
+      '/collections/promotions',
+      '/collections/sale'
+    ];
+    
+    // Try each possible special offers URL
+    const checkSpecialOfferCollection = async () => {
+      for (const collection of specialOffersCollections) {
+        try {
+          // Try a HEAD request to see if the collection exists
+          const response = await fetch(`https://${shopDomain}${collection}`, {
+            method: 'HEAD'
+          });
+          
+          if (response.ok) {
+            console.log(`Found special offers collection: ${collection}`);
+            return `https://${shopDomain}${collection}?from_checkout=true`;
+          }
+        } catch (error) {
+          // Continue to next collection
+        }
+      }
+      
+      // If no specific collection found, return default
+      return specialOfferUrl;
+    };
+    
+    // Navigate to the special offers page
+    checkSpecialOfferCollection()
+      .then(url => {
+        console.log(`Navigating to special offers page: ${url}`);
+        window.location.href = url;
+      })
+      .catch(error => {
+        console.error('Error finding special offers page:', error);
+        // Navigate to default as fallback
+        window.location.href = specialOfferUrl;
+      });
+  }
 })(); 
