@@ -94,14 +94,30 @@ interface CitySearchResult {
 // Helper function to format variant ID
 const formatVariantId = (id: string | number) => {
   if (!id) return null;
+  
+  const idString = String(id);
+  
   // If ID is already in the correct format, return it as is
-  if (String(id).startsWith('gid://shopify/ProductVariant/')) {
-    return String(id);
+  if (idString.startsWith('gid://shopify/ProductVariant/')) {
+    return idString;
   }
-  // Clean the ID - remove any non-digit characters
-  const cleanId = String(id).replace(/\D/g, '');
-  // Format it as a Shopify Global ID
-  return `gid://shopify/ProductVariant/${cleanId}`;
+  
+  // If ID is a full URL, extract just the ID part
+  if (idString.includes('/products/') && idString.includes('/variants/')) {
+    const matches = idString.match(/\/variants\/(\d+)/);
+    if (matches && matches[1]) {
+      return `gid://shopify/ProductVariant/${matches[1]}`;
+    }
+  }
+  
+  // If it's just a number or contains a number, extract it
+  const numericId = idString.match(/\d+/)?.[0];
+  if (numericId) {
+    return `gid://shopify/ProductVariant/${numericId}`;
+  }
+  
+  // If we couldn't parse it, return the original ID
+  return idString;
 };
 
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
