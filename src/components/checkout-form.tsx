@@ -1014,20 +1014,13 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       console.log('🚀 Order successful, showing thank you page');
       setShowThankYou(true);
       
-      // Set timer to show follow-up popup sooner (1.5 seconds instead of 3)
-      console.log('⏰ Setting timer to show follow-up popup in 1.5 seconds');
-      thankYouTimerRef.current = setTimeout(() => {
-        console.log('⭐ Timer expired, now showing follow-up popup');
-        setShowFollowUpPopup(true);
-      }, 1500);
+      // IMMEDIATELY show the follow-up popup without a timer
+      console.log('⭐ IMMEDIATELY showing follow-up popup');
+      setShowFollowUpPopup(true);
+      
+      // No timer - popup shows immediately
+      // This prevents timer cleanup issues
     }
-    
-    return () => {
-      if (thankYouTimerRef.current) {
-        console.log('⚠️ Clearing thank you timer during cleanup');
-        clearTimeout(thankYouTimerRef.current);
-      }
-    };
   }, [submitStatus, showThankYou]);
 
   // Add separate effect to log when popup state changes
@@ -1655,94 +1648,118 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     };
 
     return (
-      <div className="special-offer-popup animate-fade-in">
-        <div className="special-offer-content">
+      <div 
+        className="special-offer-popup" 
+        style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          zIndex: 99999,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <div 
+          className="special-offer-content" 
+          style={{ 
+            background: 'white', 
+            borderRadius: '8px', 
+            padding: '20px', 
+            maxWidth: '90%', 
+            width: '400px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+          }}
+        >
           <button 
             onClick={() => {
               console.log("❌ Closing popup manually");
               setShowFollowUpPopup(false);
+              handleDialogClose(true);
             }}
-            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer'
+            }}
             aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
           
-          <div className="text-center mb-4">
-            <h3 className="text-xl font-bold">Специална оферта!</h3>
-            <p className="text-gray-600 mt-2">
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>Специална оферта!</h3>
+            <p style={{ color: '#666', marginTop: '8px' }}>
               Добавете този продукт към вашата поръчка с безплатна доставка:
             </p>
           </div>
           
-          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg mb-5">
-            {upsellProduct.image ? (
-              <img 
-                src={upsellProduct.image}
-                alt={upsellProduct.title}
-                className="w-20 h-20 object-cover rounded-md"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  (e.target as HTMLImageElement).src = "https://via.placeholder.com/80";
-                }}
-              />
-            ) : (
-              <div className="w-20 h-20 bg-gray-200 rounded-md flex items-center justify-center">
-                <span className="text-gray-500 text-xs">Няма изображение</span>
-              </div>
-            )}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '16px', 
+            padding: '12px', 
+            backgroundColor: '#f7f7f7', 
+            borderRadius: '8px', 
+            marginBottom: '20px' 
+          }}>
+            <img 
+              src={"https://via.placeholder.com/80"}
+              alt={upsellProduct.title}
+              style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }}
+            />
             
-            <div className="flex-1">
-              <h4 className="font-medium text-base">{upsellProduct.title}</h4>
-              <p className="text-sm text-gray-500 mb-2">{upsellProduct.description}</p>
-              <div className="font-bold text-blue-600">{formatMoney(upsellProduct.price)}</div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ fontWeight: 500, fontSize: '16px' }}>{upsellProduct.title}</h4>
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>{upsellProduct.description}</p>
+              <div style={{ fontWeight: 'bold', color: '#2563eb' }}>{formatMoney(upsellProduct.price)}</div>
             </div>
           </div>
           
-          <div className="flex flex-col space-y-3 mt-4" data-upsell-buttons>
-            <Button 
-              className="w-full add-to-cart-button"
-              onClick={() => {
-                // Add to cart via parent window message
-                console.log("✅ Add to cart button clicked");
-                if (typeof window !== 'undefined' && window.parent) {
-                  window.parent.postMessage({ 
-                    type: 'add-upsell-product', 
-                    product: upsellProduct
-                  }, '*');
-                  
-                  // Show a success message
-                  const successMessage = document.createElement('div');
-                  successMessage.className = 'text-center text-green-600 font-medium py-2 animate-fade-in';
-                  successMessage.textContent = 'Продуктът е добавен към поръчката ви!';
-                  
-                  // Find the button container and insert before it
-                  const buttonContainer = document.querySelector('[data-upsell-buttons]');
-                  if (buttonContainer && buttonContainer.parentNode) {
-                    buttonContainer.parentNode.insertBefore(successMessage, buttonContainer);
-                  }
-                  
-                  // Disable the "Add to cart" button
-                  const addButton = document.querySelector('[data-upsell-add-button]') as HTMLButtonElement;
-                  if (addButton) {
-                    addButton.disabled = true;
-                    addButton.classList.add('bg-gray-400');
-                    addButton.classList.remove('bg-blue-600');
-                  }
-                  
-                  // Wait a moment, then close the popup
-                  setTimeout(() => {
-                    console.log("⏱️ Auto-closing popup after adding product");
-                    setShowFollowUpPopup(false);
-                    // Force close the dialog
-                    handleDialogClose(true);
-                  }, 2000);
-                }
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button 
+              style={{
+                backgroundColor: '#2563eb',
+                color: 'white',
+                padding: '12px',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+                border: 'none',
+                cursor: 'pointer',
+                animation: 'pulse 1.5s infinite'
               }}
-              data-upsell-add-button
+              onClick={() => {
+                console.log("✅ Add to cart button clicked");
+                // Add success message
+                alert('Продуктът е добавен към поръчката ви!');
+                // Close popup
+                setShowFollowUpPopup(false);
+                handleDialogClose(true);
+              }}
             >
               Добавете към поръчката
-            </Button>
+            </button>
+            
+            <button 
+              style={{
+                backgroundColor: 'transparent',
+                color: '#555',
+                padding: '12px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                console.log("❌ No, thanks button clicked");
+                setShowFollowUpPopup(false);
+                handleDialogClose(true); 
+              }}
+            >
+              Не, благодаря
+            </button>
           </div>
         </div>
       </div>
