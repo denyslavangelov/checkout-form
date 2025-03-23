@@ -48,36 +48,81 @@
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
 
-    // Common checkout button identifiers
+    // More specific checkout button identifiers with priority order
     const checkoutIdentifiers = [
-      { attr: 'id', value: 'CartDrawer-Checkout' },
-      { attr: 'name', value: 'checkout' },
-      { attr: 'href', value: '/checkout' },
-      { attr: 'class', value: 'checkout-button' },
-      { attr: 'class', value: 'cart__checkout' },
-      { attr: 'class', value: 'cart-checkout' },
-      { attr: 'data-action', value: 'checkout' },
-      { attr: 'class', value: 'shopify-payment-button__button' }
+      // Primary identifiers (most specific)
+      { attr: 'id', value: 'CartDrawer-Checkout', priority: 1 },
+      { attr: 'name', value: 'checkout', priority: 1 },
+      { attr: 'data-action', value: 'checkout', priority: 1 },
+      { attr: 'data-checkout-button', value: 'true', priority: 1 },
+      
+      // Secondary identifiers (class-based)
+      { attr: 'class', value: 'shopify-payment-button__button--buy-now', priority: 2 },
+      { attr: 'class', value: 'cart__checkout', priority: 2 },
+      { attr: 'class', value: 'cart-checkout', priority: 2 },
+      { attr: 'class', value: 'checkout-button', priority: 2 },
+      
+      // Tertiary identifiers (less specific)
+      { attr: 'href', value: '/checkout', priority: 3 },
+      { attr: 'class', value: 'shopify-payment-button__button', priority: 3 }
     ];
+
+    // Check context first
+    const isInCart = element.closest('[data-cart], [data-section="cart"], #cart-drawer, #CartDrawer, [data-cart-drawer]') !== null;
+    const isInProductForm = element.closest('form[action*="/cart/add"]') !== null;
+    const isInCheckoutForm = element.closest('form[action="/cart"]') !== null;
+
+    // If not in any valid context, return false unless it's a very specific button
+    if (!isInCart && !isInProductForm && !isInCheckoutForm) {
+      // Only allow highly specific buttons outside these contexts
+      const hasHighPriorityMatch = checkoutIdentifiers
+        .filter(id => id.priority === 1)
+        .some(identifier => {
+          const attrValue = element.getAttribute(identifier.attr);
+          return attrValue && (
+            attrValue === identifier.value ||
+            attrValue.split(' ').includes(identifier.value)
+          );
+        });
+      
+      if (!hasHighPriorityMatch) return false;
+    }
 
     // Check if element matches any identifier
     const isIdentifiedCheckout = checkoutIdentifiers.some(identifier => {
       const attrValue = element.getAttribute(identifier.attr);
       return attrValue && (
         attrValue === identifier.value ||
-        attrValue.includes(identifier.value) ||
+        attrValue.split(' ').includes(identifier.value) ||
         (identifier.value === '/checkout' && attrValue.includes('/checkout'))
       );
     });
 
-    // Check text content for "checkout" keyword
-    const hasCheckoutText = element.textContent && 
-      element.textContent.toLowerCase().includes('checkout');
+    // More precise text content check
+    const hasCheckoutText = element.textContent && (
+      element.textContent.toLowerCase().trim() === 'checkout' ||
+      element.textContent.toLowerCase().trim() === 'check out' ||
+      element.textContent.toLowerCase().includes('proceed to checkout') ||
+      element.textContent.toLowerCase().includes('buy now')
+    );
 
-    // Check if it's inside a cart form
-    const isInCartForm = element.closest('form[action="/cart"]') !== null;
+    // Additional validation for Buy Now buttons
+    const isBuyNowButton = element.matches('.shopify-payment-button__button') && (
+      element.closest('.shopify-payment-button') !== null ||
+      element.getAttribute('data-testid')?.includes('Checkout-button')
+    );
 
-    return isIdentifiedCheckout || hasCheckoutText || isInCartForm;
+    // Exclude common false positives
+    const isExcluded = (
+      element.classList.contains('cart__remove') ||
+      element.classList.contains('remove') ||
+      element.classList.contains('quantity') ||
+      element.classList.contains('close') ||
+      element.getAttribute('aria-label')?.toLowerCase().includes('close') ||
+      element.getAttribute('aria-label')?.toLowerCase().includes('remove')
+    );
+
+    return !isExcluded && (isIdentifiedCheckout || hasCheckoutText || isBuyNowButton);
   }
   
   // Function to add our checkout handler
@@ -121,22 +166,36 @@
   
   // Function to find and initialize all checkout buttons
   function findAndInitializeCheckoutButtons() {
-    // Common checkout button selectors
+    // More specific selectors
     const selectors = [
+      // Primary selectors (most specific)
       '#CartDrawer-Checkout',
       '[name="checkout"]',
-      '[href="/checkout"]',
-      '[href*="/checkout"]',
-      '.checkout-button',
+      '[data-action="checkout"]',
+      '[data-checkout-button="true"]',
+      
+      // Cart-specific selectors
+      '[data-cart] [type="submit"]',
+      '[data-section="cart"] button',
+      '#cart-drawer button',
+      '#CartDrawer button',
+      
+      // Buy Now buttons
+      '.shopify-payment-button__button--buy-now',
+      
+      // Secondary selectors
       '.cart__checkout',
       '.cart-checkout',
-      '[data-action="checkout"]',
-      'form[action="/cart"] [type="submit"]',
+      '.checkout-button',
+      
+      // Generic checkout links/buttons
+      '[href="/checkout"]',
+      '[href*="/checkout"]',
       '.shopify-payment-button__button'
-    ];
+    ].join(',');
 
     // Find all potential checkout buttons
-    const buttons = document.querySelectorAll(selectors.join(','));
+    const buttons = document.querySelectorAll(selectors);
     
     buttons.forEach(button => {
       if (isCheckoutButton(button)) {
