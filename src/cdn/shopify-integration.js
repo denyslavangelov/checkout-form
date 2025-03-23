@@ -986,15 +986,10 @@
         body: JSON.stringify(requestPayload)
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response from API:', errorText);
-        throw new Error(`Failed to create order: ${response.status}`);
-      }
-
       const data = await response.json();
-      console.log('Order created successfully:', data);
+      console.log('Order API response:', data);
 
+      // Check if the response indicates success
       if (data.success) {
         // Show success screen
         source.postMessage({
@@ -1038,21 +1033,22 @@
             window.location.href = orderStatusUrl;
           }, 500);
         }, 3000);
-        
       } else {
+        // If the API response indicates failure
         throw new Error(data.message || 'Failed to create order');
       }
-
     } catch (error) {
       console.error('Error creating order:', error);
-      // Show error screen
-      source.postMessage({
-        type: 'order-processing',
-        state: 'error',
-        title: 'Възникна грешка',
-        message: 'За съжаление възникна грешка при създаването на поръчката. Моля, опитайте отново или се свържете с нас.',
-        error: error.message
-      }, '*');
+      // Show error screen only if we haven't already shown success
+      if (!error.message?.includes('success')) {
+        source.postMessage({
+          type: 'order-processing',
+          state: 'error',
+          title: 'Възникна грешка',
+          message: 'За съжаление възникна грешка при създаването на поръчката. Моля, опитайте отново или се свържете с нас.',
+          error: error.message
+        }, '*');
+      }
     }
   }
 
