@@ -91,6 +91,17 @@ interface CitySearchResult {
   label: string;
 }
 
+// Helper function to format variant ID
+const formatVariantId = (id: string | number) => {
+  if (!id) return null;
+  // If ID is already in the correct format, return it as is
+  if (String(id).startsWith('gid://shopify/ProductVariant/')) {
+    return String(id);
+  }
+  // Otherwise, format it correctly
+  return `gid://shopify/ProductVariant/${String(id).replace(/\D/g, '')}`;
+};
+
 export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }: CheckoutFormProps) {
   // Enhanced debug logging for cart data
   console.log('CheckoutForm rendered with props:', { 
@@ -129,28 +140,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
 
   // Function to normalize cart data between different formats
   const normalizeCartData = (data: any) => {
-    if (!data) {
-      // Return empty cart structure
-      console.log('No cart data to normalize, returning empty structure');
-      return {
-        items: [],
-        total_price: 0,
-        items_subtotal_price: 0,
-        total_discount: 0,
-        item_count: 0,
-        currency: 'BGN'
-      };
-    }
-
-    // Debug print the data to see what image fields we have
-    if (data.product) {
-      console.log('Product image fields check:', {
-        featured_image: data.product.featured_image,
-        image: data.product.image,
-        image_src: data.product.image?.src,
-        images: data.product.images
-      });
-    }
+    console.log('Normalizing cart data:', data);
 
     // Check for new Buy Now structure with nested product field and price object
     if (data.price && data.product && typeof data.price.amount === 'number') {
@@ -173,12 +163,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       // Use variant title from root title if different from product title
       const variantTitle = data.title !== data.product.title ? data.title : '';
       
-      // Log the conversion for debugging
-      console.log('Price conversion:', {
-        originalAmount: data.price.amount,
-        convertedCents: price,
-        calculatedLinePrice: price * (data.quantity || 1)
-      });
+      const variantId = formatVariantId(data.id);
       
       return {
         items: [{
@@ -188,7 +173,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           price: price,
           line_price: price * (data.quantity || 1),
           original_line_price: price * (data.quantity || 1),
-          variant_id: data.id,
+          variant_id: variantId,
           product_id: data.product.id,
           sku: data.sku || '',
           variant_title: variantTitle,
@@ -223,6 +208,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           : product.images[0].src || product.images[0];
       }
       
+      const variantId = formatVariantId(product.variant_id || product.id);
+      
       return {
         items: [{
           id: product.variant_id || product.id,
@@ -231,7 +218,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           price: product.price,
           line_price: product.price * (product.quantity || 1),
           original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-          variant_id: product.variant_id || product.id,
+          variant_id: variantId,
           product_id: product.id,
           sku: product.sku || '',
           variant_title: product.variant_title || '',
@@ -250,7 +237,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     // Normal cart structure validation
     if (data.items && Array.isArray(data.items)) {
-      // Ensure all items have proper image field
+      // Ensure all items have proper image field and variant IDs
       const processedItems = data.items.map((item: any) => {
         // Handle image field in various formats
         let imageUrl = null;
@@ -264,7 +251,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         
         return {
           ...item,
-          image: imageUrl
+          image: imageUrl,
+          variant_id: formatVariantId(item.variant_id || item.id)
         };
       });
       
@@ -286,14 +274,17 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           : data.featured_image.src || data.featured_image;
       }
       
+      const variantId = formatVariantId(data.variant_id || data.id);
+      
       return {
         items: [{
-          id: data.variant_id || data.id || Date.now().toString(),
+          id: data.variant_id || data.id,
           title: data.title,
           quantity: data.quantity || 1,
           price: data.price,
           line_price: data.price * (data.quantity || 1),
           original_line_price: data.price * (data.quantity || 1),
+          variant_id: variantId,
           image: imageUrl
         }],
         total_price: data.price * (data.quantity || 1),
