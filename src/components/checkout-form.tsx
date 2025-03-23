@@ -1573,7 +1573,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   // Add states for thank you page and follow-up popup
   const [showThankYou, setShowThankYou] = useState(false);
   const [showFollowUpPopup, setShowFollowUpPopup] = useState(false);
-  const [showCrossSellPopup, setShowCrossSellPopup] = useState(false);
   const thankYouTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Add effect to handle thank you page and follow-up popup timing
@@ -1672,265 +1671,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     );
   };
 
-  // Add cross-sell popup component
-  const renderCrossSellPopup = () => {
-    // Example cross-sell product - you should replace with your actual product data
-    const crossSellProduct = {
-      id: "cross-sell-product-1",
-      title: "Специална оферта",
-      price: 1990, // in cents (19.90 BGN)
-      image: "/assets/cross-sell-product.jpg", // replace with actual image
-      description: "Допълнителен продукт на специална цена само за вас!",
-    };
-    
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-          <button 
-            onClick={() => {
-              setShowCrossSellPopup(false);
-              processOrder();
-            }}
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          
-          <div className="flex items-center mb-4">
-            <div className="relative flex-shrink-0 mr-4">
-              <div className="w-20 h-20 bg-yellow-100 rounded-md flex items-center justify-center">
-                {crossSellProduct.image ? (
-                  <img 
-                    src={crossSellProduct.image} 
-                    alt={crossSellProduct.title} 
-                    className="w-16 h-16 object-contain"
-                  />
-                ) : (
-                  <span className="text-yellow-600 text-2xl font-bold">%</span>
-                )}
-              </div>
-              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                -40%
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-bold">Специално предложение!</h3>
-              <p className="text-sm text-gray-600">
-                Добавете този продукт към поръчката си на специална цена!
-              </p>
-            </div>
-          </div>
-          
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <h4 className="font-medium">{crossSellProduct.title}</h4>
-            <p className="text-sm text-gray-600 mt-1">{crossSellProduct.description}</p>
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center">
-                <span className="text-lg font-bold text-red-600">{formatMoney(crossSellProduct.price)}</span>
-                <span className="text-sm text-gray-500 line-through ml-2">{formatMoney(crossSellProduct.price * 1.5)}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col space-y-3">
-            <Button 
-              className="w-full bg-blue-600 text-white"
-              onClick={() => {
-                // Add product to cart
-                addCrossSellProductToCart(crossSellProduct);
-              }}
-            >
-              Добавете към поръчката
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full border-gray-300 text-gray-700"
-              onClick={() => {
-                // Continue with regular order
-                setShowCrossSellPopup(false);
-                processOrder();
-              }}
-            >
-              Не, благодаря
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  // Function to add cross-sell product to cart
-  const addCrossSellProductToCart = (product: any) => {
-    if (!localCartData) return;
-    
-    // Create a deep copy of the current cart
-    const updatedCart = JSON.parse(JSON.stringify(localCartData));
-    
-    // Create the new item
-    const newItem = {
-      id: product.id,
-      title: product.title,
-      quantity: 1,
-      price: product.price,
-      line_price: product.price,
-      original_line_price: product.price * 1.5, // Original price before discount
-      variant_id: product.id,
-      product_id: product.id,
-      sku: product.sku || '',
-      variant_title: '',
-      vendor: '',
-      image: product.image,
-      requires_shipping: true,
-      is_cross_sell: true // Mark as cross-sell item for tracking
-    };
-    
-    // Add the new item to the cart
-    updatedCart.items.push(newItem);
-    
-    // Update cart totals
-    updatedCart.total_price += newItem.line_price;
-    updatedCart.items_subtotal_price += newItem.line_price;
-    updatedCart.item_count += 1;
-    updatedCart.total_discount += (newItem.original_line_price - newItem.line_price);
-    
-    console.log('Added cross-sell product to cart:', {
-      product,
-      updatedCart
-    });
-    
-    // Update the cart
-    setLocalCartData(updatedCart);
-    
-    // Close the popup and continue with order
-    setShowCrossSellPopup(false);
-    processOrder();
-  };
-  
-  // Function to process the actual order
-  const processOrder = async () => {
-    try {
-      setSubmitStatus('loading');
-      
-      // Request domain from parent window and wait for response
-      let shopifyDomain = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!shopifyDomain && retryCount < maxRetries) {
-        try {
-          console.log(`Attempting to get Shopify domain (attempt ${retryCount + 1})`);
-          
-          // Send the request
-          window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
-
-          // Listen for the response with a longer timeout for Firefox
-          shopifyDomain = await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error(`Timeout waiting for domain (attempt ${retryCount + 1})`));
-            }, 8000); // Increased timeout to 8 seconds
-
-            const handler = (event: MessageEvent) => {
-              if (event.data?.type === 'SHOPIFY_DOMAIN_RESPONSE') {
-                clearTimeout(timeout);
-                window.removeEventListener('message', handler);
-                console.log('Received domain response:', event.data);
-                resolve(event.data.domain);
-              }
-            };
-
-            window.addEventListener('message', handler);
-          });
-
-          if (shopifyDomain) {
-            console.log('Successfully received Shopify domain:', shopifyDomain);
-            break;
-          }
-        } catch (error) {
-          console.warn(`Domain request attempt ${retryCount + 1} failed:`, error);
-          retryCount++;
-          if (retryCount === maxRetries) {
-            throw new Error('Failed to get Shopify domain after multiple attempts');
-          }
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (!shopifyDomain) {
-        throw new Error('Could not determine Shopify domain');
-      }
-
-      // Clean city name by removing prefixes
-      const cleanCityName = (city: string) => {
-        return city.replace(/^(гр\.|с\.|гр|с)\s+/i, '').trim();
-      };
-
-      const cityValue = selectedShippingMethod === 'address' ? 
-        form.getValues('city') || '' : 
-        form.getValues('officeCity') || '';
-
-      // Send submit message to parent window
-      window.parent.postMessage({
-        type: 'submit-checkout',
-        formData: {
-          shop_domain: shopifyDomain,
-          cartData: localCartData,
-          shippingMethod: selectedShippingMethod,
-          shipping_method: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
-          shipping_price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
-          shipping_method_data: {
-            type: selectedShippingMethod,
-            name: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
-            price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
-            price_formatted: `${(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS] / 100).toFixed(2)} лв.`
-          },
-          firstName: form.getValues('firstName'),
-          lastName: form.getValues('lastName'),
-          phone: form.getValues('phone'),
-          email: form.getValues('email'),
-          city: cleanCityName(cityValue),
-          address: selectedShippingMethod === 'address' ? 
-            `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
-            : form.getValues('officeAddress'),
-          postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
-          officePostalCode: form.getValues('officePostalCode'),
-          note: form.getValues('note')
-        }
-      }, '*');
-
-      // Listen for response from parent window
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Timeout waiting for order creation'));
-          window.removeEventListener('message', handler);
-        }, 10000);
-
-        const handler = (event: MessageEvent) => {
-          if (event.data.type === 'order-created') {
-            clearTimeout(timeout);
-            window.removeEventListener('message', handler);
-            resolve(event.data);
-          } else if (event.data.type === 'order-error') {
-            clearTimeout(timeout);
-            window.removeEventListener('message', handler);
-            reject(new Error(event.data.error));
-          }
-        };
-
-        window.addEventListener('message', handler);
-      });
-
-      setSubmitStatus('success');
-      console.log('Order created successfully');
-    } catch (err) {
-      console.error('Error creating order:', err);
-      setSubmitStatus('error');
-    }
-  };
-
   return (
     <Dialog 
       open={open} 
@@ -1947,9 +1687,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         
         {/* Show Follow-up popup after thank you page */}
         {showFollowUpPopup && renderFollowUpPopup()}
-        
-        {/* Show Cross-sell popup when order button is clicked */}
-        {showCrossSellPopup && renderCrossSellPopup()}
         
         <div className={`overflow-y-auto flex-1 ${isMobile ? 'h-[calc(100vh-64px)]' : ''}`}>
           <DialogHeader className={`p-4 pb-2 border-b fixed top-0 left-0 right-0 z-10 ${isMobile ? 'bg-white' : 'bg-white'}`}>
@@ -2508,21 +2245,127 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             className={`w-full bg-blue-600 text-white font-medium py-2.5 
               ${isMobile ? 'text-base py-3' : ''}`}
             disabled={!localCartData || submitStatus === 'loading'}
-            onClick={() => {
+            onClick={async () => {
               console.log('Submit button clicked');
-              
-              // Validate the form first
-              const formValues = form.getValues();
-              const isFormValid = form.trigger();
-              
-              isFormValid.then((valid) => {
-                if (valid) {
-                  // Show cross-sell popup instead of immediately submitting
-                  setShowCrossSellPopup(true);
-                } else {
-                  console.log('Form validation failed');
+              setSubmitStatus('loading');
+
+              try {
+                // Request domain from parent window and wait for response
+                let shopifyDomain = null;
+                let retryCount = 0;
+                const maxRetries = 3;
+
+                while (!shopifyDomain && retryCount < maxRetries) {
+                  try {
+                    console.log(`Attempting to get Shopify domain (attempt ${retryCount + 1})`);
+                    
+                    // Send the request
+                    window.parent.postMessage({ type: 'GET_SHOPIFY_DOMAIN' }, '*');
+
+                    // Listen for the response with a longer timeout for Firefox
+                    shopifyDomain = await new Promise((resolve, reject) => {
+                      const timeout = setTimeout(() => {
+                        reject(new Error(`Timeout waiting for domain (attempt ${retryCount + 1})`));
+                      }, 8000); // Increased timeout to 8 seconds
+
+                      const handler = (event: MessageEvent) => {
+                        if (event.data?.type === 'SHOPIFY_DOMAIN_RESPONSE') {
+                          clearTimeout(timeout);
+                          window.removeEventListener('message', handler);
+                          console.log('Received domain response:', event.data);
+                          resolve(event.data.domain);
+                        }
+                      };
+
+                      window.addEventListener('message', handler);
+                    });
+
+                    if (shopifyDomain) {
+                      console.log('Successfully received Shopify domain:', shopifyDomain);
+                      break;
+                    }
+                  } catch (error) {
+                    console.warn(`Domain request attempt ${retryCount + 1} failed:`, error);
+                    retryCount++;
+                    if (retryCount === maxRetries) {
+                      throw new Error('Failed to get Shopify domain after multiple attempts');
+                    }
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                  }
                 }
-              });
+
+                if (!shopifyDomain) {
+                  throw new Error('Could not determine Shopify domain');
+                }
+
+                // Clean city name by removing prefixes
+                const cleanCityName = (city: string) => {
+                  return city.replace(/^(гр\.|с\.|гр|с)\s+/i, '').trim();
+                };
+
+                const cityValue = selectedShippingMethod === 'address' ? 
+                  form.getValues('city') || '' : 
+                  form.getValues('officeCity') || '';
+
+                // Send submit message to parent window
+                window.parent.postMessage({
+                  type: 'submit-checkout',
+                  formData: {
+                    shop_domain: shopifyDomain,
+                    cartData: localCartData,
+                    shippingMethod: selectedShippingMethod,
+                    shipping_method: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
+                    shipping_price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
+                    shipping_method_data: {
+                      type: selectedShippingMethod,
+                      name: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
+                      price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
+                      price_formatted: `${(SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS] / 100).toFixed(2)} лв.`
+                    },
+                    firstName: form.getValues('firstName'),
+                    lastName: form.getValues('lastName'),
+                    phone: form.getValues('phone'),
+                    email: form.getValues('email'),
+                    city: cleanCityName(cityValue),
+                    address: selectedShippingMethod === 'address' ? 
+                      `${form.getValues('street')} ${form.getValues('number')}${form.getValues('entrance') ? `, вх. ${form.getValues('entrance')}` : ''}${form.getValues('floor') ? `, ет. ${form.getValues('floor')}` : ''}${form.getValues('apartment') ? `, ап. ${form.getValues('apartment')}` : ''}` 
+                      : form.getValues('officeAddress'),
+                    postalCode: selectedShippingMethod === 'address' ? form.getValues('postalCode') : form.getValues('officePostalCode'),
+                    officePostalCode: form.getValues('officePostalCode'),
+                    note: form.getValues('note')
+                  }
+                }, '*');
+
+                // Listen for response from parent window
+                await new Promise((resolve, reject) => {
+                  const timeout = setTimeout(() => {
+                    reject(new Error('Timeout waiting for order creation'));
+                    window.removeEventListener('message', handler);
+                  }, 10000);
+
+                  const handler = (event: MessageEvent) => {
+                    if (event.data.type === 'order-created') {
+                      clearTimeout(timeout);
+                      window.removeEventListener('message', handler);
+                      resolve(event.data);
+                    } else if (event.data.type === 'order-error') {
+                      clearTimeout(timeout);
+                      window.removeEventListener('message', handler);
+                      reject(new Error(event.data.error));
+                    }
+                  };
+
+                  window.addEventListener('message', handler);
+                });
+
+                setSubmitStatus('success');
+                console.log('Order created successfully');
+                // No need to close the dialog here - we'll show thank you page instead
+              } catch (err) {
+                console.error('Error creating order:', err);
+                setSubmitStatus('error');
+              }
             }}
           >
             {submitStatus === 'loading' ? 'Обработка...' : `Завършете поръчката си (${formatMoney((localCartData?.total_price || 0) + shippingCost).replace(' лв.', '')})`}
