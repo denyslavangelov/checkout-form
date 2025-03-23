@@ -103,6 +103,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     isMobile
   });
 
+  // States for checkout flow and UI 
+  const [localCartData, setLocalCartData] = useState<any | null>(null);
+  const [showThankYou, setShowThankYou] = useState(false);
+  const [showFollowUpPopup, setShowFollowUpPopup] = useState(false);
+  const thankYouTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  
+  // Form setup with react-hook-form and zod validation
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -425,8 +433,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     return data;
   };
 
-  // Initialize cart data with a reasonable default
-  const [localCartData, setLocalCartData] = useState<any>(null);
+  // Initialize cart data when form opens - REMOVE this duplicate declaration
+  // const [localCartData, setLocalCartData] = useState<any>(null);
   
   // Request cart data when form opens
   useEffect(() => {
@@ -997,8 +1005,36 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     }
   };
 
+  // Add effect to handle thank you page and follow-up popup timing
+  useEffect(() => {
+    if (submitStatus === 'success' && !showThankYou) {
+      console.log('Order successful, showing thank you page');
+      setShowThankYou(true);
+      
+      // Set timer to show follow-up popup after 3 seconds
+      thankYouTimerRef.current = setTimeout(() => {
+        console.log('Showing follow-up popup');
+        setShowFollowUpPopup(true);
+      }, 3000);
+    }
+    
+    return () => {
+      if (thankYouTimerRef.current) {
+        clearTimeout(thankYouTimerRef.current);
+      }
+    };
+  }, [submitStatus, showThankYou]);
+
   // Handle dialog close
-  const handleDialogClose = () => {
+  const handleDialogClose = (forcedClose = false) => {
+    // Don't close if we're showing thank you page or popup, unless forced
+    if (!forcedClose && (showThankYou || showFollowUpPopup)) {
+      console.log('Prevented dialog close during thank you/popup sequence');
+      return;
+    }
+
+    console.log('Closing checkout dialog');
+    
     // First notify parent window to close iframe
     if (typeof window !== 'undefined' && window.parent) {
       window.parent.postMessage({ type: 'checkout-closed' }, '*');
@@ -1029,12 +1065,17 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       onOpenChange(false);
     }
   };
-
+  
   // Check if cart is empty and close the form if it is
   useEffect(() => {
     // Only close form if cart is empty and we've actually received cart data
     // This prevents closing immediately on initial load when data might not be ready yet
     if (localCartData && localCartData.items && localCartData.items.length === 0) {
+      // Don't close the form if we're showing thank you page or popup
+      if (showThankYou || showFollowUpPopup) {
+        return;
+      }
+      
       // Don't close the form if we're waiting for cart data
       // Special handling for Buy Now: don't close if cart type is buy_now
       const isBuyNowData = 
@@ -1059,7 +1100,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         handleDialogClose();
       }
     }
-  }, [localCartData, cartData, handleDialogClose]);
+  }, [localCartData, cartData, showThankYou, showFollowUpPopup]);
 
   // Add a state for filtered office suggestions
   const [filteredOfficeSuggestions, setFilteredOfficeSuggestions] = useState<ComboboxOption[]>([]);
@@ -1118,9 +1159,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
   }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
-
-  // Add a state for submit status
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   // Format money helper
   const formatMoney = (cents: number) => {
@@ -1241,13 +1279,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     updatedCart.items_subtotal_price -= priceToSubtract;
     updatedCart.item_count -= itemToRemove.quantity;
     
-    // If this was the last item, close the form
-    if (updatedCart.items.length === 0) {
-      onOpenChange(false);
-      // Notify parent window to close iframe
-      if (typeof window !== 'undefined' && window.parent) {
-        window.parent.postMessage('checkout-closed', '*');
-      }
+    // If this was the last item, close the form only if not showing thank you or popup
+    if (updatedCart.items.length === 0 && !showThankYou && !showFollowUpPopup) {
+      handleDialogClose();
     }
     
     setLocalCartData(updatedCart);
@@ -1569,31 +1603,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             </div>
     );
   };
-  
-  // Add states for thank you page and follow-up popup
-  const [showThankYou, setShowThankYou] = useState(false);
-  const [showFollowUpPopup, setShowFollowUpPopup] = useState(false);
-  const thankYouTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Add effect to handle thank you page and follow-up popup timing
-  useEffect(() => {
-    if (submitStatus === 'success' && !showThankYou) {
-      setShowThankYou(true);
-      
-      // Set timer to show follow-up popup after 3 seconds
-      thankYouTimerRef.current = setTimeout(() => {
-        setShowFollowUpPopup(true);
-      }, 3000);
-    }
-    
-    return () => {
-      if (thankYouTimerRef.current) {
-        clearTimeout(thankYouTimerRef.current);
-      }
-    };
-  }, [submitStatus, showThankYou]);
-  
-  // Add thank you page component
+
+  // Update the thank you page component to use the forced close
   const renderThankYouPage = () => {
     return (
       <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-4">
@@ -1611,7 +1622,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           <Button 
             className="w-full bg-blue-600 text-white" 
             onClick={() => {
-              handleDialogClose();
+              // Force close the dialog when explicitly clicked
+              handleDialogClose(true);
             }}
           >
             Затвори
@@ -1621,7 +1633,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     );
   };
   
-  // Add follow-up popup component with product offer
+  // Also update follow-up popup to use the forced close
   const renderFollowUpPopup = () => {
     // Sample upsell product data - in production this would come from your backend
     const upsellProduct = {
@@ -1707,7 +1719,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                   // Wait a moment, then close the popup
                   setTimeout(() => {
                     setShowFollowUpPopup(false);
-                    handleDialogClose();
+                    // Force close the dialog
+                    handleDialogClose(true);
                   }, 2000);
                 }
               }}
@@ -1721,7 +1734,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
               className="w-full border-gray-300 text-gray-700"
               onClick={() => {
                 setShowFollowUpPopup(false);
-                handleDialogClose();
+                // Force close the dialog
+                handleDialogClose(true);
               }}
             >
               Не, благодаря
@@ -1756,7 +1770,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   return (
     <Dialog 
       open={open} 
-      onOpenChange={handleDialogClose}
+      onOpenChange={(newOpenState) => {
+        // Only allow dialog to close if not showing thank you or popup
+        if (newOpenState === false && (showThankYou || showFollowUpPopup)) {
+          // Prevent automatic closing during thank you/popup sequence
+          return;
+        }
+        handleDialogClose();
+      }}
       modal={true}
     >
       <DialogContent 
