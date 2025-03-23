@@ -2254,12 +2254,19 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     form.getValues('city') || '' : 
                     form.getValues('officeCity') || '';
 
-                  // Send submit message to parent window
+                  // Inside the onClick handler of the submit button, before sending the message
                   window.parent.postMessage({
                     type: 'submit-checkout',
                     formData: {
                       shop_domain: shopifyDomain,
-                      cartData: localCartData,
+                      cartData: {
+                        ...localCartData,
+                        items: localCartData.items.map((item: any) => ({
+                          ...item,
+                          variant_id: formatVariantId(item.variant_id || item.id),
+                          merchandiseId: formatVariantId(item.variant_id || item.id)
+                        }))
+                      },
                       shippingMethod: selectedShippingMethod,
                       shipping_method: selectedShippingMethod === 'address' ? 'Личен адрес' : 'Офис на Спиди',
                       shipping_price: SHIPPING_COSTS[selectedShippingMethod as keyof typeof SHIPPING_COSTS],
