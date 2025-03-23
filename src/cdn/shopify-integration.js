@@ -1124,6 +1124,7 @@
   
   // Function to check if current page is an order confirmation page
   function checkForOrderConfirmationPage() {
+    debugger;
     const currentUrl = window.location.href;
     console.log('Checking URL for order confirmation:', currentUrl);
     
