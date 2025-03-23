@@ -1750,12 +1750,20 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const handlePostPurchaseMessages = (event: MessageEvent) => {
+        // Handle order completion message from parent window
+        if (event.data?.type === 'order-completed') {
+          console.log('Order completed successfully:', event.data);
+          
+          // Set submission status to success to trigger thank you flow
+          setSubmitStatus('success');
+        }
+        
         // Handle confirmation of upsell product being added to cart
         if (event.data?.type === 'upsell-product-added') {
           console.log('Upsell product successfully added to cart:', event.data);
           
           // Close form after product has been added
-          handleDialogClose();
+          handleDialogClose(true);
         }
       };
       

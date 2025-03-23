@@ -960,10 +960,20 @@
           orderStatusUrl = `https://${requestPayload.shop_domain}`;
         }
 
+        // Temporarily disabled automatic redirection to test thank you and upsell popups
+        // Instead, just inform the iframe that the order was completed
+        source.postMessage({
+          type: 'order-completed',
+          orderStatusUrl: orderStatusUrl,
+          orderId: data.order?.id || 'unknown'
+        }, '*');
+
+        /* 
         // Short delay to show the success message
         setTimeout(() => {
           window.location.href = orderStatusUrl;
         }, 500);
+        */
       } else {
         throw new Error(data.message || 'Failed to create order');
       }
