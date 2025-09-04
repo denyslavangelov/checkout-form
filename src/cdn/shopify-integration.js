@@ -546,6 +546,10 @@
   // Select an office
   function selectOffice(office) {
     console.log('🏢 Office selected:', office);
+    console.log('🏢 Office object keys:', Object.keys(office));
+    console.log('🏢 Office fullAddressString:', office.fullAddressString);
+    console.log('🏢 Office address:', office.address);
+    console.log('🏢 Office fullAddress:', office.fullAddress);
     
     currentOfficeId = office.id;
     currentOfficeName = office.name;
@@ -553,6 +557,7 @@
     currentOfficeAddress = office.fullAddressString || office.address || office.fullAddress;
     
     console.log('🏢 Extracted office address:', currentOfficeAddress);
+    console.log('🏢 Address type:', typeof currentOfficeAddress);
     
     // Update the search input
     const searchInput = document.getElementById('office-office-search');
@@ -668,6 +673,9 @@
       officeAddress: currentOfficeAddress,
       cityName: currentCityName
     });
+    
+    console.log('🏢 Office address type:', typeof currentOfficeAddress);
+    console.log('🏢 Office address value:', currentOfficeAddress);
 
     const button = document.getElementById('office-create-order');
     const originalText = button.textContent;
