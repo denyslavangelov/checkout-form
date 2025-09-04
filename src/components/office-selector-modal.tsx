@@ -240,7 +240,7 @@ export function OfficeSelectorModal({
         console.log('🏢 Cart checkout - creating draft order with cart items');
         
         // Get cart data from the parent window
-        const cartData = await getCartDataFromParent();
+        const cartData = await getCartDataFromParent() as any;
         if (!cartData || !cartData.items || cartData.items.length === 0) {
           setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
           return;
