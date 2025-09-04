@@ -37,8 +37,8 @@
         border-radius: 8px;
         width: 90%;
         max-width: 500px;
-        height: 80vh;
-        max-height: 600px;
+        height: auto;
+        max-height: 500px;
         position: relative;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         border: 1px solid #e5e7eb;
@@ -49,7 +49,7 @@
           src=""
           style="
             width: 100%;
-            height: 100%;
+            height: 450px;
             border: none;
             border-radius: 8px;
           "
