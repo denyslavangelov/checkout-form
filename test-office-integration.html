@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office Buy Now Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .product {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f9f9f9;
+        }
+        .product h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .product p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007cba;
+            margin-bottom: 20px;
+        }
+        .buy-now-btn {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .buy-now-btn:hover {
+            background: #005a87;
+        }
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .code-block {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏢 Office Buy Now Integration Test</h1>
+    
+    <div class="instructions">
+        <h3>How to Use This Integration</h3>
+        <p>This page demonstrates how the office selection form integrates with Buy Now buttons. When you click a Buy Now button, it will:</p>
+        <ol>
+            <li>Show a modal with city and office selection</li>
+            <li>Load cities from the Speedy API</li>
+            <li>Load offices when a city is selected</li>
+            <li>Create a draft order with the office address</li>
+            <li>Redirect to Shopify checkout with pre-filled address</li>
+        </ol>
+    </div>
+
+    <div class="product">
+        <h2>First Foods Recipe Book</h2>
+        <p>A comprehensive guide to introducing solid foods to your baby, with 50+ nutritious recipes and feeding tips.</p>
+        <div class="price">$48.95</div>
+        
+        <!-- Standard Buy Now button - will be intercepted by the integration -->
+        <button class="buy-now-btn" 
+                data-product-id="8597449146499" 
+                data-variant-id="45304463556739">
+            Buy Now
+        </button>
+        
+        <!-- Alternative Buy Now button with different attributes -->
+        <button class="buy-now-btn" 
+                data-productid="8597449146499" 
+                data-variantid="45304463556739">
+            Buy Now (Alt)
+        </button>
+        
+        <!-- Buy Now button with text-based detection -->
+        <button class="buy-now-btn">
+            BUY NOW
+        </button>
+    </div>
+
+    <div class="product">
+        <h2>Deluxe Starting Solids Set</h2>
+        <p>Everything you need to start your baby's solid food journey, including feeding tools and recipe book.</p>
+        <div class="price">$55.00</div>
+        
+        <button class="buy-now-btn" 
+                data-product-id="8597449146499" 
+                data-variant-id="8597449146499">
+            Buy Now
+        </button>
+    </div>
+
+    <div class="instructions">
+        <h3>Integration Code</h3>
+        <p>To add this to your live site, include this script:</p>
+        <div class="code-block">
+&lt;script src="https://checkout-form-zeta.vercel.app/cdn/office-buy-now-integration.js"&gt;&lt;/script&gt;
+        </div>
+        
+        <p>Or add data attributes to your existing Buy Now buttons:</p>
+        <div class="code-block">
+&lt;button data-product-id="YOUR_PRODUCT_ID" data-variant-id="YOUR_VARIANT_ID"&gt;
+    Buy Now
+&lt;/button&gt;
+        </div>
+        
+        <p>The script will automatically:</p>
+        <ul>
+            <li>Find all Buy Now buttons on the page</li>
+            <li>Intercept clicks and show office selection</li>
+            <li>Create draft orders with office addresses</li>
+            <li>Redirect to Shopify checkout</li>
+        </ul>
+    </div>
+
+    <!-- Include the office integration script -->
+    <script src="src/cdn/office-buy-now-integration.js"></script>
+    
+    <script>
+        // Add some additional test buttons dynamically
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add a button that will be detected by text content
+            const testContainer = document.createElement('div');
+            testContainer.className = 'product';
+            testContainer.innerHTML = `
+                <h2>Dynamic Test Product</h2>
+                <p>This button was added dynamically and should still be detected.</p>
+                <div class="price">$29.99</div>
+                <button class="buy-now-btn" data-variant-id="45304463556739">
+                    Buy Now (Dynamic)
+                </button>
+            `;
+            document.body.appendChild(testContainer);
+        });
+        
+        // Log integration status
+        console.log('🏢 Office Buy Now Integration Test Page Loaded');
+        console.log('📦 Available functions:', window.OfficeBuyNowIntegration);
+    </script>
+</body>
+</html>
