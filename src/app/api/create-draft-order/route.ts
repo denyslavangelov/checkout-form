@@ -50,14 +50,28 @@ export async function POST(request: NextRequest) {
     if (!variantId) {
       return NextResponse.json(
         { error: 'Variant ID is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
       );
     }
 
     if (!shippingAddress || !shippingAddress.address1 || !shippingAddress.country) {
       return NextResponse.json(
         { error: 'Shipping address with address1 and country is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
       );
     }
 
@@ -123,7 +137,14 @@ export async function POST(request: NextRequest) {
       console.error('Shopify API error:', data);
       return NextResponse.json(
         { error: 'Failed to create draft order', details: data },
-        { status: response.status }
+        { 
+          status: response.status,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
       );
     }
 
@@ -131,7 +152,14 @@ export async function POST(request: NextRequest) {
       console.error('GraphQL errors:', data.errors);
       return NextResponse.json(
         { error: 'GraphQL errors', details: data.errors },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
       );
     }
 
@@ -139,7 +167,14 @@ export async function POST(request: NextRequest) {
       console.error('User errors:', data.data.draftOrderCreate.userErrors);
       return NextResponse.json(
         { error: 'Draft order creation failed', details: data.data.draftOrderCreate.userErrors },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
       );
     }
 
@@ -148,7 +183,14 @@ export async function POST(request: NextRequest) {
       console.error('No draft order created:', data);
       return NextResponse.json(
         { error: 'No draft order created', details: data },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
       );
     }
 
