@@ -50,6 +50,34 @@ export function OfficeSelectorModal({
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
 
+  // Function to get cart data from parent window
+  const getCartDataFromParent = async () => {
+    return new Promise((resolve) => {
+      // Request cart data from parent
+      if (window.parent) {
+        window.parent.postMessage({ type: 'request-cart-data' }, '*');
+        
+        // Listen for response
+        const messageHandler = (event: MessageEvent) => {
+          if (event.data?.type === 'cart-data' && event.data?.cart) {
+            window.removeEventListener('message', messageHandler);
+            resolve(event.data.cart);
+          }
+        };
+        
+        window.addEventListener('message', messageHandler);
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          window.removeEventListener('message', messageHandler);
+          resolve(null);
+        }, 5000);
+      } else {
+        resolve(null);
+      }
+    });
+  };
+
   // Search cities function
   const searchCities = useCallback(async (term: string) => {
     if (!term || term.length < 1) {
@@ -208,36 +236,59 @@ export function OfficeSelectorModal({
 
       // Check if this is a cart checkout
       if (productId === 'cart' && variantId === 'cart') {
-        // For cart checkout, redirect to regular checkout with office address
-        console.log('🏢 Cart checkout - redirecting to regular checkout');
+        // For cart checkout, we need to create a draft order with the cart items
+        console.log('🏢 Cart checkout - creating draft order with cart items');
         
-        // Store office address in localStorage for the checkout form to use
-        const officeAddress = {
-          address1: (() => {
-            if (typeof selectedOffice.address === 'string') {
-              return selectedOffice.address;
-            } else if (selectedOffice.fullAddressString) {
-              return selectedOffice.fullAddressString;
-            } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-              return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+        // Get cart data from the parent window
+        const cartData = await getCartDataFromParent();
+        if (!cartData || !cartData.items || cartData.items.length === 0) {
+          setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
+          return;
+        }
+        
+        console.log('🏢 Cart data received:', cartData);
+        
+        // Create draft order with cart items and office address
+        const response = await fetch(`${baseUrl}/api/create-draft-order`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cartData: cartData,
+            shippingAddress: {
+              address1: (() => {
+                if (typeof selectedOffice.address === 'string') {
+                  return selectedOffice.address;
+                } else if (selectedOffice.fullAddressString) {
+                  return selectedOffice.fullAddressString;
+                } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
+                  return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+                }
+                return 'Address not available';
+              })(),
+              city: selectedCity.name,
+              country: 'Bulgaria',
+              postalCode: selectedCity.postCode || ''
             }
-            return 'Address not available';
-          })(),
-          city: selectedCity.name,
-          country: 'Bulgaria',
-          postalCode: selectedCity.postCode || ''
-        };
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create draft order');
+        }
+
+        const data = await response.json();
+        console.log('🏢 Draft order created for cart:', data);
         
-        console.log('🏢 Storing office address in localStorage:', officeAddress);
-        localStorage.setItem('selectedOfficeAddress', JSON.stringify(officeAddress));
-        
-        // Verify it was stored
-        const stored = localStorage.getItem('selectedOfficeAddress');
-        console.log('🏢 Verification - stored address:', stored);
-        
-        // For cart checkout, notify the parent with a special checkout URL
-        console.log('🏢 Cart checkout - office address stored, notifying parent');
-        onOrderCreated('/checkout');
+        if (data.checkoutUrl) {
+          onOrderCreated(data.checkoutUrl);
+        } else if (data.invoiceUrl) {
+          onOrderCreated(data.invoiceUrl);
+        } else {
+          throw new Error('No checkout URL received');
+        }
         return;
       }
 

@@ -47,11 +47,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Received request body:', JSON.stringify(body, null, 2));
     
-    const { productId, variantId, shippingAddress } = body;
+    const { productId, variantId, shippingAddress, cartData } = body;
     
     console.log('🔍 DEBUG: Extracted data:', {
       productId,
       variantId,
+      cartData: cartData ? 'present' : 'not present',
+      cartItemsCount: cartData?.items?.length || 0,
       shippingAddress,
       address1Type: typeof shippingAddress?.address1,
       address1Value: shippingAddress?.address1,
@@ -60,8 +62,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Simple validation
-    if (!variantId) {
-      return NextResponse.json({ error: 'Variant ID is required' }, { 
+    if (!variantId && !cartData) {
+      return NextResponse.json({ error: 'Either variant ID or cart data is required' }, { 
         status: 400,
         headers: { 'Access-Control-Allow-Origin': '*' }
       });
@@ -92,7 +94,25 @@ export async function POST(request: NextRequest) {
       country: shippingAddress.country || 'Bulgaria'
     });
 
-    // Create simple draft order
+    // Create line items based on whether we have cart data or single product
+    let lineItems;
+    if (cartData && cartData.items && cartData.items.length > 0) {
+      // Use cart items
+      lineItems = cartData.items.map((item: any) => ({
+        variantId: `gid://shopify/ProductVariant/${item.variant_id || item.id}`,
+        quantity: item.quantity || 1
+      }));
+      console.log('🔍 DEBUG: Using cart items:', lineItems);
+    } else {
+      // Use single product
+      lineItems = [{
+        variantId: `gid://shopify/ProductVariant/${variantId}`,
+        quantity: 1
+      }];
+      console.log('🔍 DEBUG: Using single product:', lineItems);
+    }
+
+    // Create draft order
     const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {
       method: 'POST',
       headers: {
@@ -103,10 +123,7 @@ export async function POST(request: NextRequest) {
         query: CREATE_DRAFT_ORDER_MUTATION,
         variables: {
           input: {
-            lineItems: [{
-              variantId: `gid://shopify/ProductVariant/${variantId}`,
-              quantity: 1
-            }],
+            lineItems: lineItems,
             shippingAddress: {
               address1: addressString,
               city: shippingAddress.city || 'Sofia',

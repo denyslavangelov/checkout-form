@@ -9,11 +9,11 @@
       const result = originalOnClickDescriptor.set.call(this, value);
       
       // Add our handler after a short delay to ensure it runs after the original
-        setTimeout(() => {
-          addOurCheckoutHandler(this);
-        }, 100);
-      
-      return result;
+      setTimeout(() => {
+        addOurCheckoutHandler(this);
+      }, 100);
+    
+    return result;
     },
     get: originalOnClickDescriptor.get
   });
@@ -161,6 +161,15 @@
           window.location.href = event.data.checkoutUrl;
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
+        } else if (event.data.type === 'request-cart-data') {
+          console.log('🏢 Office selector requesting cart data');
+          // Send cart data to the office selector iframe
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
+              cart: window.shopifyCart || window.cartData
+            }, baseUrl);
+          }
         }
       };
       
@@ -343,8 +352,8 @@
   }
   
   function openCustomCheckout(event) {
-    console.log('Opening custom checkout...');
-    
+  console.log('Opening custom checkout...');
+  
     // Determine if this is a "Buy Now" button click
     const isBuyNow = event.target.textContent?.toLowerCase().includes('buy now') ||
                      event.target.textContent?.toLowerCase().includes('купи сега') ||
@@ -379,7 +388,7 @@
        : 'https://checkout-form-zeta.vercel.app';
      
      // Create iframe for checkout form
-     const iframe = document.createElement('iframe');
+        const iframe = document.createElement('iframe');
      iframe.src = `${baseUrl}/iframe`;
      iframe.style.cssText = `
        position: fixed;
@@ -411,11 +420,11 @@
           break;
         case 'request-cart-data':
           console.log('Checkout form requesting cart data');
-          iframe.contentWindow.postMessage({
-            type: 'cart-data',
+            iframe.contentWindow.postMessage({
+              type: 'cart-data',
             cart: productData
           }, baseUrl);
-          break;
+            break;
         case 'submit-checkout':
           console.log('Checkout form submitted');
           handleOrderCreation(event.data.formData, event.source);
@@ -463,11 +472,11 @@
       console.log('Order created successfully:', data);
 
       // Send success response back to iframe
-      source.postMessage({
-        type: 'order-created',
+        source.postMessage({
+          type: 'order-created',
         orderId: data.orderId,
         checkoutUrl: data.checkoutUrl
-      }, '*');
+        }, '*');
 
     } catch (error) {
       console.error('Error creating order:', error);
