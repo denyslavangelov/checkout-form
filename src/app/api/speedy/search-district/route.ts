@@ -1,40 +1,37 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    // Get site ID from URL params
-    const { searchParams } = new URL(request.url);
-    const siteId = searchParams.get('siteId');
-    const term = searchParams.get('term') || '';
+    // Get data from request body
+    const body = await request.json();
+    const { countryId, name } = body;
 
-    console.log(`Searching for districts in site ID: ${siteId} with term: ${term || '(empty)'}`);
+    console.log(`Searching for districts with countryId: ${countryId}, name: ${name || '(empty)'}`);
 
     // Get credentials from env variables
     const username = process.env.SPEEDY_USERNAME || 'demo';
     const password = process.env.SPEEDY_PASSWORD || 'demo';
 
     // Validate input
-    if (!siteId) {
-      console.error("Missing siteId parameter");
+    if (!countryId) {
+      console.error("Missing countryId parameter");
       return NextResponse.json(
-        { error: "Missing required parameter: siteId" },
+        { error: "Missing required parameter: countryId" },
         { status: 400 }
       );
     }
 
-    // Call Speedy API to get districts for the site
+    // Call Speedy API to get districts for the country
     const requestBody: any = {
       userName: username,
       password: password,
       language: 'bg',
-      siteId: parseInt(siteId),
-      countryId: 100,
-      name: term || undefined // Only include name if term is provided
+      countryId: parseInt(countryId)
     };
 
     // Only add name parameter if a search term is provided
-    if (term) {
-      requestBody.name = term;
+    if (name) {
+      requestBody.name = name;
     }
 
     const response = await fetch('https://api.speedy.bg/v1/location/complex', {
@@ -51,30 +48,48 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    console.log(`District search response for term "${term || '(empty)'}" returned ${data.complexes?.length || 0} results`);
+    console.log(`District search response for term "${name || '(empty)'}" returned ${data.complexes?.length || 0} results`);
 
-    // Format districts for autocomplete with prefixes
+    // Format districts for office selector
     const districts = data.complexes?.map((complex: any) => {
-      // Extract the complex/district prefix if available
-      const prefix = complex.namePrefix || 'ж.к.'; // Default to "ж.к." if prefix not available
-      
       return {
         id: complex.id,
         name: complex.name,
-        prefix: prefix,
         siteId: complex.siteId,
-        siteName: complex.siteName,
-        value: `${complex.id}|${complex.name}|${prefix}`,
-        label: `${prefix} ${complex.name}`
+        siteName: complex.siteName
       };
     }) || [];
 
-    return NextResponse.json({ districts });
+    return NextResponse.json({ districts }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    });
   } catch (error) {
     console.error('Error searching districts:', error);
     return NextResponse.json(
       { error: 'Failed to search districts' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
 } 

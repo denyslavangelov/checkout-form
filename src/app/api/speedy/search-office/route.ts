@@ -1,22 +1,28 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const siteId = searchParams.get('siteId');
-  const term = searchParams.get('term');
-  
-  // Get credentials from environment variables
-  const username = process.env.SPEEDY_USERNAME || "1904618";
-  const password = process.env.SPEEDY_PASSWORD || "6661214521";
-
-  if (!siteId) {
-    return NextResponse.json(
-      { error: 'Missing site ID' },
-      { status: 400 }
-    );
-  }
-
+export async function POST(request: Request) {
   try {
+    const body = await request.json();
+    const { siteId, term } = body;
+    
+    // Get credentials from environment variables
+    const username = process.env.SPEEDY_USERNAME || "1904618";
+    const password = process.env.SPEEDY_PASSWORD || "6661214521";
+
+    if (!siteId) {
+      return NextResponse.json(
+        { error: 'Missing site ID' },
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
+      );
+    }
+
     console.log('Searching for offices in site:', siteId);
     
     const response = await fetch('https://api.speedy.bg/v1/location/office', {
@@ -46,7 +52,7 @@ export async function GET(request: Request) {
     const data = await response.json();
     console.log('Speedy Offices API response:', data);
 
-    // Format the offices for autocomplete
+    // Format the offices for office selector
     const formattedOffices = data.offices?.map((office: any) => ({
       id: office.id,
       name: office.name,
@@ -57,12 +63,36 @@ export async function GET(request: Request) {
       label: `${office.name}: ${office.address}`
     })) || [];
 
-    return NextResponse.json({ offices: formattedOffices });
+    return NextResponse.json({ offices: formattedOffices }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    });
   } catch (error) {
     console.error('Error in /api/speedy/search-office:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch office data' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
     );
   }
-} 
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
+}
