@@ -171,24 +171,43 @@
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'request-cart-data') {
           console.log('🏢 Office selector requesting cart data');
-          console.log('🏢 Available cart data:', { 
-            shopifyCart: window.shopifyCart, 
-            cartData: window.cartData,
-            hasItems: !!(window.shopifyCart?.items || window.cartData?.items)
-          });
           
-          // Send cart data to the office selector iframe
-          if (iframe.contentWindow) {
-            const cartToSend = window.shopifyCart || window.cartData;
-            console.log('🏢 Sending cart data to iframe:', cartToSend);
-            
-            iframe.contentWindow.postMessage({
-              type: 'cart-data',
-              cart: cartToSend
-            }, event.origin);
-          } else {
-            console.log('🏢 No iframe contentWindow found');
-          }
+          // Fetch fresh cart data from Shopify
+          fetch('/cart.js')
+            .then(response => response.json())
+            .then(freshCartData => {
+              console.log('🏢 Fresh cart data fetched:', freshCartData);
+              
+              // Update global cart data
+              window.shopifyCart = freshCartData;
+              window.cartData = freshCartData;
+              
+              // Send fresh cart data to the office selector iframe
+              if (iframe.contentWindow) {
+                console.log('🏢 Sending fresh cart data to iframe:', freshCartData);
+                
+                iframe.contentWindow.postMessage({
+                  type: 'cart-data',
+                  cart: freshCartData
+                }, event.origin);
+              } else {
+                console.log('🏢 No iframe contentWindow found');
+              }
+            })
+            .catch(error => {
+              console.error('🏢 Error fetching fresh cart data:', error);
+              
+              // Fallback to cached cart data
+              const fallbackCart = window.shopifyCart || window.cartData;
+              console.log('🏢 Using fallback cart data:', fallbackCart);
+              
+              if (iframe.contentWindow && fallbackCart) {
+                iframe.contentWindow.postMessage({
+                  type: 'cart-data',
+                  cart: fallbackCart
+                }, event.origin);
+              }
+            });
         }
       };
       
