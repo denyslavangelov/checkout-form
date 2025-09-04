@@ -396,19 +396,28 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative shadow-lg border border-gray-200">
+    <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
-        {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">
-          {productId === 'cart' ? 'Изберете офис за доставка' : 'Офис на Спиди'}
-        </h3>
+        {/* Header with Speedy Logo */}
+        <div className="flex items-center gap-3 mb-4 sm:mb-6">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 307 287" className="w-full h-full">
+              <g transform="translate(0,287) scale(0.1,-0.1)" fill="#f02a2a">
+                <path d="M1370 2557 c-52 -29 -267 -147 -477 -261 -211 -114 -383 -211 -383 -214 0 -4 100 -65 223 -136 122 -71 285 -166 362 -212 77 -45 212 -123 300 -173 88 -51 168 -101 178 -113 16 -19 17 -56 17 -475 0 -293 -4 -461 -10 -474 -6 -10 -29 -28 -51 -39 l-40 -21 -44 22 c-25 13 -46 23 -47 23 -1 1 -5 192 -8 426 l-5 424 -85 52 c-139 83 -829 484 -845 490 -13 5 -15 -60 -15 -536 0 -344 4 -548 10 -560 9 -17 71 -55 500 -308 80 -47 188 -111 240 -142 200 -119 277 -160 300 -160 13 0 88 38 165 83 77 46 219 130 315 187 565 333 541 318 557 350 10 19 13 151 13 559 0 494 -1 533 -17 527 -17 -7 -97 -53 -378 -216 -277 -162 -259 -154 -297 -134 -58 29 -68 43 -68 94 0 32 5 52 16 61 17 15 172 106 486 286 103 60 187 110 188 113 0 3 -33 23 -72 45 -40 21 -89 47 -108 58 -19 11 -107 59 -195 107 -88 48 -234 127 -325 177 -215 118 -266 143 -287 143 -10 0 -61 -24 -113 -53z"/>
+              </g>
+            </svg>
+          </div>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+            {productId === 'cart' ? 'Изберете офис за доставка' : 'Офис на Спиди'}
+          </h3>
+        </div>
 
         <div className="space-y-4">
           {/* City Selection */}
@@ -432,21 +441,21 @@ export function OfficeSelectorModal({
               
               {/* City Dropdown */}
               {showCityDropdown && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
                   {loadingCities ? (
                     <div className="p-3 text-center text-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1" />
-                      Зареждане...
+                      <span className="text-sm">Зареждане...</span>
                     </div>
                   ) : cities.length > 0 ? (
                     cities.map((city) => (
                       <button
                         key={city.id}
                         onClick={() => handleCitySelect(city)}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-3 py-2 sm:py-3 text-left hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 last:border-b-0"
                       >
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">{city.label}</span>
+                        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm sm:text-base truncate">{city.label}</span>
                       </button>
                     ))
                   ) : (
@@ -486,25 +495,29 @@ export function OfficeSelectorModal({
               
               {/* Office Dropdown */}
               {showOfficeDropdown && selectedCity && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
                   {loadingOffices ? (
                     <div className="p-3 text-center text-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1" />
-                      Зареждане...
+                      <span className="text-sm">Зареждане...</span>
                     </div>
                   ) : offices.length > 0 ? (
                     offices.map((office) => (
                       <button
                         key={office.id}
                         onClick={() => handleOfficeSelect(office)}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-3 py-2 sm:py-3 text-left hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 last:border-b-0"
                       >
-                        <div className="w-4 h-4 bg-red-600 text-white text-xs font-bold rounded flex items-center justify-center">
-                          S
+                        <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 307 287" className="w-full h-full">
+                            <g transform="translate(0,287) scale(0.1,-0.1)" fill="#f02a2a">
+                              <path d="M1370 2557 c-52 -29 -267 -147 -477 -261 -211 -114 -383 -211 -383 -214 0 -4 100 -65 223 -136 122 -71 285 -166 362 -212 77 -45 212 -123 300 -173 88 -51 168 -101 178 -113 16 -19 17 -56 17 -475 0 -293 -4 -461 -10 -474 -6 -10 -29 -28 -51 -39 l-40 -21 -44 22 c-25 13 -46 23 -47 23 -1 1 -5 192 -8 426 l-5 424 -85 52 c-139 83 -829 484 -845 490 -13 5 -15 -60 -15 -536 0 -344 4 -548 10 -560 9 -17 71 -55 500 -308 80 -47 188 -111 240 -142 200 -119 277 -160 300 -160 13 0 88 38 165 83 77 46 219 130 315 187 565 333 541 318 557 350 10 19 13 151 13 559 0 494 -1 533 -17 527 -17 -7 -97 -53 -378 -216 -277 -162 -259 -154 -297 -134 -58 29 -68 43 -68 94 0 32 5 52 16 61 17 15 172 106 486 286 103 60 187 110 188 113 0 3 -33 23 -72 45 -40 21 -89 47 -108 58 -19 11 -107 59 -195 107 -88 48 -234 127 -325 177 -215 118 -266 143 -287 143 -10 0 -61 -24 -113 -53z"/>
+                            </g>
+                          </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{office.name}</div>
-                          <div className="text-xs text-gray-500 truncate">
+                          <div className="text-sm sm:text-base font-medium truncate">{office.name}</div>
+                          <div className="text-xs sm:text-sm text-gray-500 truncate">
                             {(() => {
                               if (typeof office.address === 'string') {
                                 return office.address;
@@ -531,11 +544,20 @@ export function OfficeSelectorModal({
 
           {/* Office Preview */}
           {selectedOffice && (
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-              <div className="text-sm font-medium text-gray-700 mb-1">Избран офис:</div>
-              <div className="text-sm text-gray-600">
-                <div className="font-medium">{selectedOffice.name}</div>
-                <div className="text-gray-500">
+            <div className="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 307 287" className="w-full h-full">
+                    <g transform="translate(0,287) scale(0.1,-0.1)" fill="#f02a2a">
+                      <path d="M1370 2557 c-52 -29 -267 -147 -477 -261 -211 -114 -383 -211 -383 -214 0 -4 100 -65 223 -136 122 -71 285 -166 362 -212 77 -45 212 -123 300 -173 88 -51 168 -101 178 -113 16 -19 17 -56 17 -475 0 -293 -4 -461 -10 -474 -6 -10 -29 -28 -51 -39 l-40 -21 -44 22 c-25 13 -46 23 -47 23 -1 1 -5 192 -8 426 l-5 424 -85 52 c-139 83 -829 484 -845 490 -13 5 -15 -60 -15 -536 0 -344 4 -548 10 -560 9 -17 71 -55 500 -308 80 -47 188 -111 240 -142 200 -119 277 -160 300 -160 13 0 88 38 165 83 77 46 219 130 315 187 565 333 541 318 557 350 10 19 13 151 13 559 0 494 -1 533 -17 527 -17 -7 -97 -53 -378 -216 -277 -162 -259 -154 -297 -134 -58 29 -68 43 -68 94 0 32 5 52 16 61 17 15 172 106 486 286 103 60 187 110 188 113 0 3 -33 23 -72 45 -40 21 -89 47 -108 58 -19 11 -107 59 -195 107 -88 48 -234 127 -325 177 -215 118 -266 143 -287 143 -10 0 -61 -24 -113 -53z"/>
+                    </g>
+                  </svg>
+                </div>
+                <div className="text-sm sm:text-base font-medium text-gray-700">Избран офис:</div>
+              </div>
+              <div className="text-sm sm:text-base text-gray-600">
+                <div className="font-medium mb-1">{selectedOffice.name}</div>
+                <div className="text-gray-500 text-xs sm:text-sm">
                   {(() => {
                     if (typeof selectedOffice.address === 'string') {
                       return selectedOffice.address;
@@ -562,15 +584,17 @@ export function OfficeSelectorModal({
           <Button
             onClick={handleCreateOrder}
             disabled={!selectedOffice || creatingOrder}
-            className="w-full bg-red-600 hover:bg-red-700 text-white"
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-3 sm:py-4 text-sm sm:text-base font-medium"
           >
             {creatingOrder ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Създаване на поръчка...
+                <span className="text-sm sm:text-base">Създаване на поръчка...</span>
               </>
             ) : (
-              productId === 'cart' ? 'Продължи към завършване на поръчката' : 'Продължи към завършване на поръчката'
+              <span className="text-sm sm:text-base">
+                {productId === 'cart' ? 'Продължи към завършване на поръчката' : 'Продължи към завършване на поръчката'}
+              </span>
             )}
           </Button>
         </div>
