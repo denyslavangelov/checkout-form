@@ -212,7 +212,7 @@ export function OfficeSelectionForm({
           <Combobox
             options={cities.map(city => ({ value: city.id, label: city.name }))}
             value={selectedCity}
-            onValueChange={setSelectedCity}
+            onChange={setSelectedCity}
             placeholder="Select city..."
             disabled={loading}
           />
@@ -226,7 +226,7 @@ export function OfficeSelectionForm({
               label: `${office.name} - ${office.address}` 
             }))}
             value={selectedOffice}
-            onValueChange={setSelectedOffice}
+            onChange={setSelectedOffice}
             placeholder={selectedCity ? "Select office..." : "Select city first"}
             disabled={!selectedCity || loading}
           />
