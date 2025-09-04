@@ -98,10 +98,14 @@ export async function POST(request: NextRequest) {
     let lineItems;
     if (cartData && cartData.items && cartData.items.length > 0) {
       // Use cart items
-      lineItems = cartData.items.map((item: any) => ({
-        variantId: `gid://shopify/ProductVariant/${item.variant_id || item.id}`,
-        quantity: item.quantity || 1
-      }));
+      console.log('🔍 DEBUG: Raw cart items:', cartData.items);
+      lineItems = cartData.items.map((item: any) => {
+        console.log('🔍 DEBUG: Processing item:', item);
+        return {
+          variantId: `gid://shopify/ProductVariant/${item.variant_id || item.id}`,
+          quantity: item.quantity || 1
+        };
+      });
       console.log('🔍 DEBUG: Using cart items:', lineItems);
     } else {
       // Use single product

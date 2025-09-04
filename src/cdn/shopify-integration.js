@@ -219,36 +219,22 @@
     const className = element.className?.toLowerCase() || '';
     const id = element.id?.toLowerCase() || '';
 
-    // Check for common checkout button patterns
-    const isIdentifiedCheckout = 
-      className.includes('checkout') ||
-      className.includes('buy-now') ||
-      className.includes('add-to-cart') ||
-      id.includes('checkout') ||
-      id.includes('buy-now') ||
-      id.includes('add-to-cart');
+    // Only target specific buttons:
+    // 1. Buy it now button: <button type="button" class="shopify-payment-button__button shopify-payment-button__button--unbranded">Buy it now</button>
+    // 2. Cart checkout button: <button type="button" id="CartDrawer-Checkout" class="cart__checkout-button button">
+    
+    const isBuyItNowButton = 
+      tagName === 'button' &&
+      className.includes('shopify-payment-button__button') &&
+      className.includes('shopify-payment-button__button--unbranded') &&
+      text.includes('buy it now');
 
-    const hasCheckoutText = 
-      text.includes('checkout') ||
-      text.includes('buy now') ||
-      text.includes('add to cart') ||
-      text.includes('купи сега') ||
-      text.includes('добави в кошницата') ||
-      text.includes('поръчай') ||
-      text.includes('завърши поръчката');
+    const isCartCheckoutButton = 
+      tagName === 'button' &&
+      id === 'cartdrawer-checkout' &&
+      className.includes('cart__checkout-button');
 
-    const isBuyNowButton = 
-      text.includes('buy now') ||
-      text.includes('купи сега') ||
-      className.includes('buy-now') ||
-      id.includes('buy-now');
-
-    // Exclude certain elements
-    const isExcluded = 
-      element.getAttribute('aria-label')?.toLowerCase().includes('close') ||
-      element.getAttribute('aria-label')?.toLowerCase().includes('remove');
-
-    return !isExcluded && (isIdentifiedCheckout || hasCheckoutText || isBuyNowButton);
+    return isBuyItNowButton || isCartCheckoutButton;
   }
   
   // Function to add our checkout handler
