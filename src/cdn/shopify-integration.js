@@ -517,7 +517,9 @@
         const addressDiv = document.createElement('div');
         addressDiv.style.fontSize = '12px';
         addressDiv.style.color = '#666';
-        addressDiv.textContent = office.address;
+        // Use fullAddressString if available, otherwise fall back to address
+        const displayAddress = office.fullAddressString || office.address || office.fullAddress;
+        addressDiv.textContent = displayAddress;
         
         option.appendChild(nameDiv);
         option.appendChild(addressDiv);
@@ -547,11 +549,14 @@
     
     currentOfficeId = office.id;
     currentOfficeName = office.name;
-    currentOfficeAddress = office.address;
+    // Use fullAddressString if available, otherwise fall back to address
+    currentOfficeAddress = office.fullAddressString || office.address || office.fullAddress;
+    
+    console.log('🏢 Extracted office address:', currentOfficeAddress);
     
     // Update the search input
     const searchInput = document.getElementById('office-office-search');
-    searchInput.value = `${office.name}: ${office.address}`;
+    searchInput.value = `${office.name}: ${currentOfficeAddress}`;
     
     // Hide dropdown
     const dropdown = document.getElementById('office-office-dropdown');
