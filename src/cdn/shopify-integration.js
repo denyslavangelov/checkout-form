@@ -269,7 +269,9 @@
         // ID patterns
         id.includes('buy-now') || id.includes('quick-buy'),
         // Type patterns
-        type === 'button' && (className.includes('payment') || className.includes('checkout'))
+        type === 'button' && (className.includes('payment') || className.includes('checkout')),
+        // Specific Shopify payment button pattern
+        type === 'button' && className.includes('shopify-payment-button__button') && className.includes('shopify-payment-button__button--unbranded')
       ],
       
       // Checkout patterns
