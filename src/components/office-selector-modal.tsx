@@ -241,12 +241,23 @@ export function OfficeSelectorModal({
         
         // Get cart data from the parent window
         const cartData = await getCartDataFromParent() as any;
-        if (!cartData || !cartData.items || cartData.items.length === 0) {
+        console.log('🏢 Raw cart data received:', cartData);
+        
+        if (!cartData) {
+          setError('Не можахме да получим данните за кошницата. Моля, опитайте отново.');
+          return;
+        }
+        
+        // Check for different possible cart data structures
+        const items = cartData.items || cartData.line_items || cartData.products || [];
+        console.log('🏢 Cart items found:', items);
+        
+        if (!items || items.length === 0) {
           setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
           return;
         }
         
-        console.log('🏢 Cart data received:', cartData);
+        console.log('🏢 Cart data processed successfully:', { items, count: items.length });
         
         // Create draft order with cart items and office address
         const response = await fetch(`${baseUrl}/api/create-draft-order`, {
@@ -255,7 +266,7 @@ export function OfficeSelectorModal({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            cartData: cartData,
+            cartData: { ...cartData, items: items },
             shippingAddress: {
               address1: (() => {
                 if (typeof selectedOffice.address === 'string') {

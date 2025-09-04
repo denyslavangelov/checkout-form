@@ -163,6 +163,11 @@
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'request-cart-data') {
           console.log('🏢 Office selector requesting cart data');
+          console.log('🏢 Available cart data:', { 
+            shopifyCart: window.shopifyCart, 
+            cartData: window.cartData,
+            hasItems: !!(window.shopifyCart?.items || window.cartData?.items)
+          });
           // Send cart data to the office selector iframe
           if (iframe.contentWindow) {
             iframe.contentWindow.postMessage({
