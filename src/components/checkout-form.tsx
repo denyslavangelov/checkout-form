@@ -1138,7 +1138,6 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           
           // Set shipping method to speedy (office delivery)
           form.setValue('shippingMethod', 'speedy');
-          setSelectedShippingMethod('speedy');
           
           // Clear the stored address after using it
           localStorage.removeItem('selectedOfficeAddress');
