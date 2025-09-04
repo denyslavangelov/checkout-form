@@ -54,7 +54,9 @@ export async function POST(request: NextRequest) {
       variantId,
       shippingAddress,
       address1Type: typeof shippingAddress?.address1,
-      address1Value: shippingAddress?.address1
+      address1Value: shippingAddress?.address1,
+      postalCode: shippingAddress?.postalCode,
+      city: shippingAddress?.city
     });
 
     // Simple validation
@@ -83,6 +85,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔍 DEBUG: Final address string:', addressString);
+    console.log('🔍 DEBUG: Final shipping address:', {
+      address1: addressString,
+      city: shippingAddress.city || 'Sofia',
+      zip: shippingAddress.postalCode || '',
+      country: shippingAddress.country || 'Bulgaria'
+    });
 
     // Create simple draft order
     const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {

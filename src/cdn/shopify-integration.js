@@ -684,11 +684,13 @@
       officeId: currentOfficeId,
       officeName: currentOfficeName,
       officeAddress: currentOfficeAddress,
-      cityName: currentCityName
+      cityName: currentCityName,
+      cityPostcode: currentCityPostcode
     });
     
     console.log('🏢 Office address type:', typeof currentOfficeAddress);
     console.log('🏢 Office address value:', currentOfficeAddress);
+    console.log('🏢 City postcode:', currentCityPostcode);
 
     const button = document.getElementById('office-create-order');
     const originalText = button.textContent;
