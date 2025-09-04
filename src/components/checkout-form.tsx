@@ -182,14 +182,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       
       return {
         items: [{
-          id: data.id,
+          id: String(data.id),
           title: productTitle,
           quantity: data.quantity || 1,
           price: price,
           line_price: price * (data.quantity || 1),
           original_line_price: price * (data.quantity || 1),
-          variant_id: data.id,
-          product_id: data.product.id,
+          variant_id: String(data.id),
+          product_id: String(data.product.id),
           sku: data.sku || '',
           variant_title: variantTitle,
           vendor: data.product.vendor || '',
@@ -225,14 +225,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
       
       return {
         items: [{
-          id: product.variant_id || product.id,
+          id: product.variant_id ? String(product.variant_id) : String(product.id),
           title: product.title,
           quantity: product.quantity || 1,
           price: product.price,
           line_price: product.price * (product.quantity || 1),
           original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-          variant_id: product.variant_id || product.id,
-          product_id: product.id,
+          variant_id: product.variant_id ? String(product.variant_id) : String(product.id),
+          product_id: product.id ? String(product.id) : String(product.variant_id || 'unknown'),
           sku: product.sku || '',
           variant_title: product.variant_title || '',
           vendor: product.vendor || '',
@@ -250,7 +250,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     
     // Normal cart structure validation
     if (data.items && Array.isArray(data.items)) {
-      // Ensure all items have proper image field
+      // Ensure all items have proper image field and string IDs
       const processedItems = data.items.map((item: any) => {
         // Handle image field in various formats
         let imageUrl = null;
@@ -264,6 +264,9 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
         
         return {
           ...item,
+          id: item.id ? String(item.id) : String(item.variant_id || 'unknown'),
+          variant_id: item.variant_id ? String(item.variant_id) : String(item.id || 'unknown'),
+          product_id: item.product_id ? String(item.product_id) : String(item.id || 'unknown'),
           image: imageUrl
         };
       });
@@ -1345,14 +1348,14 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
             const updatedCart = {
               ...localCartData,
               items: [{
-                id: productData.variant_id || productData.id,
+                id: productData.variant_id ? String(productData.variant_id) : String(productData.id),
                 title: productData.title,
                 quantity: productData.quantity || 1,
                 price: productData.price,
                 line_price: productData.price * (productData.quantity || 1),
                 original_line_price: (productData.compare_at_price || productData.price) * (productData.quantity || 1),
-                variant_id: productData.variant_id || productData.id,
-                product_id: productData.id,
+                variant_id: productData.variant_id ? String(productData.variant_id) : String(productData.id),
+                product_id: productData.id ? String(productData.id) : String(productData.variant_id || 'unknown'),
                 sku: productData.sku || '',
                 variant_title: productData.variant_title || '',
                 vendor: productData.vendor || '',
