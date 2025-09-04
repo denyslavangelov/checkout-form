@@ -387,7 +387,7 @@
         }
       };
       
-      console.log('🏢 Sending order data:', orderData);
+      console.log('🏢 Sending order data:::', orderData);
 
       const response = await fetch('http://localhost:3000/api/create-draft-order', {
         method: 'POST',

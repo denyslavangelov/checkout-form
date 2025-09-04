@@ -44,66 +44,46 @@ const CREATE_DRAFT_ORDER_MUTATION = `
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('🔍 DEBUG: Received request body:', JSON.stringify(body, null, 2));
+    
     const { productId, variantId, shippingAddress } = body;
-
-    // Validate required fields
-    if (!variantId) {
-      return NextResponse.json(
-        { error: 'Variant ID is required' },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      );
-    }
-
-    if (!shippingAddress || !shippingAddress.address1 || !shippingAddress.country) {
-      return NextResponse.json(
-        { error: 'Shipping address with address1 and country is required' },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      );
-    }
-
-    console.log('Creating draft order with office address:', {
+    
+    console.log('🔍 DEBUG: Extracted data:', {
+      productId,
       variantId,
-      shippingAddress
+      shippingAddress,
+      address1Type: typeof shippingAddress?.address1,
+      address1Value: shippingAddress?.address1
     });
 
-    // Log the full GraphQL request
-    const graphqlRequest = {
-      query: CREATE_DRAFT_ORDER_MUTATION,
-      variables: {
-        input: {
-          lineItems: [
-            {
-              variantId: `gid://shopify/ProductVariant/${variantId}`,
-              quantity: 1
-            }
-          ],
-          shippingAddress: {
-            address1: shippingAddress.address1,
-            city: shippingAddress.city || 'Sofia',
-            country: shippingAddress.country
-          },
-          tags: ["office-pickup", "bulgaria-market", "auto-created"]
-        }
-      }
-    };
-    
-    console.log('GraphQL request:', JSON.stringify(graphqlRequest, null, 2));
+    // Simple validation
+    if (!variantId) {
+      return NextResponse.json({ error: 'Variant ID is required' }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
 
-    // Create draft order via Shopify GraphQL API
+    if (!shippingAddress?.address1) {
+      return NextResponse.json({ error: 'Address1 is required' }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    // Extract address string properly
+    let addressString;
+    if (typeof shippingAddress.address1 === 'string') {
+      addressString = shippingAddress.address1;
+    } else if (shippingAddress.address1?.fullAddressString) {
+      addressString = shippingAddress.address1.fullAddressString;
+    } else {
+      addressString = JSON.stringify(shippingAddress.address1);
+    }
+
+    console.log('🔍 DEBUG: Final address string:', addressString);
+
+    // Create simple draft order
     const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {
       method: 'POST',
       headers: {
@@ -114,122 +94,51 @@ export async function POST(request: NextRequest) {
         query: CREATE_DRAFT_ORDER_MUTATION,
         variables: {
           input: {
-            lineItems: [
-              {
-                variantId: `gid://shopify/ProductVariant/${variantId}`,
-                quantity: 1
-              }
-            ],
+            lineItems: [{
+              variantId: `gid://shopify/ProductVariant/${variantId}`,
+              quantity: 1
+            }],
             shippingAddress: {
-              address1: shippingAddress.address1,
+              address1: addressString,
               city: shippingAddress.city || 'Sofia',
-              country: shippingAddress.country
-            },
-            tags: ["office-pickup", "bulgaria-market", "auto-created"]
+              country: shippingAddress.country || 'Bulgaria'
+            }
           }
         }
       })
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Shopify API error:', data);
-      return NextResponse.json(
-        { error: 'Failed to create draft order', details: data },
-        { 
-          status: response.status,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      );
-    }
+    console.log('🔍 DEBUG: Shopify response:', JSON.stringify(data, null, 2));
 
     if (data.errors) {
-      console.error('GraphQL errors:', data.errors);
-      return NextResponse.json(
-        { error: 'GraphQL errors', details: data.errors },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      );
-    }
-
-    if (data.data?.draftOrderCreate?.userErrors?.length > 0) {
-      console.error('User errors:', data.data.draftOrderCreate.userErrors);
-      return NextResponse.json(
-        { error: 'Draft order creation failed', details: data.data.draftOrderCreate.userErrors },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      );
+      return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
     }
 
     const draftOrder = data.data?.draftOrderCreate?.draftOrder;
     if (!draftOrder) {
-      console.error('No draft order created:', data);
-      return NextResponse.json(
-        { error: 'No draft order created', details: data },
-        { 
-          status: 500,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      );
+      return NextResponse.json({ error: 'No draft order created' }, { 
+        status: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
     }
 
-    console.log('Draft order created successfully:', {
-      id: draftOrder.id,
-      name: draftOrder.name,
-      invoiceUrl: draftOrder.invoiceUrl
-    });
-
-    // Return the checkout URL (invoice URL serves as checkout URL)
     return NextResponse.json({
       success: true,
-      draftOrderId: draftOrder.id,
-      draftOrderName: draftOrder.name,
-      checkoutUrl: draftOrder.invoiceUrl,
-      invoiceUrl: draftOrder.invoiceUrl,
-      totalPrice: draftOrder.totalPrice,
-      shippingAddress: draftOrder.shippingAddress
+      checkoutUrl: draftOrder.invoiceUrl
     }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
+      headers: { 'Access-Control-Allow-Origin': '*' }
     });
 
   } catch (error) {
-    console.error('Error creating draft order:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      }
-    );
+    console.error('🔍 DEBUG: Error:', error);
+    return NextResponse.json({ error: 'Server error' }, { 
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    });
   }
 }
 

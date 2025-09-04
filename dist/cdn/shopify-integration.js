@@ -381,13 +381,13 @@
         productId: testProductId,
         variantId: testVariantId,
         shippingAddress: {
-          address1: officeAddress,
+          address1: officeAddress.fullAddressString,
           city: 'Sofia', // Default city
           country: 'Bulgaria'
         }
       };
       
-      console.log('🏢 Sending order data:', orderData);
+      console.log('🏢 Sending order data::::', orderData);
 
       const response = await fetch('http://localhost:3000/api/create-draft-order', {
         method: 'POST',

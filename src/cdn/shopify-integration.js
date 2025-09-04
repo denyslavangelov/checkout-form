@@ -304,6 +304,8 @@
       }
     });
 
+    debugger;
+
     // Create order
     createOrderBtn.addEventListener('click', createOrderFromOfficeSelector);
   }
@@ -662,6 +664,7 @@
 
   // Create order from office selector
   async function createOrderFromOfficeSelector() {
+    debugger;
     if (!currentOfficeId || !currentOfficeName || !currentOfficeAddress) {
       showOfficeError('Моля, изберете офис');
       return;
@@ -693,13 +696,13 @@
         productId: testProductId,
         variantId: testVariantId,
         shippingAddress: {
-          address1: currentOfficeAddress,
+          address1: currentOfficeAddress.fullAddressString,
           city: currentCityName || 'Sofia',
           country: 'Bulgaria'
         }
       };
       
-      console.log('🏢 Sending order data:', orderData);
+      console.log('🏢 Sending order data:::', orderData);
 
       const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-draft-order', {
         method: 'POST',
