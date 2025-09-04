@@ -394,7 +394,7 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative">
         {/* Close button */}
         <button
@@ -574,6 +574,5 @@ export function OfficeSelectorModal({
           </Button>
         </div>
       </div>
-    </div>
   );
 }

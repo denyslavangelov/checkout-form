@@ -231,8 +231,13 @@
     const isCartCheckoutButton = 
       tagName === 'button' &&
       id === 'cartdrawer-checkout' &&
-      className.includes('cart__checkout-button') &&
-      className.includes('button');
+      className === 'cart__checkout-button button';
+
+    // Explicitly exclude the Add to Cart button
+    const isAddToCartButton = 
+      tagName === 'button' &&
+      id.startsWith('productsubmitbutton-') &&
+      className.includes('product-form__submit');
 
     console.log('🏢 Button check:', {
       tagName,
@@ -241,10 +246,11 @@
       id,
       isBuyItNowButton,
       isCartCheckoutButton,
-      result: isBuyItNowButton || isCartCheckoutButton
+      isAddToCartButton,
+      result: (isBuyItNowButton || isCartCheckoutButton) && !isAddToCartButton
     });
 
-    return isBuyItNowButton || isCartCheckoutButton;
+    return (isBuyItNowButton || isCartCheckoutButton) && !isAddToCartButton;
   }
   
   // Function to add our checkout handler
