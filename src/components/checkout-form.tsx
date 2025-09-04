@@ -1122,6 +1122,33 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     console.log('Cleared address fields due to shipping method change:', selectedShippingMethod);
   }, [selectedShippingMethod, form, setSelectedCityId, setOfficeSuggestions, setCitySuggestions, setFilteredOfficeSuggestions, setStreetSuggestions, setFilteredStreetSuggestions]);
 
+  // Load office address from localStorage when form opens
+  useEffect(() => {
+    if (open && typeof window !== 'undefined') {
+      try {
+        const storedOfficeAddress = localStorage.getItem('selectedOfficeAddress');
+        if (storedOfficeAddress) {
+          const officeAddress = JSON.parse(storedOfficeAddress);
+          console.log('🏢 Loading office address from localStorage:', officeAddress);
+          
+          // Set the office address fields
+          form.setValue('officeAddress', officeAddress.address1 || '');
+          form.setValue('officeCity', officeAddress.city || '');
+          form.setValue('officePostalCode', officeAddress.postalCode || '');
+          
+          // Set shipping method to speedy (office delivery)
+          form.setValue('shippingMethod', 'speedy');
+          setSelectedShippingMethod('speedy');
+          
+          // Clear the stored address after using it
+          localStorage.removeItem('selectedOfficeAddress');
+        }
+      } catch (error) {
+        console.error('Error loading office address from localStorage:', error);
+      }
+    }
+  }, [open, form]);
+
   // Add a state for submit status
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
