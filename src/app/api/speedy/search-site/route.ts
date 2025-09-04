@@ -8,15 +8,11 @@ export async function GET(request: Request) {
   const username = process.env.SPEEDY_USERNAME || "1904618";
   const password = process.env.SPEEDY_PASSWORD || "6661214521";
 
-  if (!term) {
-    return NextResponse.json(
-      { error: 'Missing search term' },
-      { status: 400 }
-    );
-  }
+  // Allow empty search term to get all sites
+  const searchTerm = term || '';
 
   try {
-    console.log('Searching for sites with term:', term);
+    console.log('Searching for sites with term:', searchTerm);
     
     const response = await fetch('https://api.speedy.bg/v1/location/site', {
       method: 'POST',
@@ -28,7 +24,7 @@ export async function GET(request: Request) {
         password: password,
         language: 'bg',
         countryId: 100,
-        name: term
+        name: searchTerm
       })
     });
 
