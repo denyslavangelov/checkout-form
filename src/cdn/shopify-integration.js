@@ -219,20 +219,30 @@
     const className = element.className?.toLowerCase() || '';
     const id = element.id?.toLowerCase() || '';
 
-    // Only target specific buttons:
+    // Only target EXACTLY these two buttons:
     // 1. Buy it now button: <button type="button" class="shopify-payment-button__button shopify-payment-button__button--unbranded">Buy it now</button>
     // 2. Cart checkout button: <button type="button" id="CartDrawer-Checkout" class="cart__checkout-button button">
     
     const isBuyItNowButton = 
       tagName === 'button' &&
-      className.includes('shopify-payment-button__button') &&
-      className.includes('shopify-payment-button__button--unbranded') &&
+      className === 'shopify-payment-button__button shopify-payment-button__button--unbranded' &&
       text.includes('buy it now');
 
     const isCartCheckoutButton = 
       tagName === 'button' &&
       id === 'cartdrawer-checkout' &&
-      className.includes('cart__checkout-button');
+      className.includes('cart__checkout-button') &&
+      className.includes('button');
+
+    console.log('🏢 Button check:', {
+      tagName,
+      text,
+      className,
+      id,
+      isBuyItNowButton,
+      isCartCheckoutButton,
+      result: isBuyItNowButton || isCartCheckoutButton
+    });
 
     return isBuyItNowButton || isCartCheckoutButton;
   }

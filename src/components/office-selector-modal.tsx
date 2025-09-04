@@ -394,7 +394,7 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative">
         {/* Close button */}
         <button
@@ -569,7 +569,7 @@ export function OfficeSelectorModal({
                 Създаване на поръчка...
               </>
             ) : (
-              productId === 'cart' ? 'Продължи към плащане' : 'Създай поръчка и продължи към плащане'
+              productId === 'cart' ? 'Продължи към завършване на поръчката' : 'Продължи към завършване на поръчката'
             )}
           </Button>
         </div>
