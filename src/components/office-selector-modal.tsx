@@ -95,9 +95,7 @@ export function OfficeSelectorModal({
     
     setLoadingCities(true);
     try {
-      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? `http://${window.location.hostname}:3002`
-        : 'https://checkout-form-zeta.vercel.app';
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/speedy/search-site?term=${encodeURIComponent(term)}`);
       
       if (!response.ok) {
@@ -135,9 +133,7 @@ export function OfficeSelectorModal({
 
     setLoadingOffices(true);
     try {
-      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? `http://${window.location.hostname}:3002`
-        : 'https://checkout-form-zeta.vercel.app';
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/speedy/search-office`, {
         method: 'POST',
         headers: {
@@ -238,9 +234,7 @@ export function OfficeSelectorModal({
       setCreatingOrder(true);
       setError('');
 
-      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? `http://${window.location.hostname}:3002`
-        : 'https://checkout-form-zeta.vercel.app';
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Check if this is a cart checkout
       if (productId === 'cart' && variantId === 'cart') {

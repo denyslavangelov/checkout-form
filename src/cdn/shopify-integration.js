@@ -125,10 +125,8 @@
       console.log('🏢 This is a cart checkout');
     }
     
-    // Use localhost for development, production URL for live sites
-    const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? `http://${window.location.hostname}:3002`  // Use port 3002 since 3000 and 3001 are in use
-      : 'https://checkout-form-zeta.vercel.app';
+    // Production URL for live sites
+    const baseUrl = 'https://checkout-form-zeta.vercel.app';
     
     // Add modal to page if not already there
     if (!document.getElementById('office-selector-modal')) {
@@ -152,11 +150,9 @@
       const messageHandler = (event) => {
         console.log('🏢 Parent received message:', event.data, 'from origin:', event.origin);
         
-        // Allow messages from our iframe domain (localhost or Vercel)
+        // Allow messages from our iframe domain
         const allowedOrigins = [
-          'https://checkout-form-zeta.vercel.app',
-          'http://localhost:3002',
-          'http://127.0.0.1:3002'
+          'https://checkout-form-zeta.vercel.app'
         ];
         
         if (!allowedOrigins.includes(event.origin)) {
@@ -416,10 +412,8 @@
       return;
     }
     
-              // Use localhost for development, production URL for live sites
-     const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-       ? `http://${window.location.hostname}:3002`
-       : 'https://checkout-form-zeta.vercel.app';
+              // Production URL for live sites
+     const baseUrl = 'https://checkout-form-zeta.vercel.app';
      
      // Create iframe for checkout form
         const iframe = document.createElement('iframe');
@@ -439,11 +433,9 @@
     
      // Listen for messages from iframe
      const messageHandler = (event) => {
-       const allowedOrigins = [
-         'https://checkout-form-zeta.vercel.app',
-         'http://localhost:3002',
-         'http://127.0.0.1:3002'
-       ];
+                const allowedOrigins = [
+           'https://checkout-form-zeta.vercel.app'
+         ];
        if (!allowedOrigins.includes(event.origin)) return;
       
       switch (event.data.type) {
