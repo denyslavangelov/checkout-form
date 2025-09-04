@@ -230,8 +230,9 @@ export function OfficeSelectorModal({
         
         localStorage.setItem('selectedOfficeAddress', JSON.stringify(officeAddress));
         
-        // Redirect to regular Shopify checkout
-        window.location.href = '/checkout';
+        // For cart checkout, notify the parent with a special checkout URL
+        console.log('🏢 Cart checkout - office address stored, notifying parent');
+        onOrderCreated('/checkout');
         return;
       }
 

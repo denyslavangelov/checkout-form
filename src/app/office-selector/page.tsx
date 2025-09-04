@@ -39,15 +39,16 @@ export default function OfficeSelectorPage() {
       }, '*');
     }
     
-    // For cart checkout, redirect the parent window to checkout
+    // For cart checkout, redirect the parent window to Shopify checkout
     if (productId === 'cart' && variantId === 'cart') {
       if (window.parent) {
-        window.parent.location.href = checkoutUrl;
+        // Redirect parent to Shopify checkout page
+        window.parent.location.href = '/checkout';
       } else {
-        window.location.href = checkoutUrl;
+        window.location.href = '/checkout';
       }
     } else {
-      // For Buy Now, redirect the parent window
+      // For Buy Now, redirect the parent window to the checkout URL
       if (window.parent) {
         window.parent.location.href = checkoutUrl;
       } else {
