@@ -340,7 +340,7 @@
   // Load offices for selected city
   async function loadOffices(cityId) {
     try {
-      const response = await fetch('http://localhost:3000/api/speedy/search-office', {
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-office', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -488,7 +488,7 @@
       
       console.log('🏢 Creating draft order with test variant ID:', testVariantId);
 
-      const response = await fetch('http://localhost:3000/api/create-draft-order', {
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-draft-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
