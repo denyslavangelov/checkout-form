@@ -28,6 +28,7 @@ const CREATE_DRAFT_ORDER_MUTATION = `
         shippingAddress {
           address1
           city
+          zip
           country
         }
         tags
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
             shippingAddress: {
               address1: addressString,
               city: shippingAddress.city || 'Sofia',
+              zip: shippingAddress.postalCode || '',
               country: shippingAddress.country || 'Bulgaria'
             }
           }

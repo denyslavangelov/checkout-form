@@ -213,6 +213,7 @@
     // Reset state
     currentCityId = null;
     currentCityName = '';
+    currentCityPostcode = '';
     currentOfficeId = null;
     currentOfficeName = '';
     currentOfficeAddress = '';
@@ -323,6 +324,7 @@
   let officeSearchTimeout = null;
   let currentCityId = null;
   let currentCityName = '';
+  let currentCityPostcode = '';
   let currentOfficeId = null;
   let currentOfficeName = '';
   let currentOfficeAddress = '';
@@ -425,6 +427,14 @@
     
     currentCityId = city.id;
     currentCityName = city.name;
+    // Extract postcode from city data
+    currentCityPostcode = city.postCode || city.postalCode || '';
+    
+    console.log('🏢 City data:', {
+      id: currentCityId,
+      name: currentCityName,
+      postcode: currentCityPostcode
+    });
     
     // Update the search input
     const searchInput = document.getElementById('office-city-search');
@@ -696,8 +706,9 @@
         productId: testProductId,
         variantId: testVariantId,
         shippingAddress: {
-          address1: currentOfficeAddress.fullAddressString,
+          address1: currentOfficeAddress,
           city: currentCityName || 'Sofia',
+          postalCode: currentCityPostcode || '',
           country: 'Bulgaria'
         }
       };
