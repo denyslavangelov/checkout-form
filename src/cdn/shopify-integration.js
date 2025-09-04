@@ -44,7 +44,7 @@
     get: originalOnClickDescriptor.get
   });
 
-  // Office selector modal HTML
+  // Enhanced office selector modal HTML with search functionality
   const OFFICE_SELECTOR_HTML = `
     <div id="office-selector-modal" style="
       position: fixed;
@@ -62,7 +62,7 @@
         background: white;
         border-radius: 8px;
         padding: 24px;
-        max-width: 500px;
+        max-width: 600px;
         width: 90%;
         max-height: 80vh;
         overflow-y: auto;
@@ -79,33 +79,67 @@
           color: #666;
         ">&times;</button>
         
-        <h3 style="margin: 0 0 20px 0; color: #333;">Select Pickup Office</h3>
+        <h3 style="margin: 0 0 20px 0; color: #333;">Изберете офис за получаване</h3>
         
         <div id="office-form">
           <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">City</label>
-            <select id="office-city-select" style="
-              width: 100%;
-              padding: 12px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-            ">
-              <option value="">Loading cities...</option>
-            </select>
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Град:</label>
+            <div style="position: relative;">
+              <input id="office-city-search" type="text" placeholder="Търсете град..." style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                box-sizing: border-box;
+              ">
+              <div id="office-city-dropdown" style="
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              "></div>
+            </div>
+            <div id="office-city-loading" style="display: none; margin-top: 8px; font-size: 12px; color: #666;">Зареждане...</div>
           </div>
           
           <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Office</label>
-            <select id="office-office-select" style="
-              width: 100%;
-              padding: 12px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-            " disabled>
-              <option value="">Select city first</option>
-            </select>
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Офис:</label>
+            <div style="position: relative;">
+              <input id="office-office-search" type="text" placeholder="Търсете офис..." style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                box-sizing: border-box;
+              " disabled>
+              <div id="office-office-dropdown" style="
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              "></div>
+            </div>
+            <div id="office-office-loading" style="display: none; margin-top: 8px; font-size: 12px; color: #666;">Зареждане...</div>
           </div>
           
           <div id="office-preview" style="
@@ -116,7 +150,7 @@
             border-radius: 4px;
             display: none;
           ">
-            <div style="font-weight: 500; margin-bottom: 4px;">Selected Office:</div>
+            <div style="font-weight: 500; margin-bottom: 4px;">Избран офис:</div>
             <div id="office-details"></div>
           </div>
           
@@ -132,7 +166,7 @@
             cursor: pointer;
             margin-bottom: 12px;
           " disabled>
-            Create Order & Checkout
+            Създай поръчка и продължи към плащане
           </button>
           
           <div id="office-error" style="
@@ -173,17 +207,43 @@
       console.error('🏢 Office selector modal not found!');
     }
     
-    // Load cities
-    console.log('🏢 Loading cities for office selector');
-    loadCitiesForOfficeSelector();
+    // Initialize the office selector
+    console.log('🏢 Initializing office selector');
+    
+    // Reset state
+    currentCityId = null;
+    currentCityName = '';
+    currentOfficeId = null;
+    currentOfficeName = '';
+    currentOfficeAddress = '';
+    
+    // Clear inputs
+    const citySearch = document.getElementById('office-city-search');
+    const officeSearch = document.getElementById('office-office-search');
+    if (citySearch) citySearch.value = '';
+    if (officeSearch) {
+      officeSearch.value = '';
+      officeSearch.disabled = true;
+      officeSearch.placeholder = 'Първо изберете град';
+    }
+    
+    // Hide previews and dropdowns
+    hideOfficePreview();
+    const cityDropdown = document.getElementById('office-city-dropdown');
+    const officeDropdown = document.getElementById('office-office-dropdown');
+    if (cityDropdown) cityDropdown.style.display = 'none';
+    if (officeDropdown) officeDropdown.style.display = 'none';
+    
+    // Update button state
+    updateCreateOrderButton();
   }
 
   // Setup office selector event listeners
   function setupOfficeSelectorEvents() {
     const modal = document.getElementById('office-selector-modal');
     const closeBtn = document.getElementById('office-modal-close');
-    const citySelect = document.getElementById('office-city-select');
-    const officeSelect = document.getElementById('office-office-select');
+    const citySearch = document.getElementById('office-city-search');
+    const officeSearch = document.getElementById('office-office-search');
     const createOrderBtn = document.getElementById('office-create-order');
 
     // Close modal
@@ -192,15 +252,56 @@
       if (e.target === modal) hideOfficeSelector();
     });
 
-    // City selection
-    citySelect.addEventListener('change', (e) => {
-      loadOfficesForOfficeSelector(e.target.value);
+    // City search with debouncing
+    const debouncedCitySearch = debounce((term) => {
+      if (term.length >= 1) {
+        searchCitiesForOfficeSelector(term);
+      } else {
+        // Load all cities when search is cleared
+        searchCitiesForOfficeSelector('');
+      }
+    }, 300);
+
+    citySearch.addEventListener('input', (e) => {
+      const term = e.target.value;
+      debouncedCitySearch(term);
     });
 
-    // Office selection
-    officeSelect.addEventListener('change', (e) => {
-      updateOfficePreview();
-      updateCreateOrderButton();
+    citySearch.addEventListener('focus', () => {
+      // Show all cities when focused
+      searchCitiesForOfficeSelector('');
+    });
+
+    // Office search with debouncing
+    const debouncedOfficeSearch = debounce((term) => {
+      if (currentCityId) {
+        searchOfficesForOfficeSelector(term);
+      }
+    }, 300);
+
+    officeSearch.addEventListener('input', (e) => {
+      const term = e.target.value;
+      debouncedOfficeSearch(term);
+    });
+
+    officeSearch.addEventListener('focus', () => {
+      // Show all offices when focused
+      if (currentCityId) {
+        searchOfficesForOfficeSelector('');
+      }
+    });
+
+    // Hide dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#office-city-search') && !e.target.closest('#office-city-dropdown')) {
+        const cityDropdown = document.getElementById('office-city-dropdown');
+        if (cityDropdown) cityDropdown.style.display = 'none';
+      }
+      
+      if (!e.target.closest('#office-office-search') && !e.target.closest('#office-office-dropdown')) {
+        const officeDropdown = document.getElementById('office-office-dropdown');
+        if (officeDropdown) officeDropdown.style.display = 'none';
+      }
     });
 
     // Create order
@@ -215,26 +316,250 @@
     }
   }
 
-  // Load cities for office selector - hardcoded Sofia
-  async function loadCitiesForOfficeSelector() {
+  // Global variables for office selector
+  let citySearchTimeout = null;
+  let officeSearchTimeout = null;
+  let currentCityId = null;
+  let currentCityName = '';
+  let currentOfficeId = null;
+  let currentOfficeName = '';
+  let currentOfficeAddress = '';
+
+  // Debounce function
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Search cities with debounced API calls
+  async function searchCitiesForOfficeSelector(term) {
     try {
-      console.log('🏢 Loading Sofia as the only city option...');
+      console.log('🏢 Searching cities with term:', term);
       
-      // Hardcode Sofia as the only city option
-      const citySelect = document.getElementById('office-city-select');
-      citySelect.innerHTML = '<option value="">Select city...</option>';
+      const loadingEl = document.getElementById('office-city-loading');
+      loadingEl.style.display = 'block';
       
-      // Add Sofia option (using a mock ID for Sofia)
-      const sofiaOption = document.createElement('option');
-      sofiaOption.value = '1'; // Mock Sofia ID
-      sofiaOption.textContent = 'гр. София';
-      citySelect.appendChild(sofiaOption);
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-site', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to search cities: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('🏢 City search results:', data);
       
-      console.log('🏢 Sofia loaded successfully');
+      if (data.sites && Array.isArray(data.sites)) {
+        // Filter cities based on search term
+        let filteredCities = data.sites;
+        if (term && term.length > 0) {
+          filteredCities = data.sites.filter(site => 
+            site.name.toLowerCase().includes(term.toLowerCase()) ||
+            site.label.toLowerCase().includes(term.toLowerCase())
+          );
+        }
+        
+        displayCityOptions(filteredCities);
+      } else {
+        throw new Error('Invalid cities data format');
+      }
     } catch (error) {
-      console.error('🏢 Error loading cities:', error);
-      showOfficeError(`Failed to load cities: ${error.message}`);
+      console.error('🏢 Error searching cities:', error);
+      showOfficeError(`Failed to search cities: ${error.message}`);
+    } finally {
+      const loadingEl = document.getElementById('office-city-loading');
+      loadingEl.style.display = 'none';
     }
+  }
+
+  // Display city options in dropdown
+  function displayCityOptions(cities) {
+    const dropdown = document.getElementById('office-city-dropdown');
+    dropdown.innerHTML = '';
+    
+    if (cities.length === 0) {
+      dropdown.innerHTML = '<div style="padding: 12px; color: #666; text-align: center;">Няма намерени градове</div>';
+    } else {
+      cities.forEach(city => {
+        const option = document.createElement('div');
+        option.style.padding = '12px';
+        option.style.cursor = 'pointer';
+        option.style.borderBottom = '1px solid #eee';
+        option.textContent = city.label || city.name;
+        
+        option.addEventListener('mouseenter', () => {
+          option.style.backgroundColor = '#f5f5f5';
+        });
+        
+        option.addEventListener('mouseleave', () => {
+          option.style.backgroundColor = 'white';
+        });
+        
+        option.addEventListener('click', () => {
+          selectCity(city);
+        });
+        
+        dropdown.appendChild(option);
+      });
+    }
+    
+    dropdown.style.display = 'block';
+  }
+
+  // Select a city
+  function selectCity(city) {
+    console.log('🏢 City selected:', city);
+    
+    currentCityId = city.id;
+    currentCityName = city.name;
+    
+    // Update the search input
+    const searchInput = document.getElementById('office-city-search');
+    searchInput.value = city.label || city.name;
+    
+    // Hide dropdown
+    const dropdown = document.getElementById('office-city-dropdown');
+    dropdown.style.display = 'none';
+    
+    // Enable office search
+    const officeSearch = document.getElementById('office-office-search');
+    officeSearch.disabled = false;
+    officeSearch.placeholder = 'Търсете офис...';
+    
+    // Clear office selection
+    currentOfficeId = null;
+    currentOfficeName = '';
+    currentOfficeAddress = '';
+    officeSearch.value = '';
+    
+    // Hide office preview
+    hideOfficePreview();
+    
+    // Load all offices for this city
+    searchOfficesForOfficeSelector('');
+  }
+
+  // Search offices with debounced API calls
+  async function searchOfficesForOfficeSelector(term) {
+    if (!currentCityId) {
+      console.log('🏢 No city selected, cannot search offices');
+      return;
+    }
+
+    try {
+      console.log('🏢 Searching offices with term:', term, 'for city:', currentCityId);
+      
+      const loadingEl = document.getElementById('office-office-loading');
+      loadingEl.style.display = 'block';
+      
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-office', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          siteId: currentCityId,
+          term: term || '' // Empty term to get all offices
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to search offices: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('🏢 Office search results:', data);
+      
+      if (data.offices && Array.isArray(data.offices)) {
+        displayOfficeOptions(data.offices);
+      } else {
+        throw new Error('Invalid offices data format');
+      }
+    } catch (error) {
+      console.error('🏢 Error searching offices:', error);
+      showOfficeError(`Failed to search offices: ${error.message}`);
+    } finally {
+      const loadingEl = document.getElementById('office-office-loading');
+      loadingEl.style.display = 'none';
+    }
+  }
+
+  // Display office options in dropdown
+  function displayOfficeOptions(offices) {
+    const dropdown = document.getElementById('office-office-dropdown');
+    dropdown.innerHTML = '';
+    
+    if (offices.length === 0) {
+      dropdown.innerHTML = '<div style="padding: 12px; color: #666; text-align: center;">Няма намерени офиси</div>';
+    } else {
+      offices.forEach(office => {
+        const option = document.createElement('div');
+        option.style.padding = '12px';
+        option.style.cursor = 'pointer';
+        option.style.borderBottom = '1px solid #eee';
+        
+        // Create office display with name and address
+        const nameDiv = document.createElement('div');
+        nameDiv.style.fontWeight = '500';
+        nameDiv.textContent = office.name;
+        
+        const addressDiv = document.createElement('div');
+        addressDiv.style.fontSize = '12px';
+        addressDiv.style.color = '#666';
+        addressDiv.textContent = office.address;
+        
+        option.appendChild(nameDiv);
+        option.appendChild(addressDiv);
+        
+        option.addEventListener('mouseenter', () => {
+          option.style.backgroundColor = '#f5f5f5';
+        });
+        
+        option.addEventListener('mouseleave', () => {
+          option.style.backgroundColor = 'white';
+        });
+        
+        option.addEventListener('click', () => {
+          selectOffice(office);
+        });
+        
+        dropdown.appendChild(option);
+      });
+    }
+    
+    dropdown.style.display = 'block';
+  }
+
+  // Select an office
+  function selectOffice(office) {
+    console.log('🏢 Office selected:', office);
+    
+    currentOfficeId = office.id;
+    currentOfficeName = office.name;
+    currentOfficeAddress = office.address;
+    
+    // Update the search input
+    const searchInput = document.getElementById('office-office-search');
+    searchInput.value = `${office.name}: ${office.address}`;
+    
+    // Hide dropdown
+    const dropdown = document.getElementById('office-office-dropdown');
+    dropdown.style.display = 'none';
+    
+    // Show office preview
+    updateOfficePreview();
+    updateCreateOrderButton();
   }
 
   // Load offices for selected city
@@ -284,28 +609,20 @@
 
   // Update office preview
   function updateOfficePreview() {
-    const officeSelect = document.getElementById('office-office-select');
-    const selectedOfficeId = officeSelect.value;
-    
-    if (!selectedOfficeId) {
+    if (currentOfficeId && currentOfficeName && currentOfficeAddress) {
+      const preview = document.getElementById('office-preview');
+      const details = document.getElementById('office-details');
+      
+      details.innerHTML = `
+        <div><strong>${currentOfficeName}</strong></div>
+        <div>${currentOfficeAddress}</div>
+        <div>${currentCityName}, Bulgaria</div>
+      `;
+      
+      preview.style.display = 'block';
+    } else {
       hideOfficePreview();
-      return;
     }
-
-    const selectedOption = officeSelect.options[officeSelect.selectedIndex];
-    const officeName = selectedOption.textContent.split(' - ')[0];
-    const officeAddress = selectedOption.textContent.split(' - ')[1] || 'Address not available';
-
-    const preview = document.getElementById('office-preview');
-    const details = document.getElementById('office-details');
-    
-    details.innerHTML = `
-      <div><strong>${officeName}</strong></div>
-      <div>${officeAddress}</div>
-      <div>Sofia, Bulgaria</div>
-    `;
-    
-    preview.style.display = 'block';
   }
 
   // Hide office preview
@@ -318,10 +635,9 @@
 
   // Update create order button state
   function updateCreateOrderButton() {
-    const officeSelect = document.getElementById('office-office-select');
     const button = document.getElementById('office-create-order');
     if (button) {
-      button.disabled = !officeSelect.value;
+      button.disabled = !(currentOfficeId && currentOfficeName && currentOfficeAddress);
     }
   }
 
@@ -336,34 +652,17 @@
 
   // Create order from office selector
   async function createOrderFromOfficeSelector() {
-    const officeSelect = document.getElementById('office-office-select');
-    const selectedOfficeId = officeSelect.value;
-    
-    if (!selectedOfficeId) {
-      showOfficeError('Please select an office');
+    if (!currentOfficeId || !currentOfficeName || !currentOfficeAddress) {
+      showOfficeError('Моля, изберете офис');
       return;
     }
 
-    const selectedOption = officeSelect.options[officeSelect.selectedIndex];
-    const officeText = selectedOption.textContent;
-    console.log('🏢 Selected office text:', officeText);
-    
-    // Extract office name and address from the option text
-    let officeName, officeAddress;
-    if (officeText.includes(':')) {
-      // Format: "Office Name: Address"
-      [officeName, officeAddress] = officeText.split(':').map(s => s.trim());
-    } else if (officeText.includes(' - ')) {
-      // Format: "Office Name - Address"
-      [officeName, officeAddress] = officeText.split(' - ').map(s => s.trim());
-    } else {
-      // Fallback: use the whole text as name
-      officeName = officeText;
-      officeAddress = 'ул. Витоша 1, София'; // Default Sofia address
-    }
-    
-    console.log('🏢 Extracted office name:', officeName);
-    console.log('🏢 Extracted office address:', officeAddress);
+    console.log('🏢 Creating order with selected office:', {
+      officeId: currentOfficeId,
+      officeName: currentOfficeName,
+      officeAddress: currentOfficeAddress,
+      cityName: currentCityName
+    });
 
     const button = document.getElementById('office-create-order');
     const originalText = button.textContent;
@@ -381,8 +680,8 @@
         productId: testProductId,
         variantId: testVariantId,
         shippingAddress: {
-          address1: officeAddress,
-          city: 'Sofia', // Default city
+          address1: currentOfficeAddress,
+          city: currentCityName || 'Sofia',
           country: 'Bulgaria'
         }
       };
