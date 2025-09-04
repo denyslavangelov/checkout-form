@@ -60,7 +60,7 @@ export function OfficeSelectorModal({
     setLoadingCities(true);
     try {
       const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? `http://${window.location.hostname}:3001`
+        ? `http://${window.location.hostname}:3002`
         : 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/speedy/search-site?term=${encodeURIComponent(term)}`);
       
@@ -100,7 +100,7 @@ export function OfficeSelectorModal({
     setLoadingOffices(true);
     try {
       const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? `http://${window.location.hostname}:3001`
+        ? `http://${window.location.hostname}:3002`
         : 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/speedy/search-office`, {
         method: 'POST',
@@ -203,7 +203,7 @@ export function OfficeSelectorModal({
       setError('');
 
       const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? `http://${window.location.hostname}:3001`
+        ? `http://${window.location.hostname}:3002`
         : 'https://checkout-form-zeta.vercel.app';
 
       // Check if this is a cart checkout
@@ -228,7 +228,12 @@ export function OfficeSelectorModal({
           postalCode: selectedCity.postCode || ''
         };
         
+        console.log('🏢 Storing office address in localStorage:', officeAddress);
         localStorage.setItem('selectedOfficeAddress', JSON.stringify(officeAddress));
+        
+        // Verify it was stored
+        const stored = localStorage.getItem('selectedOfficeAddress');
+        console.log('🏢 Verification - stored address:', stored);
         
         // For cart checkout, notify the parent with a special checkout URL
         console.log('🏢 Cart checkout - office address stored, notifying parent');

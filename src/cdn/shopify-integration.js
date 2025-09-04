@@ -127,7 +127,7 @@
     
     // Use localhost for development, production URL for live sites
     const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? `http://${window.location.hostname}:3001`  // Use port 3001 since 3000 is in use
+      ? `http://${window.location.hostname}:3002`  // Use port 3002 since 3000 and 3001 are in use
       : 'https://checkout-form-zeta.vercel.app';
     
     // Add modal to page if not already there
@@ -375,7 +375,7 @@
     
               // Use localhost for development, production URL for live sites
      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-       ? `http://${window.location.hostname}:3001`
+       ? `http://${window.location.hostname}:3002`
        : 'https://checkout-form-zeta.vercel.app';
      
      // Create iframe for checkout form
@@ -398,8 +398,8 @@
      const messageHandler = (event) => {
        const allowedOrigins = [
          'https://checkout-form-zeta.vercel.app',
-         'http://localhost:3001',
-         'http://127.0.0.1:3001'
+         'http://localhost:3002',
+         'http://127.0.0.1:3002'
        ];
        if (!allowedOrigins.includes(event.origin)) return;
       

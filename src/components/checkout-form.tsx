@@ -1127,6 +1127,8 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
     if (open && typeof window !== 'undefined') {
       try {
         const storedOfficeAddress = localStorage.getItem('selectedOfficeAddress');
+        console.log('🏢 Checking localStorage for office address:', storedOfficeAddress);
+        
         if (storedOfficeAddress) {
           const officeAddress = JSON.parse(storedOfficeAddress);
           console.log('🏢 Loading office address from localStorage:', officeAddress);
@@ -1139,8 +1141,18 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
           // Set shipping method to speedy (office delivery)
           form.setValue('shippingMethod', 'speedy');
           
+          console.log('🏢 Office address fields set:', {
+            officeAddress: officeAddress.address1,
+            officeCity: officeAddress.city,
+            officePostalCode: officeAddress.postalCode,
+            shippingMethod: 'speedy'
+          });
+          
           // Clear the stored address after using it
           localStorage.removeItem('selectedOfficeAddress');
+          console.log('🏢 Cleared office address from localStorage');
+        } else {
+          console.log('🏢 No office address found in localStorage');
         }
       } catch (error) {
         console.error('Error loading office address from localStorage:', error);
