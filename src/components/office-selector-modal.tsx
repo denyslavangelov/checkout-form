@@ -53,19 +53,19 @@ export function OfficeSelectorModal({
   // Function to get cart data from parent window
   const getCartDataFromParent = async () => {
     return new Promise((resolve) => {
-      console.log('🏢 Requesting cart data from parent...');
+      console.log('🏢 Requesting fresh cart data from parent...');
       
-      // Request cart data from parent
+      // Request fresh cart data from parent
       if (window.parent) {
-        window.parent.postMessage({ type: 'request-cart-data' }, '*');
-        console.log('🏢 Cart data request sent to parent');
+        window.parent.postMessage({ type: 'request-fresh-cart-data' }, '*');
+        console.log('🏢 Fresh cart data request sent to parent');
         
         // Listen for response
         const messageHandler = (event: MessageEvent) => {
           console.log('🏢 Received message in iframe:', event.data);
           
           if (event.data?.type === 'cart-data') {
-            console.log('🏢 Cart data received:', event.data.cart);
+            console.log('🏢 Fresh cart data received:', event.data.cart);
             window.removeEventListener('message', messageHandler);
             resolve(event.data.cart);
           }
@@ -73,12 +73,12 @@ export function OfficeSelectorModal({
         
         window.addEventListener('message', messageHandler);
         
-        // Timeout after 3 seconds
+        // Timeout after 5 seconds (longer for fresh fetch)
         setTimeout(() => {
-          console.log('🏢 Cart data request timed out');
+          console.log('🏢 Fresh cart data request timed out');
           window.removeEventListener('message', messageHandler);
           resolve(null);
-        }, 3000);
+        }, 5000);
       } else {
         console.log('🏢 No parent window found');
         resolve(null);

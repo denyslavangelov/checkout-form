@@ -169,8 +169,8 @@
           window.location.href = event.data.checkoutUrl;
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
-        } else if (event.data.type === 'request-cart-data') {
-          console.log('🏢 Office selector requesting cart data');
+        } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
+          console.log('🏢 Office selector requesting cart data:', event.data.type);
           
           // Fetch fresh cart data from Shopify
           fetch('/cart.js')
