@@ -99,14 +99,31 @@ export async function POST(request: NextRequest) {
     if (cartData && cartData.items && cartData.items.length > 0) {
       // Use cart items
       console.log('🔍 DEBUG: Raw cart items:', cartData.items);
-      lineItems = cartData.items.map((item: any) => {
-        console.log('🔍 DEBUG: Processing item:', item);
+      console.log('🔍 DEBUG: Cart items count:', cartData.items.length);
+      
+      lineItems = cartData.items.map((item: any, index: number) => {
+        console.log(`🔍 DEBUG: Processing item ${index + 1}:`, {
+          id: item.id,
+          variant_id: item.variant_id,
+          quantity: item.quantity,
+          title: item.title,
+          product_id: item.product_id
+        });
+        
+        // Handle different possible ID fields
+        const variantId = item.variant_id || item.id || item.variantId;
+        if (!variantId) {
+          console.error('🔍 DEBUG: No variant ID found for item:', item);
+        }
+        
         return {
-          variantId: `gid://shopify/ProductVariant/${item.variant_id || item.id}`,
+          variantId: `gid://shopify/ProductVariant/${variantId}`,
           quantity: item.quantity || 1
         };
       });
-      console.log('🔍 DEBUG: Using cart items:', lineItems);
+      
+      console.log('🔍 DEBUG: Final line items for draft order:', lineItems);
+      console.log('🔍 DEBUG: Total line items count:', lineItems.length);
     } else {
       // Use single product
       lineItems = [{

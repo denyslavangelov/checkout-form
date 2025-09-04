@@ -225,7 +225,8 @@
     
     const isBuyItNowButton = 
       tagName === 'button' &&
-      className === 'shopify-payment-button__button shopify-payment-button__button--unbranded' &&
+      className.includes('shopify-payment-button__button') &&
+      className.includes('shopify-payment-button__button--unbranded') &&
       text.includes('buy it now');
 
     const isCartCheckoutButton = 
@@ -263,14 +264,22 @@
       
       // Set new onclick that calls our function
       button.onclick = function(event) {
-        console.log('🏢 Button clicked:', button);
+        console.log('🏢 Button clicked:', {
+          tagName: button.tagName,
+          className: button.className,
+          id: button.id,
+          text: button.textContent
+        });
         
         if (isCheckoutButton(button)) {
           console.log('🏢 This is a checkout button, showing office selector');
+          event.preventDefault();
+          event.stopPropagation();
           showOfficeSelector(event);
           return false; // Prevent default behavior
         }
         
+        console.log('🏢 Not a checkout button, calling original handler');
         // If not a checkout button, call original handler
         if (originalOnclick) {
           return originalOnclick.call(this, event);
