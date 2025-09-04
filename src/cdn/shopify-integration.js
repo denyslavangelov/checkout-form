@@ -44,6 +44,366 @@
     get: originalOnClickDescriptor.get
   });
 
+  // Office selector modal HTML
+  const OFFICE_SELECTOR_HTML = `
+    <div id="office-selector-modal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+      ">
+        <button id="office-modal-close" style="
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          color: #666;
+        ">&times;</button>
+        
+        <h3 style="margin: 0 0 20px 0; color: #333;">Select Pickup Office</h3>
+        
+        <div id="office-form">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">City</label>
+            <select id="office-city-select" style="
+              width: 100%;
+              padding: 12px;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              font-size: 14px;
+            ">
+              <option value="">Loading cities...</option>
+            </select>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Office</label>
+            <select id="office-office-select" style="
+              width: 100%;
+              padding: 12px;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              font-size: 14px;
+            " disabled>
+              <option value="">Select city first</option>
+            </select>
+          </div>
+          
+          <div id="office-preview" style="
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            display: none;
+          ">
+            <div style="font-weight: 500; margin-bottom: 4px;">Selected Office:</div>
+            <div id="office-details"></div>
+          </div>
+          
+          <button id="office-create-order" style="
+            width: 100%;
+            padding: 12px;
+            background: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 12px;
+          " disabled>
+            Create Order & Checkout
+          </button>
+          
+          <div id="office-error" style="
+            padding: 12px;
+            background: #ffe6e6;
+            border: 1px solid #ffb3b3;
+            border-radius: 4px;
+            color: #d00;
+            display: none;
+            margin-bottom: 16px;
+          "></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Function to show office selector
+  function showOfficeSelector(event) {
+    console.log('🏢 Showing office selector for Buy Now button');
+    
+    // Add modal to page if not already there
+    if (!document.getElementById('office-selector-modal')) {
+      document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
+      setupOfficeSelectorEvents();
+    }
+    
+    // Show the modal
+    const modal = document.getElementById('office-selector-modal');
+    modal.style.display = 'flex';
+    
+    // Load cities
+    loadCitiesForOfficeSelector();
+  }
+
+  // Setup office selector event listeners
+  function setupOfficeSelectorEvents() {
+    const modal = document.getElementById('office-selector-modal');
+    const closeBtn = document.getElementById('office-modal-close');
+    const citySelect = document.getElementById('office-city-select');
+    const officeSelect = document.getElementById('office-office-select');
+    const createOrderBtn = document.getElementById('office-create-order');
+
+    // Close modal
+    closeBtn.addEventListener('click', hideOfficeSelector);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) hideOfficeSelector();
+    });
+
+    // City selection
+    citySelect.addEventListener('change', (e) => {
+      loadOfficesForOfficeSelector(e.target.value);
+    });
+
+    // Office selection
+    officeSelect.addEventListener('change', (e) => {
+      updateOfficePreview();
+      updateCreateOrderButton();
+    });
+
+    // Create order
+    createOrderBtn.addEventListener('click', createOrderFromOfficeSelector);
+  }
+
+  // Hide office selector
+  function hideOfficeSelector() {
+    const modal = document.getElementById('office-selector-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  // Load cities for office selector
+  async function loadCitiesForOfficeSelector() {
+    try {
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-district', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          countryId: 100, // Bulgaria
+          name: ''
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load cities');
+      }
+
+      const data = await response.json();
+      
+      if (data.districts && Array.isArray(data.districts)) {
+        const citySelect = document.getElementById('office-city-select');
+        citySelect.innerHTML = '<option value="">Select city...</option>';
+        
+        data.districts.forEach(district => {
+          const option = document.createElement('option');
+          option.value = district.id.toString();
+          option.textContent = district.name;
+          citySelect.appendChild(option);
+        });
+      } else {
+        throw new Error('Invalid cities data');
+      }
+    } catch (error) {
+      console.error('Error loading cities:', error);
+      showOfficeError('Failed to load cities. Please try again.');
+    }
+  }
+
+  // Load offices for selected city
+  async function loadOfficesForOfficeSelector(cityId) {
+    try {
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-office', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          siteId: cityId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load offices');
+      }
+
+      const data = await response.json();
+      
+      if (data.offices && Array.isArray(data.offices)) {
+        const officeSelect = document.getElementById('office-office-select');
+        officeSelect.innerHTML = '<option value="">Select office...</option>';
+        
+        if (data.offices.length === 0) {
+          officeSelect.disabled = true;
+          return;
+        }
+        
+        officeSelect.disabled = false;
+        data.offices.forEach(office => {
+          const option = document.createElement('option');
+          option.value = office.id.toString();
+          option.textContent = `${office.name} - ${office.address || office.fullAddress || 'Address not available'}`;
+          officeSelect.appendChild(option);
+        });
+      } else {
+        throw new Error('Invalid offices data');
+      }
+    } catch (error) {
+      console.error('Error loading offices:', error);
+      showOfficeError('Failed to load offices. Please try again.');
+    }
+  }
+
+  // Update office preview
+  function updateOfficePreview() {
+    const officeSelect = document.getElementById('office-office-select');
+    const selectedOfficeId = officeSelect.value;
+    
+    if (!selectedOfficeId) {
+      hideOfficePreview();
+      return;
+    }
+
+    const selectedOption = officeSelect.options[officeSelect.selectedIndex];
+    const officeName = selectedOption.textContent.split(' - ')[0];
+    const officeAddress = selectedOption.textContent.split(' - ')[1] || 'Address not available';
+
+    const preview = document.getElementById('office-preview');
+    const details = document.getElementById('office-details');
+    
+    details.innerHTML = `
+      <div><strong>${officeName}</strong></div>
+      <div>${officeAddress}</div>
+      <div>Sofia, Bulgaria</div>
+    `;
+    
+    preview.style.display = 'block';
+  }
+
+  // Hide office preview
+  function hideOfficePreview() {
+    const preview = document.getElementById('office-preview');
+    if (preview) {
+      preview.style.display = 'none';
+    }
+  }
+
+  // Update create order button state
+  function updateCreateOrderButton() {
+    const officeSelect = document.getElementById('office-office-select');
+    const button = document.getElementById('office-create-order');
+    if (button) {
+      button.disabled = !officeSelect.value;
+    }
+  }
+
+  // Show office error
+  function showOfficeError(message) {
+    const errorDiv = document.getElementById('office-error');
+    if (errorDiv) {
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+  }
+
+  // Create order from office selector
+  async function createOrderFromOfficeSelector() {
+    const officeSelect = document.getElementById('office-office-select');
+    const selectedOfficeId = officeSelect.value;
+    
+    if (!selectedOfficeId) {
+      showOfficeError('Please select an office');
+      return;
+    }
+
+    const selectedOption = officeSelect.options[officeSelect.selectedIndex];
+    const officeName = selectedOption.textContent.split(' - ')[0];
+    const officeAddress = selectedOption.textContent.split(' - ')[1] || 'Address not available';
+
+    const button = document.getElementById('office-create-order');
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Creating Order...';
+
+    try {
+      // Get product information from the page
+      const productData = extractProductFromPage();
+      if (!productData || !productData.variant_id) {
+        throw new Error('Could not determine product variant');
+      }
+
+      const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-draft-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: productData.product_id,
+          variantId: productData.variant_id,
+          shippingAddress: {
+            address1: officeAddress,
+            city: 'Sofia', // Default city
+            country: 'Bulgaria'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
+      }
+
+      const data = await response.json();
+      
+      if (data.checkoutUrl || data.invoiceUrl) {
+        console.log('🏢 Order created successfully, redirecting to checkout');
+        window.location.href = data.checkoutUrl || data.invoiceUrl;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+
+    } catch (error) {
+      console.error('Error creating order:', error);
+      showOfficeError(error.message || 'Failed to create order');
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
   // Function to check if an element is a checkout button
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
@@ -246,7 +606,11 @@
       // Check if this is a Buy Now button
       if (button) {
         isBuyNowButton = true;
-        console.log('Buy Now button detected, getting current product info');
+        console.log('Buy Now button detected, showing office selector instead of checkout form');
+        
+        // Show office selector for Buy Now buttons
+        showOfficeSelector(event);
+        return; // Don't proceed with regular checkout
         
         try {
           // Get product data from the page meta tags or JSON
