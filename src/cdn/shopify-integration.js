@@ -150,7 +150,19 @@
       
       // Listen for messages from the iframe
       const messageHandler = (event) => {
-        if (event.origin !== baseUrl) return;
+        console.log('🏢 Parent received message:', event.data, 'from origin:', event.origin);
+        
+        // Allow messages from our iframe domain (localhost or Vercel)
+        const allowedOrigins = [
+          'https://checkout-form-zeta.vercel.app',
+          'http://localhost:3002',
+          'http://127.0.0.1:3002'
+        ];
+        
+        if (!allowedOrigins.includes(event.origin)) {
+          console.log('🏢 Message origin not allowed:', event.origin, 'allowed:', allowedOrigins);
+          return;
+        }
         
         if (event.data.type === 'office-selector-closed') {
           console.log('🏢 Office selector closed');
@@ -168,12 +180,18 @@
             cartData: window.cartData,
             hasItems: !!(window.shopifyCart?.items || window.cartData?.items)
           });
+          
           // Send cart data to the office selector iframe
           if (iframe.contentWindow) {
+            const cartToSend = window.shopifyCart || window.cartData;
+            console.log('🏢 Sending cart data to iframe:', cartToSend);
+            
             iframe.contentWindow.postMessage({
               type: 'cart-data',
-              cart: window.shopifyCart || window.cartData
-            }, baseUrl);
+              cart: cartToSend
+            }, event.origin);
+          } else {
+            console.log('🏢 No iframe contentWindow found');
           }
         }
       };
