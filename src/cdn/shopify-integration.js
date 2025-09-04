@@ -247,43 +247,79 @@
     if (!element || !element.tagName) return false;
 
     const tagName = element.tagName.toLowerCase();
-    const text = element.textContent?.toLowerCase() || '';
+    const text = element.textContent?.toLowerCase().trim() || '';
     const className = element.className?.toLowerCase() || '';
     const id = element.id?.toLowerCase() || '';
+    const type = element.type?.toLowerCase() || '';
+    const name = element.name?.toLowerCase() || '';
 
-    // Only target EXACTLY these two buttons:
-    // 1. Buy it now button: <button type="button" class="shopify-payment-button__button shopify-payment-button__button--unbranded">Buy it now</button>
-    // 2. Cart checkout button: <button type="button" id="CartDrawer-Checkout" class="cart__checkout-button button">
-    
-    const isBuyItNowButton = 
-      tagName === 'button' &&
-      className.includes('shopify-payment-button__button') &&
-      className.includes('shopify-payment-button__button--unbranded') &&
-      text.includes('buy it now');
+    // Smart detection patterns for different Shopify themes
+    const patterns = {
+      // Buy Now / Quick Buy patterns
+      buyNow: [
+        // Text patterns
+        text.includes('buy now') || text.includes('buy it now') || text.includes('купи сега'),
+        // Class patterns
+        className.includes('buy-now') || className.includes('quick-buy') || className.includes('shopify-payment-button'),
+        // ID patterns
+        id.includes('buy-now') || id.includes('quick-buy'),
+        // Type patterns
+        type === 'button' && (className.includes('payment') || className.includes('checkout'))
+      ],
+      
+      // Checkout patterns
+      checkout: [
+        // Text patterns
+        text.includes('checkout') || text.includes('proceed to checkout') || text.includes('go to checkout') || 
+        text.includes('завърши поръчката') || text.includes('продължи към плащане'),
+        // Class patterns
+        className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
+        // ID patterns
+        id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
+        // Form submit patterns
+        (type === 'submit' && (className.includes('checkout') || name.includes('checkout')))
+      ],
+      
+      // Exclude patterns (Add to Cart, etc.)
+      exclude: [
+        // Add to Cart patterns
+        text.includes('add to cart') || text.includes('добави в кошницата') || text.includes('add to bag'),
+        className.includes('add-to-cart') || className.includes('cart-add') || className.includes('product-form__submit'),
+        id.includes('add-to-cart') || id.includes('cart-add') || id.startsWith('productsubmitbutton-'),
+        name.includes('add') && (name.includes('cart') || name.includes('product')),
+        // Other exclusions
+        className.includes('close') || className.includes('remove') || className.includes('delete'),
+        element.getAttribute('aria-label')?.toLowerCase().includes('close') ||
+        element.getAttribute('aria-label')?.toLowerCase().includes('remove')
+      ]
+    };
 
-    const isCartCheckoutButton = 
-      tagName === 'button' &&
-      id === 'cartdrawer-checkout' &&
-      className === 'cart__checkout-button button';
+    // Check if button matches any exclusion patterns
+    const isExcluded = patterns.exclude.some(pattern => pattern);
+    if (isExcluded) {
+      console.log('🏢 Button excluded:', { tagName, text, className, id, reason: 'matches exclusion pattern' });
+      return false;
+    }
 
-    // Explicitly exclude the Add to Cart button
-    const isAddToCartButton = 
-      tagName === 'button' &&
-      id.startsWith('productsubmitbutton-') &&
-      className.includes('product-form__submit');
+    // Check if button matches buy now or checkout patterns
+    const isBuyNow = patterns.buyNow.some(pattern => pattern);
+    const isCheckout = patterns.checkout.some(pattern => pattern);
+    const isTargetButton = isBuyNow || isCheckout;
 
-    console.log('🏢 Button check:', {
+    console.log('🏢 Smart button detection:', {
       tagName,
-      text,
-      className,
+      text: text.substring(0, 50), // Truncate for readability
+      className: className.substring(0, 100),
       id,
-      isBuyItNowButton,
-      isCartCheckoutButton,
-      isAddToCartButton,
-      result: (isBuyItNowButton || isCartCheckoutButton) && !isAddToCartButton
+      type,
+      name,
+      isBuyNow,
+      isCheckout,
+      isExcluded,
+      result: isTargetButton
     });
 
-    return (isBuyItNowButton || isCartCheckoutButton) && !isAddToCartButton;
+    return isTargetButton;
   }
   
   // Function to add our checkout handler
