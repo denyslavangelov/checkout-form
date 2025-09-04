@@ -255,6 +255,11 @@
 
     // Smart detection patterns for different Shopify themes
     const patterns = {
+      // Primary target: All submit buttons (covers most checkout/buy now buttons)
+      submitButtons: [
+        type === 'submit'
+      ],
+      
       // Buy Now / Quick Buy patterns
       buyNow: [
         // Text patterns
@@ -301,10 +306,11 @@
       return false;
     }
 
-    // Check if button matches buy now or checkout patterns
+    // Check if button matches any target patterns
+    const isSubmitButton = patterns.submitButtons.some(pattern => pattern);
     const isBuyNow = patterns.buyNow.some(pattern => pattern);
     const isCheckout = patterns.checkout.some(pattern => pattern);
-    const isTargetButton = isBuyNow || isCheckout;
+    const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
 
     console.log('🏢 Smart button detection:', {
       tagName,
@@ -313,6 +319,7 @@
       id,
       type,
       name,
+      isSubmitButton,
       isBuyNow,
       isCheckout,
       isExcluded,
@@ -354,25 +361,35 @@
         }
       };
       
-      // Add visual indicator
+      // Add visual indicator - red dot
       const dot = document.createElement('div');
       dot.style.cssText = `
         position: absolute;
         top: 2px;
         right: 2px;
-        width: 6px;
-        height: 6px;
-        background: #3b82f6;
+        width: 10px;
+        height: 10px;
+        background: #ef4444;
+        border: 2px solid white;
         border-radius: 50%;
         z-index: 1000;
         pointer-events: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
       `;
       
+      // Make sure button has relative positioning for absolute dot
       if (button.style.position !== 'absolute' && button.style.position !== 'relative') {
         button.style.position = 'relative';
       }
       
       button.appendChild(dot);
+      
+      console.log('🏢 Added red dot indicator to button:', {
+        tagName: button.tagName,
+        text: button.textContent?.substring(0, 30),
+        className: button.className,
+        id: button.id
+      });
     }
   }
   
