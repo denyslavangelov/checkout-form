@@ -1728,7 +1728,7 @@ export function CheckoutForm({ open, onOpenChange, cartData, isMobile = false }:
                     render={({ field }) => (
                       <FormItem>
                           <FormLabel className="text-black text-xs">
-                          Телефон<span className="text-red-500 ml-0.5">*</span>
+                          Телефонсс<span className="text-red-500 ml-0.5">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input 
