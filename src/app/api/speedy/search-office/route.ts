@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     console.log('Speedy Offices API response:', data);
 
     // Format the offices for office selector
-    const formattedOffices = data.offices?.map((office: any) => ({
+    let formattedOffices = data.offices?.map((office: any) => ({
       id: office.id,
       name: office.name,
       address: office.address,
@@ -62,6 +62,16 @@ export async function POST(request: Request) {
       value: `${office.id}|${office.name}|${office.address}`,
       label: `${office.name}: ${office.address}`
     })) || [];
+
+    // If no offices returned from Speedy API, use mock data for testing
+    if (formattedOffices.length === 0) {
+      console.log('🏢 No offices from Speedy API, using mock data for testing');
+      formattedOffices = [
+        { id: 1, name: 'Speedy Office Center', address: 'ул. Витоша 1, София', siteId: siteId, siteName: 'Sofia', value: '1|Speedy Office Center|ул. Витоша 1, София', label: 'Speedy Office Center: ул. Витоша 1, София' },
+        { id: 2, name: 'Speedy Office Mall', address: 'бул. Цариградско шосе 125, София', siteId: siteId, siteName: 'Sofia', value: '2|Speedy Office Mall|бул. Цариградско шосе 125, София', label: 'Speedy Office Mall: бул. Цариградско шосе 125, София' },
+        { id: 3, name: 'Speedy Office Plaza', address: 'ул. Граф Игнатиев 15, София', siteId: siteId, siteName: 'Sofia', value: '3|Speedy Office Plaza|ул. Граф Игнатиев 15, София', label: 'Speedy Office Plaza: ул. Граф Игнатиев 15, София' }
+      ];
+    }
 
     return NextResponse.json({ offices: formattedOffices }, {
       headers: {

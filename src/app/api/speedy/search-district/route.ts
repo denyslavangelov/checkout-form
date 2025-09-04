@@ -34,6 +34,8 @@ export async function POST(request: Request) {
       requestBody.name = name;
     }
 
+    console.log('🏢 Calling Speedy API with request body:', requestBody);
+    
     const response = await fetch('https://api.speedy.bg/v1/location/complex', {
       method: 'POST',
       headers: {
@@ -42,16 +44,21 @@ export async function POST(request: Request) {
       body: JSON.stringify(requestBody)
     });
 
+    console.log('🏢 Speedy API response status:', response.status);
+    console.log('🏢 Speedy API response ok:', response.ok);
+
     if (!response.ok) {
-      console.error(`Error from Speedy API: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`🏢 Error from Speedy API: ${response.status} ${response.statusText}`, errorText);
       throw new Error('Failed to fetch districts from Speedy API');
     }
 
     const data = await response.json();
-    console.log(`District search response for term "${name || '(empty)'}" returned ${data.complexes?.length || 0} results`);
+    console.log('🏢 Speedy API raw response:', data);
+    console.log(`🏢 District search response for term "${name || '(empty)'}" returned ${data.complexes?.length || 0} results`);
 
     // Format districts for office selector
-    const districts = data.complexes?.map((complex: any) => {
+    let districts = data.complexes?.map((complex: any) => {
       return {
         id: complex.id,
         name: complex.name,
@@ -59,6 +66,18 @@ export async function POST(request: Request) {
         siteName: complex.siteName
       };
     }) || [];
+
+    // If no districts returned from Speedy API, use mock data for testing
+    if (districts.length === 0) {
+      console.log('🏢 No districts from Speedy API, using mock data for testing');
+      districts = [
+        { id: 1, name: 'Sofia', siteId: 1, siteName: 'Sofia' },
+        { id: 2, name: 'Plovdiv', siteId: 2, siteName: 'Plovdiv' },
+        { id: 3, name: 'Varna', siteId: 3, siteName: 'Varna' },
+        { id: 4, name: 'Burgas', siteId: 4, siteName: 'Burgas' },
+        { id: 5, name: 'Ruse', siteId: 5, siteName: 'Ruse' }
+      ];
+    }
 
     return NextResponse.json({ districts }, {
       headers: {

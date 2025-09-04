@@ -218,6 +218,8 @@
   // Load cities for office selector
   async function loadCitiesForOfficeSelector() {
     try {
+      console.log('🏢 Making API call to load cities...');
+      
       const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-district', {
         method: 'POST',
         headers: {
@@ -229,13 +231,20 @@
         })
       });
 
+      console.log('🏢 API response status:', response.status);
+      console.log('🏢 API response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Failed to load cities');
+        const errorText = await response.text();
+        console.error('🏢 API error response:', errorText);
+        throw new Error(`Failed to load cities: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('🏢 API response data:', data);
       
       if (data.districts && Array.isArray(data.districts)) {
+        console.log('🏢 Found districts:', data.districts.length);
         const citySelect = document.getElementById('office-city-select');
         citySelect.innerHTML = '<option value="">Select city...</option>';
         
@@ -245,12 +254,15 @@
           option.textContent = district.name;
           citySelect.appendChild(option);
         });
+        
+        console.log('🏢 Cities loaded successfully');
       } else {
-        throw new Error('Invalid cities data');
+        console.error('🏢 Invalid cities data format:', data);
+        throw new Error('Invalid cities data format');
       }
     } catch (error) {
-      console.error('Error loading cities:', error);
-      showOfficeError('Failed to load cities. Please try again.');
+      console.error('🏢 Error loading cities:', error);
+      showOfficeError(`Failed to load cities: ${error.message}`);
     }
   }
 
