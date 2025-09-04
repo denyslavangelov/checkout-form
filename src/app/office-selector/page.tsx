@@ -66,7 +66,6 @@ export default function OfficeSelectorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <OfficeSelectorModal
         isOpen={isOpen}
         onClose={handleClose}
@@ -74,6 +73,5 @@ export default function OfficeSelectorPage() {
         productId={productId}
         variantId={variantId}
       />
-    </div>
   );
 }
