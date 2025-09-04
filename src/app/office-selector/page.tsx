@@ -32,8 +32,8 @@ export default function OfficeSelectorPage() {
 
   const handleOrderCreated = (checkoutUrl: string) => {
     // Notify parent window about order creation
-    if (window.opener) {
-      window.opener.postMessage({ 
+    if (window.parent) {
+      window.parent.postMessage({ 
         type: 'order-created', 
         checkoutUrl: checkoutUrl 
       }, '*');
@@ -41,28 +41,27 @@ export default function OfficeSelectorPage() {
     
     // For cart checkout, redirect the parent window to checkout
     if (productId === 'cart' && variantId === 'cart') {
-      if (window.opener) {
-        window.opener.location.href = checkoutUrl;
-        window.close();
+      if (window.parent) {
+        window.parent.location.href = checkoutUrl;
       } else {
         window.location.href = checkoutUrl;
       }
     } else {
-      // For Buy Now, redirect in the popup window
-      window.location.href = checkoutUrl;
+      // For Buy Now, redirect the parent window
+      if (window.parent) {
+        window.parent.location.href = checkoutUrl;
+      } else {
+        window.location.href = checkoutUrl;
+      }
     }
   };
 
   const handleClose = () => {
     setIsOpen(false);
     // Notify parent window that modal is closed
-    if (window.opener) {
-      window.opener.postMessage({ type: 'office-selector-closed' }, '*');
-    } else if (window.parent) {
+    if (window.parent) {
       window.parent.postMessage({ type: 'office-selector-closed' }, '*');
     }
-    // Close the popup window
-    window.close();
   };
 
   return (

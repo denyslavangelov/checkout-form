@@ -18,7 +18,46 @@
     get: originalOnClickDescriptor.get
   });
 
-  // No longer using iframe - using popup windows instead
+  // Office selector iframe container
+  const OFFICE_SELECTOR_HTML = `
+    <div id="office-selector-modal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    ">
+      <div style="
+        background: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        height: 80vh;
+        max-height: 600px;
+        position: relative;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+      ">
+        <iframe 
+          id="office-selector-iframe"
+          src=""
+          style="
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+          "
+          allow="clipboard-write"
+        ></iframe>
+      </div>
+    </div>
+  `;
 
   // Function to show office selector
   function showOfficeSelector(event) {
@@ -88,48 +127,56 @@
     
     // Use localhost for development, production URL for live sites
     const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? `http://${window.location.hostname}:3000`
+      ? `http://${window.location.hostname}:3001`  // Use port 3001 since 3000 is in use
       : 'https://checkout-form-zeta.vercel.app';
     
-    // Open office selector in a new window instead of iframe to avoid CSP issues
-    const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}`;
+    // Add modal to page if not already there
+    if (!document.getElementById('office-selector-modal')) {
+      console.log('🏢 Adding office selector modal to page');
+      document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
+    }
     
-    // Open in a popup window
-    const popup = window.open(
-      officeSelectorUrl,
-      'officeSelector',
-      'width=500,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no'
-    );
+    // Show the modal with iframe
+    const modal = document.getElementById('office-selector-modal');
+    const iframe = document.getElementById('office-selector-iframe');
     
-    if (popup) {
-      console.log('🏢 Office selector opened in popup:', officeSelectorUrl);
+    if (modal && iframe) {
+      // Set iframe source with product data
+      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}`;
+      iframe.src = officeSelectorUrl;
       
-      // Listen for messages from the popup
+      modal.style.display = 'flex';
+      console.log('🏢 Office selector modal shown with iframe:', officeSelectorUrl);
+      
+      // Listen for messages from the iframe
       const messageHandler = (event) => {
         if (event.origin !== baseUrl) return;
         
         if (event.data.type === 'office-selector-closed') {
-          console.log('🏢 Office selector popup closed');
+          console.log('🏢 Office selector closed');
+          hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'order-created') {
           console.log('🏢 Order created, redirecting to checkout');
           window.location.href = event.data.checkoutUrl;
-          popup.close();
+          hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
         }
       };
       
       window.addEventListener('message', messageHandler);
-      
-      // Focus the popup
-      popup.focus();
     } else {
-      console.error('🏢 Failed to open office selector popup - popup blocked?');
-      alert('Моля, разрешете popup прозорците за да използвате тази функция.');
+      console.error('🏢 Office selector modal or iframe not found');
     }
   }
 
-  // No longer using modal - using popup windows instead
+  // Hide office selector
+  function hideOfficeSelector() {
+    const modal = document.getElementById('office-selector-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
 
   // Function to check if an element is a checkout button
   function isCheckoutButton(element) {
@@ -328,40 +375,43 @@
     
               // Use localhost for development, production URL for live sites
      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-       ? `http://${window.location.hostname}:3000`
+       ? `http://${window.location.hostname}:3001`
        : 'https://checkout-form-zeta.vercel.app';
      
-     // Open checkout form in a popup window instead of iframe
-     const checkoutUrl = `${baseUrl}/iframe`;
-     const popup = window.open(
-       checkoutUrl,
-       'checkoutForm',
-       'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no'
-     );
+     // Create iframe for checkout form
+     const iframe = document.createElement('iframe');
+     iframe.src = `${baseUrl}/iframe`;
+     iframe.style.cssText = `
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       border: none;
+       z-index: 10000;
+       background: white;
+     `;
      
-     if (!popup) {
-       console.error('Failed to open checkout popup - popup blocked?');
-       alert('Моля, разрешете popup прозорците за да използвате тази функция.');
-       return;
-     }
+     document.body.appendChild(iframe);
     
-     // Listen for messages from popup
+     // Listen for messages from iframe
      const messageHandler = (event) => {
        const allowedOrigins = [
          'https://checkout-form-zeta.vercel.app',
-         'http://localhost:3000',
-         'http://127.0.0.1:3000'
+         'http://localhost:3001',
+         'http://127.0.0.1:3001'
        ];
        if (!allowedOrigins.includes(event.origin)) return;
       
       switch (event.data.type) {
         case 'checkout-closed':
           console.log('Checkout form closed');
+          document.body.removeChild(iframe);
           window.removeEventListener('message', messageHandler);
           break;
         case 'request-cart-data':
           console.log('Checkout form requesting cart data');
-          popup.postMessage({
+          iframe.contentWindow.postMessage({
             type: 'cart-data',
             cart: productData
           }, baseUrl);
@@ -380,6 +430,9 @@
           break;
         case 'checkout-cleanup-done':
           console.log('Checkout cleanup completed');
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
           window.removeEventListener('message', messageHandler);
           break;
       }
@@ -409,7 +462,7 @@
       const data = await response.json();
       console.log('Order created successfully:', data);
 
-      // Send success response back to popup
+      // Send success response back to iframe
       source.postMessage({
         type: 'order-created',
         orderId: data.orderId,
@@ -419,7 +472,7 @@
     } catch (error) {
       console.error('Error creating order:', error);
       
-      // Send error response back to popup
+      // Send error response back to iframe
       source.postMessage({
         type: 'order-error',
         error: error.message
