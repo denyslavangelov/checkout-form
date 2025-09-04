@@ -173,10 +173,17 @@
           console.log('🏢 Office selector requesting cart data:', event.data.type);
           
           // Fetch fresh cart data from Shopify
+          console.log('🏢 Fetching fresh cart data from /cart.js...');
           fetch('/cart.js')
-            .then(response => response.json())
+            .then(response => {
+              console.log('🏢 Cart fetch response status:', response.status);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              return response.json();
+            })
             .then(freshCartData => {
-              console.log('🏢 Fresh cart data fetched:', freshCartData);
+              console.log('🏢 Fresh cart data fetched successfully:', freshCartData);
               
               // Update global cart data
               window.shopifyCart = freshCartData;
@@ -191,7 +198,7 @@
                   cart: freshCartData
                 }, event.origin);
               } else {
-                console.log('🏢 No iframe contentWindow found');
+                console.error('🏢 No iframe contentWindow found');
               }
             })
             .catch(error => {
@@ -201,11 +208,21 @@
               const fallbackCart = window.shopifyCart || window.cartData;
               console.log('🏢 Using fallback cart data:', fallbackCart);
               
-              if (iframe.contentWindow && fallbackCart) {
-                iframe.contentWindow.postMessage({
-                  type: 'cart-data',
-                  cart: fallbackCart
-                }, event.origin);
+              if (iframe.contentWindow) {
+                if (fallbackCart) {
+                  iframe.contentWindow.postMessage({
+                    type: 'cart-data',
+                    cart: fallbackCart
+                  }, event.origin);
+                } else {
+                  console.error('🏢 No fallback cart data available');
+                  iframe.contentWindow.postMessage({
+                    type: 'cart-data',
+                    cart: null
+                  }, event.origin);
+                }
+              } else {
+                console.error('🏢 No iframe contentWindow found for fallback');
               }
             });
         }

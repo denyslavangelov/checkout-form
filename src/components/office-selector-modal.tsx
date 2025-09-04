@@ -75,7 +75,7 @@ export function OfficeSelectorModal({
         
         // Timeout after 5 seconds (longer for fresh fetch)
         setTimeout(() => {
-          console.log('🏢 Fresh cart data request timed out');
+          console.error('🏢 Fresh cart data request timed out after 5 seconds');
           window.removeEventListener('message', messageHandler);
           resolve(null);
         }, 5000);
@@ -242,11 +242,19 @@ export function OfficeSelectorModal({
         console.log('🏢 Cart checkout - creating draft order with cart items');
         
         // Get cart data from the parent window
+        console.log('🏢 Starting cart data fetch...');
         const cartData = await getCartDataFromParent() as any;
         console.log('🏢 Raw cart data received:', cartData);
         
         if (!cartData) {
+          console.error('🏢 No cart data received from parent');
           setError('Не можахме да получим данните за кошницата. Моля, опитайте отново.');
+          return;
+        }
+        
+        if (!cartData.items && !cartData.line_items && !cartData.products) {
+          console.error('🏢 Cart data received but no items found:', cartData);
+          setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
           return;
         }
         
