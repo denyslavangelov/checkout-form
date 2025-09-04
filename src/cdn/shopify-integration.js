@@ -517,13 +517,13 @@
         cart_type: 'buy_now',
         source: 'buy_now_button',
         items: [{
-          id: currentProduct.variant_id || currentProduct.id,
+          id: currentProduct.variant_id ? String(currentProduct.variant_id) : String(currentProduct.id),
           title: currentProduct.title + (currentProduct.variant_title ? ` - ${currentProduct.variant_title}` : ''),
           quantity: currentProduct.quantity || 1,
           price: currentProduct.price,
           line_price: currentProduct.price * (currentProduct.quantity || 1),
           original_line_price: (currentProduct.compare_at_price || currentProduct.price) * (currentProduct.quantity || 1),
-          variant_id: currentProduct.variant_id || currentProduct.id,
+          variant_id: currentProduct.variant_id ? String(currentProduct.variant_id) : String(currentProduct.id),
           product_id: currentProduct.id,
           sku: currentProduct.sku || '',
           variant_title: currentProduct.variant_title || '',
@@ -725,13 +725,13 @@
               
               if (product) {
                 window.shopifyCart.items = [{
-                  id: product.variant_id || product.id,
+                  id: product.variant_id ? String(product.variant_id) : String(product.id),
                   title: product.title + (product.variant_title ? ` - ${product.variant_title}` : ''),
                   quantity: product.quantity || 1,
                   price: product.price,
                   line_price: product.price * (product.quantity || 1),
                   original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-                  variant_id: product.variant_id || product.id,
+                  variant_id: product.variant_id ? String(product.variant_id) : String(product.id),
                   product_id: product.id,
                   sku: product.sku || '',
                   variant_title: product.variant_title || '',
@@ -827,13 +827,13 @@
               if (!window.shopifyCart.items && window.shopifyCart.product) {
                 const product = window.shopifyCart.product;
                 window.shopifyCart.items = [{
-                  id: product.variant_id || product.id,
+                  id: product.variant_id ? String(product.variant_id) : String(product.id),
                   title: product.title + (product.variant_title ? ` - ${product.variant_title}` : ''),
                   quantity: product.quantity || 1,
                   price: product.price,
                   line_price: product.price * (product.quantity || 1),
                   original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-                  variant_id: product.variant_id || product.id,
+                  variant_id: product.variant_id ? String(product.variant_id) : String(product.id),
                   product_id: product.id,
                   sku: product.sku || '',
                   variant_title: product.variant_title || '',
@@ -931,7 +931,7 @@
         quantity: item.quantity,
         title: item.title,
         price: item.price,
-        variant_id: item.variant_id,
+        variant_id: item.variant_id ? String(item.variant_id) : String(item.id),
         product_id: item.product_id,
         sku: item.sku || '',
         variant_title: item.variant_title || '',
