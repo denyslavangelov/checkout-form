@@ -59,15 +59,45 @@ export async function GET(request: Request) {
         };
       });
 
-      return NextResponse.json({ sites: formattedSites });
+      return NextResponse.json({ sites: formattedSites }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
     } else {
-      return NextResponse.json({ sites: [] });
+      return NextResponse.json({ sites: [] }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
     }
   } catch (error) {
     console.error('Error in /api/speedy/search-site:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch site data' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
     );
   }
-} 
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
+}

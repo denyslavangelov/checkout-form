@@ -66,6 +66,29 @@ export async function POST(request: NextRequest) {
       shippingAddress
     });
 
+    // Log the full GraphQL request
+    const graphqlRequest = {
+      query: CREATE_DRAFT_ORDER_MUTATION,
+      variables: {
+        input: {
+          lineItems: [
+            {
+              variantId: `gid://shopify/ProductVariant/${variantId}`,
+              quantity: 1
+            }
+          ],
+          shippingAddress: {
+            address1: shippingAddress.address1,
+            city: shippingAddress.city || 'Sofia',
+            country: shippingAddress.country
+          },
+          tags: ["office-pickup", "bulgaria-market", "auto-created"]
+        }
+      }
+    };
+    
+    console.log('GraphQL request:', JSON.stringify(graphqlRequest, null, 2));
+
     // Create draft order via Shopify GraphQL API
     const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {
       method: 'POST',

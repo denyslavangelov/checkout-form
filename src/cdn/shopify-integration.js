@@ -215,51 +215,22 @@
     }
   }
 
-  // Load cities for office selector
+  // Load cities for office selector - hardcoded Sofia
   async function loadCitiesForOfficeSelector() {
     try {
-      console.log('🏢 Making API call to load cities...');
+      console.log('🏢 Loading Sofia as the only city option...');
       
-      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-district', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          countryId: 100, // Bulgaria
-          name: ''
-        })
-      });
-
-      console.log('🏢 API response status:', response.status);
-      console.log('🏢 API response ok:', response.ok);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('🏢 API error response:', errorText);
-        throw new Error(`Failed to load cities: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('🏢 API response data:', data);
+      // Hardcode Sofia as the only city option
+      const citySelect = document.getElementById('office-city-select');
+      citySelect.innerHTML = '<option value="">Select city...</option>';
       
-      if (data.districts && Array.isArray(data.districts)) {
-        console.log('🏢 Found districts:', data.districts.length);
-        const citySelect = document.getElementById('office-city-select');
-        citySelect.innerHTML = '<option value="">Select city...</option>';
-        
-        data.districts.forEach(district => {
-          const option = document.createElement('option');
-          option.value = district.id.toString();
-          option.textContent = district.name;
-          citySelect.appendChild(option);
-        });
-        
-        console.log('🏢 Cities loaded successfully');
-      } else {
-        console.error('🏢 Invalid cities data format:', data);
-        throw new Error('Invalid cities data format');
-      }
+      // Add Sofia option (using a mock ID for Sofia)
+      const sofiaOption = document.createElement('option');
+      sofiaOption.value = '1'; // Mock Sofia ID
+      sofiaOption.textContent = 'гр. София';
+      citySelect.appendChild(sofiaOption);
+      
+      console.log('🏢 Sofia loaded successfully');
     } catch (error) {
       console.error('🏢 Error loading cities:', error);
       showOfficeError(`Failed to load cities: ${error.message}`);
@@ -269,13 +240,14 @@
   // Load offices for selected city
   async function loadOfficesForOfficeSelector(cityId) {
     try {
-      const response = await fetch('https://checkout-form-zeta.vercel.app/api/speedy/search-office', {
+      const response = await fetch('http://localhost:3000/api/speedy/search-office', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          siteId: cityId
+          siteId: cityId,
+          term: '' // Empty term to get all offices
         })
       });
 
@@ -373,8 +345,25 @@
     }
 
     const selectedOption = officeSelect.options[officeSelect.selectedIndex];
-    const officeName = selectedOption.textContent.split(' - ')[0];
-    const officeAddress = selectedOption.textContent.split(' - ')[1] || 'Address not available';
+    const officeText = selectedOption.textContent;
+    console.log('🏢 Selected office text:', officeText);
+    
+    // Extract office name and address from the option text
+    let officeName, officeAddress;
+    if (officeText.includes(':')) {
+      // Format: "Office Name: Address"
+      [officeName, officeAddress] = officeText.split(':').map(s => s.trim());
+    } else if (officeText.includes(' - ')) {
+      // Format: "Office Name - Address"
+      [officeName, officeAddress] = officeText.split(' - ').map(s => s.trim());
+    } else {
+      // Fallback: use the whole text as name
+      officeName = officeText;
+      officeAddress = 'ул. Витоша 1, София'; // Default Sofia address
+    }
+    
+    console.log('🏢 Extracted office name:', officeName);
+    console.log('🏢 Extracted office address:', officeAddress);
 
     const button = document.getElementById('office-create-order');
     const originalText = button.textContent;
@@ -382,31 +371,46 @@
     button.textContent = 'Creating Order...';
 
     try {
-      // Get product information from the page
-      const productData = extractProductFromPage();
-      if (!productData || !productData.variant_id) {
-        throw new Error('Could not determine product variant');
-      }
+      // Use current valid variant ID for testing
+      const testVariantId = '44557290995843'; // Current valid variant ID from "Sensitive" product
+      const testProductId = '8378591772803'; // Product ID for "Sensitive" product
+      
+      console.log('🏢 Creating draft order with test variant ID:', testVariantId);
 
-      const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-draft-order', {
+      const orderData = {
+        productId: testProductId,
+        variantId: testVariantId,
+        shippingAddress: {
+          address1: officeAddress,
+          city: 'Sofia', // Default city
+          country: 'Bulgaria'
+        }
+      };
+      
+      console.log('🏢 Sending order data:', orderData);
+
+      const response = await fetch('http://localhost:3000/api/create-draft-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          productId: productData.product_id,
-          variantId: productData.variant_id,
-          shippingAddress: {
-            address1: officeAddress,
-            city: 'Sofia', // Default city
-            country: 'Bulgaria'
-          }
-        })
+        body: JSON.stringify(orderData)
       });
 
+      console.log('🏢 API response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        console.error('🏢 API error response:', errorData);
+        console.error('🏢 Error details:', errorData.details);
+        
+        // Show more detailed error message
+        let errorMessage = errorData.error || `Failed to create order: ${response.status} ${response.statusText}`;
+        if (errorData.details && errorData.details.length > 0) {
+          errorMessage += ` - Details: ${JSON.stringify(errorData.details)}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

@@ -277,12 +277,8 @@
       variantId: currentVariantId
     });
 
-    // If we still don't have the info, use defaults or show error
-    if (!currentVariantId) {
-      showError('Could not determine product variant. Please try again.');
-      return false;
-    }
-
+    // We'll use test variant ID, so no need to check for currentVariantId
+    console.log('🏢 Using test variant ID for order creation');
     return true;
   }
 
@@ -321,37 +317,20 @@
     hideError();
   }
 
-  // Load cities from API
+  // Load cities - hardcoded Sofia
   async function loadCities() {
     try {
-      const response = await fetch(`${CONFIG.apiBaseUrl}/api/speedy/search-district`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          countryId: 100, // Bulgaria
-          name: ''
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load cities');
-      }
-
-      const data = await response.json();
+      console.log('🏢 Loading Sofia as the only city option...');
       
-      if (data.districts && Array.isArray(data.districts)) {
-        cities = data.districts.map(district => ({
-          id: district.id.toString(),
-          name: district.name
-        }));
-        
-        updateCitySelect();
-        showForm();
-      } else {
-        throw new Error('Invalid cities data');
-      }
+      // Hardcode Sofia as the only city
+      cities = [{
+        id: '1',
+        name: 'гр. София'
+      }];
+      
+      updateCitySelect();
+      showForm();
+      console.log('🏢 Sofia loaded successfully');
     } catch (error) {
       console.error('Error loading cities:', error);
       showError('Failed to load cities. Please try again.');
@@ -361,13 +340,14 @@
   // Load offices for selected city
   async function loadOffices(cityId) {
     try {
-      const response = await fetch(`${CONFIG.apiBaseUrl}/api/speedy/search-office`, {
+      const response = await fetch('http://localhost:3000/api/speedy/search-office', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          siteId: cityId
+          siteId: cityId,
+          term: '' // Empty term to get all offices
         })
       });
 
@@ -482,7 +462,7 @@
 
   // Create order and redirect to checkout
   async function createOrder() {
-    if (!selectedOfficeId || !currentVariantId) {
+    if (!selectedOfficeId) {
       showError('Please select an office');
       return;
     }
@@ -501,14 +481,21 @@
     try {
       hideError();
 
-      const response = await fetch(`${CONFIG.apiBaseUrl}/api/create-draft-order`, {
+      debugger;
+      // Use current valid variant ID for testing
+      const testVariantId = '44557290995843'; // Current valid variant ID from "Sensitive" product
+      const testProductId = '8378591772803'; // Product ID for "Sensitive" product
+      
+      console.log('🏢 Creating draft order with test variant ID:', testVariantId);
+
+      const response = await fetch('http://localhost:3000/api/create-draft-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          productId: currentProductId,
-          variantId: currentVariantId,
+          productId: testProductId,
+          variantId: testVariantId,
           shippingAddress: {
             address1: office.address,
             city: office.city,
