@@ -90,7 +90,14 @@ export default function TestBuyNowPage() {
 
     // Add the shopify integration script
     const integrationScript = document.createElement('script');
-    integrationScript.src = '/cdn/shopify-integration.js';
+    integrationScript.src = '/api/cdn/shopify-integration';
+    integrationScript.onload = () => {
+      console.log('✅ Shopify integration script loaded successfully');
+      console.log('🔍 Available functions:', Object.keys(window).filter(key => key.includes('showOffice') || key.includes('Office')));
+    };
+    integrationScript.onerror = () => {
+      console.error('❌ Failed to load shopify integration script');
+    };
     document.head.appendChild(integrationScript);
 
     console.log('🏢 Test Buy Now page loaded');
@@ -109,12 +116,17 @@ export default function TestBuyNowPage() {
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.preventDefault();
     console.log('🏢 Buy Now button clicked manually');
+    console.log('🏢 Event:', e);
+    console.log('🏢 Window object keys:', Object.keys(window).filter(key => key.includes('showOffice') || key.includes('Office')));
+    console.log('🏢 showOfficeSelector function exists:', typeof window.showOfficeSelector);
     
     // Manually trigger the office selector
     if (window.showOfficeSelector) {
+      console.log('🏢 Calling showOfficeSelector function');
       window.showOfficeSelector(e);
     } else {
-      console.error('showOfficeSelector function not found');
+      console.error('❌ showOfficeSelector function not found');
+      console.log('🔍 Available window functions:', Object.keys(window).filter(key => typeof (window as any)[key] === 'function'));
     }
   };
 
