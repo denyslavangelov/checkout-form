@@ -152,18 +152,29 @@
   // Function to show office selector
   function showOfficeSelector(event) {
     console.log('🏢 Showing office selector for Buy Now button');
+    console.log('🏢 Event details:', event);
+    console.log('🏢 Event target:', event?.target);
     
     // Add modal to page if not already there
     if (!document.getElementById('office-selector-modal')) {
+      console.log('🏢 Adding office selector modal to page');
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
       setupOfficeSelectorEvents();
+    } else {
+      console.log('🏢 Office selector modal already exists');
     }
     
     // Show the modal
     const modal = document.getElementById('office-selector-modal');
-    modal.style.display = 'flex';
+    if (modal) {
+      console.log('🏢 Showing office selector modal');
+      modal.style.display = 'flex';
+    } else {
+      console.error('🏢 Office selector modal not found!');
+    }
     
     // Load cities
+    console.log('🏢 Loading cities for office selector');
     loadCitiesForOfficeSelector();
   }
 
@@ -1494,6 +1505,9 @@
       return null;
     }
   }
+
+  // Make showOfficeSelector available globally for testing
+  window.showOfficeSelector = showOfficeSelector;
 
   // Start when the page loads
   if (document.readyState === 'loading') {
