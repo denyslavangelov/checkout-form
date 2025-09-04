@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Creation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Order Creation Test</h1>
+        <p>This page tests the order creation API with different data formats to verify our variant_id fixes are working.</p>
+        
+        <div class="test-section">
+            <h3>Test 1: String variant_id (Should Work)</h3>
+            <p>Tests with properly formatted string variant_id and product_id values.</p>
+            <button onclick="testStringIds()">Test String IDs</button>
+            <div id="result1" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Numeric variant_id (Should Fail with Old Error)</h3>
+            <p>Tests with numeric variant_id to see if the old validation error still occurs.</p>
+            <button onclick="testNumericIds()">Test Numeric IDs</button>
+            <div id="result2" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Undefined variant_id (Should Use Fallback)</h3>
+            <p>Tests with undefined variant_id to see if fallback logic works.</p>
+            <button onclick="testUndefinedIds()">Test Undefined IDs</button>
+            <div id="result3" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Real Cart Data Format</h3>
+            <p>Tests with data that matches the actual cart format from the checkout form.</p>
+            <button onclick="testRealCartData()">Test Real Cart Data</button>
+            <div id="result4" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Run All Tests</h3>
+            <p>Runs all tests sequentially to get a comprehensive view.</p>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <div id="resultAll" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin; // Use current domain
+        const apiUrl = `${baseUrl}/api/create-order`;
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+
+        function hideResult(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'none';
+        }
+
+        async function makeRequest(testData, testName) {
+            try {
+                showResult('resultAll', `🔄 Running ${testName}...`, 'loading');
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const responseText = await response.text();
+                let responseData;
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch (e) {
+                    responseData = responseText;
+                }
+
+                const result = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: responseData,
+                    success: response.ok
+                };
+
+                if (response.ok) {
+                    showResult('resultAll', `✅ ${testName} PASSED\nStatus: ${response.status}\nResponse: ${JSON.stringify(responseData, null, 2)}`, 'success');
+                } else {
+                    const isVariantIdError = responseText.includes('variant_id') && responseText.includes('expected String');
+                    const message = isVariantIdError 
+                        ? `🚨 ${testName} FAILED - variant_id validation error still exists\nStatus: ${response.status}\nError: ${responseText}`
+                        : `✅ ${testName} PASSED - variant_id error is fixed (different error)\nStatus: ${response.status}\nError: ${responseText}`;
+                    
+                    showResult('resultAll', message, isVariantIdError ? 'error' : 'success');
+                }
+
+                return result;
+            } catch (error) {
+                const message = `❌ ${testName} ERROR\nNetwork error: ${error.message}`;
+                showResult('resultAll', message, 'error');
+                return { error: error.message };
+            }
+        }
+
+        async function testStringIds() {
+            hideResult('result1');
+            const testData = {
+                shop_domain: "test-shop.myshopify.com",
+                cart: {
+                    items: [{
+                        id: "123456789",
+                        quantity: 1,
+                        title: "Test Product - Deluxe Starting Solids Set",
+                        price: 5500,
+                        variant_id: "123456789", // String
+                        product_id: "987654321", // String
+                        sku: "TEST-SKU-001",
+                        variant_title: "Default Title",
+                        vendor: "Test Vendor",
+                        line_price: 5500
+                    }],
+                    currency: "BGN",
+                    total_price: 5500,
+                    total_weight: 500,
+                    item_count: 1,
+                    items_subtotal_price: 5500,
+                    total_discount: 0,
+                    requires_shipping: true
+                },
+                shipping_method: "speedy",
+                shipping_price: 599,
+                shipping_method_data: {
+                    type: "speedy",
+                    name: "Офис на Спиди",
+                    price: 599,
+                    price_formatted: "5.99 лв."
+                },
+                client_details: {
+                    first_name: "Test",
+                    last_name: "User",
+                    phone: "0888123456",
+                    email: "test@example.com",
+                    address: {
+                        city: "София",
+                        address1: "ул. Тестова 123",
+                        postcode: "1000"
+                    },
+                    note: "Test order with string variant_id"
+                }
+            };
+
+            const result = await makeRequest(testData, "String IDs Test");
+            
+            if (result.success) {
+                showResult('result1', `✅ SUCCESS\nStatus: ${result.status}\nResponse: ${JSON.stringify(result.data, null, 2)}`, 'success');
+            } else {
+                const isVariantIdError = JSON.stringify(result.data).includes('variant_id') && JSON.stringify(result.data).includes('expected String');
+                showResult('result1', `❌ FAILED\nStatus: ${result.status}\nError: ${JSON.stringify(result.data, null, 2)}`, 'error');
+            }
+        }
+
+        async function testNumericIds() {
+            hideResult('result2');
+            const testData = {
+                shop_domain: "test-shop.myshopify.com",
+                cart: {
+                    items: [{
+                        id: "123456789",
+                        quantity: 1,
+                        title: "Test Product - Deluxe Starting Solids Set",
+                        price: 5500,
+                        variant_id: 123456789, // Numeric - should cause old error
+                        product_id: 987654321, // Numeric - should cause old error
+                        sku: "TEST-SKU-001",
+                        variant_title: "Default Title",
+                        vendor: "Test Vendor",
+                        line_price: 5500
+                    }],
+                    currency: "BGN",
+                    total_price: 5500,
+                    total_weight: 500,
+                    item_count: 1,
+                    items_subtotal_price: 5500,
+                    total_discount: 0,
+                    requires_shipping: true
+                },
+                shipping_method: "speedy",
+                shipping_price: 599,
+                shipping_method_data: {
+                    type: "speedy",
+                    name: "Офис на Спиди",
+                    price: 599,
+                    price_formatted: "5.99 лв."
+                },
+                client_details: {
+                    first_name: "Test",
+                    last_name: "User",
+                    phone: "0888123456",
+                    email: "test@example.com",
+                    address: {
+                        city: "София",
+                        address1: "ул. Тестова 123",
+                        postcode: "1000"
+                    },
+                    note: "Test order with numeric variant_id"
+                }
+            };
+
+            const result = await makeRequest(testData, "Numeric IDs Test");
+            
+            if (result.success) {
+                showResult('result2', `✅ SUCCESS (Unexpected - numeric IDs worked)\nStatus: ${result.status}\nResponse: ${JSON.stringify(result.data, null, 2)}`, 'success');
+            } else {
+                const isVariantIdError = JSON.stringify(result.data).includes('variant_id') && JSON.stringify(result.data).includes('expected String');
+                if (isVariantIdError) {
+                    showResult('result2', `🚨 EXPECTED FAILURE - variant_id validation error still exists\nStatus: ${result.status}\nError: ${JSON.stringify(result.data, null, 2)}`, 'error');
+                } else {
+                    showResult('result2', `✅ PASSED - variant_id error is fixed (different error)\nStatus: ${result.status}\nError: ${JSON.stringify(result.data, null, 2)}`, 'success');
+                }
+            }
+        }
+
+        async function testUndefinedIds() {
+            hideResult('result3');
+            const testData = {
+                shop_domain: "test-shop.myshopify.com",
+                cart: {
+                    items: [{
+                        id: "123456789",
+                        quantity: 1,
+                        title: "Test Product - Deluxe Starting Solids Set",
+                        price: 5500,
+                        variant_id: undefined, // Undefined - should use fallback
+                        product_id: undefined, // Undefined - should use fallback
+                        sku: "TEST-SKU-001",
+                        variant_title: "Default Title",
+                        vendor: "Test Vendor",
+                        line_price: 5500
+                    }],
+                    currency: "BGN",
+                    total_price: 5500,
+                    total_weight: 500,
+                    item_count: 1,
+                    items_subtotal_price: 5500,
+                    total_discount: 0,
+                    requires_shipping: true
+                },
+                shipping_method: "speedy",
+                shipping_price: 599,
+                shipping_method_data: {
+                    type: "speedy",
+                    name: "Офис на Спиди",
+                    price: 599,
+                    price_formatted: "5.99 лв."
+                },
+                client_details: {
+                    first_name: "Test",
+                    last_name: "User",
+                    phone: "0888123456",
+                    email: "test@example.com",
+                    address: {
+                        city: "София",
+                        address1: "ул. Тестова 123",
+                        postcode: "1000"
+                    },
+                    note: "Test order with undefined variant_id"
+                }
+            };
+
+            const result = await makeRequest(testData, "Undefined IDs Test");
+            
+            if (result.success) {
+                showResult('result3', `✅ SUCCESS\nStatus: ${result.status}\nResponse: ${JSON.stringify(result.data, null, 2)}`, 'success');
+            } else {
+                const isVariantIdError = JSON.stringify(result.data).includes('variant_id') && JSON.stringify(result.data).includes('expected String');
+                showResult('result3', `❌ FAILED\nStatus: ${result.status}\nError: ${JSON.stringify(result.data, null, 2)}`, 'error');
+            }
+        }
+
+        async function testRealCartData() {
+            hideResult('result4');
+            // This simulates the actual data format from the checkout form
+            const testData = {
+                shop_domain: "test-shop.myshopify.com",
+                cartData: {
+                    items: [{
+                        id: "123456789",
+                        title: "Deluxe Starting Solids Set",
+                        quantity: 1,
+                        price: 5500,
+                        line_price: 5500,
+                        original_line_price: 5500,
+                        variant_id: "123456789", // String from our fix
+                        product_id: "987654321", // String from our fix
+                        sku: "DELUXE-SET-001",
+                        variant_title: "Default Title",
+                        vendor: "Baby Store",
+                        image: "https://example.com/product.jpg",
+                        requires_shipping: true
+                    }],
+                    total_price: 5500,
+                    items_subtotal_price: 5500,
+                    total_discount: 0,
+                    item_count: 1,
+                    currency: "BGN"
+                },
+                shippingMethod: "speedy",
+                shipping_method: "Офис на Спиди",
+                shipping_price: 599,
+                shipping_method_data: {
+                    type: "speedy",
+                    name: "Офис на Спиди",
+                    price: 599,
+                    price_formatted: "5.99 лв."
+                },
+                firstName: "Test",
+                lastName: "User",
+                phone: "0888123456",
+                email: "test@example.com",
+                city: "София",
+                address: "ул. Тестова 123",
+                postalCode: "1000",
+                note: "Test order with real cart data format"
+            };
+
+            const result = await makeRequest(testData, "Real Cart Data Test");
+            
+            if (result.success) {
+                showResult('result4', `✅ SUCCESS\nStatus: ${result.status}\nResponse: ${JSON.stringify(result.data, null, 2)}`, 'success');
+            } else {
+                const isVariantIdError = JSON.stringify(result.data).includes('variant_id') && JSON.stringify(result.data).includes('expected String');
+                showResult('result4', `❌ FAILED\nStatus: ${result.status}\nError: ${JSON.stringify(result.data, null, 2)}`, 'error');
+            }
+        }
+
+        async function runAllTests() {
+            hideResult('resultAll');
+            showResult('resultAll', '🚀 Starting comprehensive order creation tests...\n', 'loading');
+            
+            const tests = [
+                { name: "String IDs Test", fn: testStringIds },
+                { name: "Numeric IDs Test", fn: testNumericIds },
+                { name: "Undefined IDs Test", fn: testUndefinedIds },
+                { name: "Real Cart Data Test", fn: testRealCartData }
+            ];
+
+            let allResults = [];
+            
+            for (const test of tests) {
+                showResult('resultAll', `🔄 Running ${test.name}...\n`, 'loading');
+                
+                // Create a temporary test data object for each test
+                const testData = createTestDataForTest(test.name);
+                const result = await makeRequest(testData, test.name);
+                allResults.push({ name: test.name, result });
+                
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // Summary
+            const summary = allResults.map(r => {
+                const isVariantIdError = r.result.error || (JSON.stringify(r.result.data || {}).includes('variant_id') && JSON.stringify(r.result.data || {}).includes('expected String'));
+                return `${r.name}: ${r.result.success ? '✅ PASSED' : (isVariantIdError ? '🚨 VARIANT_ID_ERROR' : '❌ OTHER_ERROR')}`;
+            }).join('\n');
+            
+            showResult('resultAll', `🏁 All tests completed!\n\nSummary:\n${summary}\n\nDetailed results above.`, 'info');
+        }
+
+        function createTestDataForTest(testName) {
+            const baseData = {
+                shop_domain: "test-shop.myshopify.com",
+                cart: {
+                    items: [{
+                        id: "123456789",
+                        quantity: 1,
+                        title: "Test Product - Deluxe Starting Solids Set",
+                        price: 5500,
+                        sku: "TEST-SKU-001",
+                        variant_title: "Default Title",
+                        vendor: "Test Vendor",
+                        line_price: 5500
+                    }],
+                    currency: "BGN",
+                    total_price: 5500,
+                    total_weight: 500,
+                    item_count: 1,
+                    items_subtotal_price: 5500,
+                    total_discount: 0,
+                    requires_shipping: true
+                },
+                shipping_method: "speedy",
+                shipping_price: 599,
+                shipping_method_data: {
+                    type: "speedy",
+                    name: "Офис на Спиди",
+                    price: 599,
+                    price_formatted: "5.99 лв."
+                },
+                client_details: {
+                    first_name: "Test",
+                    last_name: "User",
+                    phone: "0888123456",
+                    email: "test@example.com",
+                    address: {
+                        city: "София",
+                        address1: "ул. Тестова 123",
+                        postcode: "1000"
+                    },
+                    note: `Test order - ${testName}`
+                }
+            };
+
+            switch (testName) {
+                case "String IDs Test":
+                    baseData.cart.items[0].variant_id = "123456789";
+                    baseData.cart.items[0].product_id = "987654321";
+                    break;
+                case "Numeric IDs Test":
+                    baseData.cart.items[0].variant_id = 123456789;
+                    baseData.cart.items[0].product_id = 987654321;
+                    break;
+                case "Undefined IDs Test":
+                    baseData.cart.items[0].variant_id = undefined;
+                    baseData.cart.items[0].product_id = undefined;
+                    break;
+                case "Real Cart Data Test":
+                    // Use the real cart data format
+                    return {
+                        shop_domain: "test-shop.myshopify.com",
+                        cartData: {
+                            items: [{
+                                id: "123456789",
+                                title: "Deluxe Starting Solids Set",
+                                quantity: 1,
+                                price: 5500,
+                                line_price: 5500,
+                                original_line_price: 5500,
+                                variant_id: "123456789",
+                                product_id: "987654321",
+                                sku: "DELUXE-SET-001",
+                                variant_title: "Default Title",
+                                vendor: "Baby Store",
+                                image: "https://example.com/product.jpg",
+                                requires_shipping: true
+                            }],
+                            total_price: 5500,
+                            items_subtotal_price: 5500,
+                            total_discount: 0,
+                            item_count: 1,
+                            currency: "BGN"
+                        },
+                        shippingMethod: "speedy",
+                        shipping_method: "Офис на Спиди",
+                        shipping_price: 599,
+                        shipping_method_data: {
+                            type: "speedy",
+                            name: "Офис на Спиди",
+                            price: 599,
+                            price_formatted: "5.99 лв."
+                        },
+                        firstName: "Test",
+                        lastName: "User",
+                        phone: "0888123456",
+                        email: "test@example.com",
+                        city: "София",
+                        address: "ул. Тестова 123",
+                        postalCode: "1000",
+                        note: "Test order with real cart data format"
+                    };
+            }
+
+            return baseData;
+        }
+    </script>
+</body>
+</html>
