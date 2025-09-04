@@ -44,7 +44,7 @@
     get: originalOnClickDescriptor.get
   });
 
-  // Beautiful office selector modal HTML matching checkout form design
+  // Speedy Office Selector Modal - Exact Design Match
   const OFFICE_SELECTOR_HTML = `
     <div id="office-selector-modal" style="
       position: fixed;
@@ -57,219 +57,170 @@
       z-index: 10000;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(4px);
     ">
       <div style="
         background: white;
-        border-radius: 12px;
-        padding: 32px;
-        max-width: 500px;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 400px;
         width: 90%;
-        max-height: 85vh;
-        overflow-y: auto;
         position: relative;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         border: 1px solid #e5e7eb;
       ">
         <button id="office-modal-close" style="
           position: absolute;
-          top: 16px;
-          right: 16px;
+          top: 12px;
+          right: 12px;
           background: none;
           border: none;
-          font-size: 24px;
+          font-size: 20px;
           cursor: pointer;
           color: #6b7280;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
-        " onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='transparent'">&times;</button>
+        ">&times;</button>
         
-        <div style="margin-bottom: 24px;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
-              S
-            </div>
-            <h3 style="margin: 0; color: #111827; font-size: 20px; font-weight: 600;">Изберете офис за получаване</h3>
-          </div>
-          <p style="margin: 0; color: #6b7280; font-size: 14px;">Изберете град и офис за получаване на вашата поръчка</p>
-        </div>
+        <!-- Title -->
+        <h3 style="margin: 0 0 20px 0; color: #374151; font-size: 18px; font-weight: 600;">Офис на Спиди</h3>
         
         <div id="office-form">
           <!-- City Selection -->
-          <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px;">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #374151; font-size: 14px;">
               Град<span style="color: #ef4444; margin-left: 2px;">*</span>
             </label>
             <div style="position: relative;">
-              <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                <div style="flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: #6b7280;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                </div>
-                <div style="flex: 1; position: relative;">
-                  <input id="office-city-search" type="text" placeholder="Търсете град..." style="
-                    width: 100%;
-                    padding: 12px 16px;
-                    border: 1px solid #d1d5db;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    box-sizing: border-box;
-                    background: white;
-                    transition: all 0.2s;
-                    outline: none;
-                  " onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'">
-                  <div id="office-city-dropdown" style="
-                    display: none;
-                    position: absolute;
-                    top: 100%;
-                    left: 0;
-                    right: 0;
-                    background: white;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 8px;
-                    max-height: 200px;
-                    overflow-y: auto;
-                    z-index: 1000;
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                    margin-top: 4px;
-                  "></div>
-                </div>
+              <input id="office-city-search" type="text" placeholder="Изберете населено място" style="
+                width: 100%;
+                padding: 10px 12px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                box-sizing: border-box;
+                background: white;
+                outline: none;
+                padding-right: 32px;
+              ">
+              <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #6b7280; pointer-events: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
               </div>
+              <div id="office-city-dropdown" style="
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                margin-top: 2px;
+              "></div>
             </div>
-            <div id="office-city-loading" style="display: none; margin-top: 8px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px;">
-              <div style="width: 12px; height: 12px; border: 2px solid #e5e7eb; border-top: 2px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-              Зареждане...
-            </div>
+            <div id="office-city-loading" style="display: none; margin-top: 6px; font-size: 12px; color: #6b7280;">Зареждане...</div>
           </div>
           
           <!-- Office Selection -->
           <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px;">
-              Офис<span style="color: #ef4444; margin-left: 2px;">*</span>
+            <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #374151; font-size: 14px;">
+              Изберете офис<span style="color: #ef4444; margin-left: 2px;">*</span>
             </label>
             <div style="position: relative;">
-              <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-                <div style="flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: #dc2626; font-weight: bold; font-size: 12px;">
+              <div style="position: relative;">
+                <div style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #dc2626; font-weight: bold; font-size: 12px; z-index: 1;">
                   S
                 </div>
-                <div style="flex: 1; position: relative;">
-                  <input id="office-office-search" type="text" placeholder="Търсете офис..." style="
-                    width: 100%;
-                    padding: 12px 16px;
-                    border: 1px solid #d1d5db;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    box-sizing: border-box;
-                    background: #f9fafb;
-                    transition: all 0.2s;
-                    outline: none;
-                  " disabled>
-                  <div id="office-office-dropdown" style="
-                    display: none;
-                    position: absolute;
-                    top: 100%;
-                    left: 0;
-                    right: 0;
-                    background: white;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 8px;
-                    max-height: 200px;
-                    overflow-y: auto;
-                    z-index: 1000;
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                    margin-top: 4px;
-                  "></div>
+                <input id="office-office-search" type="text" placeholder="Изберете Офис на Спиди" style="
+                  width: 100%;
+                  padding: 10px 12px 10px 24px;
+                  border: 1px solid #d1d5db;
+                  border-radius: 6px;
+                  font-size: 14px;
+                  box-sizing: border-box;
+                  background: white;
+                  outline: none;
+                  padding-right: 32px;
+                " disabled>
+                <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #6b7280; pointer-events: none;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
                 </div>
               </div>
+              <div id="office-office-dropdown" style="
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                margin-top: 2px;
+              "></div>
             </div>
-            <div id="office-office-loading" style="display: none; margin-top: 8px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px;">
-              <div style="width: 12px; height: 12px; border: 2px solid #e5e7eb; border-top: 2px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-              Зареждане...
-            </div>
+            <div id="office-office-loading" style="display: none; margin-top: 6px; font-size: 12px; color: #6b7280;">Зареждане...</div>
           </div>
           
           <!-- Office Preview -->
           <div id="office-preview" style="
-            margin-bottom: 20px;
-            padding: 16px;
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             display: none;
           ">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <div style="width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; color: #3b82f6;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 12l2 2 4-4"></path>
-                  <circle cx="12" cy="12" r="10"></circle>
-                </svg>
-              </div>
-              <div style="font-weight: 600; color: #1e40af; font-size: 14px;">Избран офис</div>
-            </div>
-            <div id="office-details" style="color: #1e3a8a; font-size: 13px; line-height: 1.4;"></div>
+            <div style="font-weight: 500; margin-bottom: 4px; color: #374151; font-size: 14px;">Избран офис:</div>
+            <div id="office-details" style="color: #6b7280; font-size: 13px; line-height: 1.4;"></div>
           </div>
           
           <!-- Create Order Button -->
           <button id="office-create-order" style="
             width: 100%;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            padding: 12px 16px;
+            background: #dc2626;
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          " disabled onmouseover="if(!this.disabled) this.style.transform='translateY(-1px)'; this.style.boxShadow='0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'" onmouseout="if(!this.disabled) this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'">
-            <span style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M16 11V7a4 4 0 0 0-8 0v4"></path>
-                <rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect>
-              </svg>
-              Създай поръчка и продължи към плащане
-            </span>
+          " disabled onmouseover="if(!this.disabled) this.style.backgroundColor='#b91c1c'" onmouseout="if(!this.disabled) this.style.backgroundColor='#dc2626'">
+            Създай поръчка и продължи към плащане
           </button>
           
           <!-- Error Message -->
           <div id="office-error" style="
-            padding: 12px 16px;
+            padding: 10px 12px;
             background: #fef2f2;
             border: 1px solid #fecaca;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #dc2626;
             display: none;
-            margin-bottom: 16px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
           ">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="15" y1="9" x2="9" y2="15"></line>
-              <line x1="9" y1="9" x2="15" y2="15"></line>
-            </svg>
             <span id="office-error-text"></span>
           </div>
         </div>
       </div>
     </div>
-    
-    <style>
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
   `;
 
   // Function to show office selector
