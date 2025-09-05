@@ -316,19 +316,17 @@
     const isCheckout = patterns.checkout.some(pattern => pattern);
     const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
 
-    console.log('🏢 Smart button detection:', {
-      tagName,
-      text: text.substring(0, 50), // Truncate for readability
-      className: className.substring(0, 100),
-      id,
-      type,
-      name,
-      isSubmitButton,
-      isBuyNow,
-      isCheckout,
-      isExcluded,
-      result: isTargetButton
-    });
+    // Only log when we actually detect a target button (reduce console spam)
+    if (isTargetButton) {
+      console.log('🎯 Target button detected:', {
+        tagName,
+        text: text.substring(0, 30),
+        className: className.substring(0, 50),
+        id,
+        type,
+        result: isTargetButton ? (isSubmitButton ? 'SUBMIT' : isBuyNow ? 'BUY_NOW' : 'CHECKOUT') : 'NONE'
+      });
+    }
 
     return isTargetButton;
   }
@@ -399,22 +397,52 @@
   
   // Function to find and initialize all checkout buttons
   function findAndInitializeCheckoutButtons() {
-    // More specific selectors
+    // Comprehensive selectors to catch all possible buttons
     const selectors = [
-      'button[type="submit"]',
+      // All buttons and submit inputs
+      'button',
       'input[type="submit"]',
+      'input[type="button"]',
+      'a[role="button"]',
+      
+      // Specific type selectors
+      'button[type="submit"]',
+      'button[type="button"]',
+      
+      // Class-based selectors
       'button[class*="checkout"]',
       'button[class*="buy-now"]',
+      'button[class*="buy"]',
+      'button[class*="payment"]',
+      'button[class*="cart"]',
+      'button[class*="proceed"]',
       'button[class*="add-to-cart"]',
+      'button[class*="product-form"]',
+      'button[class*="shopify-payment"]',
+      
+      // ID-based selectors
       'button[id*="checkout"]',
       'button[id*="buy-now"]',
+      'button[id*="buy"]',
+      'button[id*="payment"]',
+      'button[id*="cart"]',
+      'button[id*="proceed"]',
       'button[id*="add-to-cart"]',
+      'button[id*="product"]',
+      
+      // Link-based selectors
       'a[class*="checkout"]',
       'a[class*="buy-now"]',
-      'a[class*="add-to-cart"]',
+      'a[class*="buy"]',
+      'a[class*="payment"]',
+      'a[class*="cart"]',
+      'a[class*="proceed"]',
       'a[id*="checkout"]',
       'a[id*="buy-now"]',
-      'a[id*="add-to-cart"]'
+      'a[id*="buy"]',
+      'a[id*="payment"]',
+      'a[id*="cart"]',
+      'a[id*="proceed"]'
     ];
     
     const buttons = [];
@@ -423,7 +451,16 @@
       elements.forEach(el => buttons.push(el));
     });
     
-    console.log(`Found ${buttons.length} potential checkout buttons`);
+    // Log all found buttons for debugging
+    if (buttons.length > 0) {
+      console.log(`🔍 Scanning ${buttons.length} potential checkout buttons:`, buttons.map(b => ({
+        tagName: b.tagName,
+        text: b.textContent?.trim().substring(0, 30),
+        className: b.className,
+        id: b.id,
+        type: b.type
+      })));
+    }
     
     buttons.forEach(button => {
       if (isCheckoutButton(button)) {
@@ -439,8 +476,8 @@
   
   // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
-    // Check frequently for checkout buttons
-    setInterval(monitorForCheckoutButtons, 500);
+    // Check for checkout buttons (reduced frequency to avoid console spam)
+    setInterval(monitorForCheckoutButtons, 2000);
     
     // Also use MutationObserver for more efficient monitoring
     const observer = new MutationObserver((mutations) => {
@@ -851,8 +888,31 @@
     }
   }
 
-  // Make test function globally available
+  // Function to scan all buttons on the page and show what we find
+  function scanAllButtons() {
+    console.log('🔍 SCANNING ALL BUTTONS ON PAGE:');
+    const allButtons = document.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]');
+    console.log(`Found ${allButtons.length} total buttons/links`);
+    
+    allButtons.forEach((button, index) => {
+      const isTarget = isCheckoutButton(button);
+      console.log(`Button ${index + 1}:`, {
+        element: button,
+        tagName: button.tagName,
+        text: button.textContent?.trim().substring(0, 40),
+        className: button.className,
+        id: button.id,
+        type: button.type,
+        name: button.name,
+        isTarget: isTarget,
+        hasHandler: button._hasOurHandler
+      });
+    });
+  }
+
+  // Make functions globally available for testing
   window.testButtonDetection = testButtonDetection;
+  window.scanAllButtons = scanAllButtons;
 
   // When page loads, make cart data globally available
   document.addEventListener('DOMContentLoaded', function() {
