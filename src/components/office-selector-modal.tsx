@@ -400,7 +400,7 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
+    <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -410,7 +410,7 @@ export function OfficeSelectorModal({
         </button>
 
         {/* Header with Courier Selection */}
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
             Метод на доставка
           </h2>
@@ -419,7 +419,7 @@ export function OfficeSelectorModal({
           </h3>
           
           {/* Courier Selection */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-6">
             <button
               onClick={() => setSelectedCourier('speedy')}
               className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
@@ -494,7 +494,7 @@ export function OfficeSelectorModal({
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* City Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
@@ -686,7 +686,7 @@ export function OfficeSelectorModal({
           )}
 
           {/* Explanatory Text */}
-          <div className="text-center text-sm text-gray-600 mb-3">
+          <div className="text-center text-sm text-gray-600 mb-6">
             <p>След като натиснете бутона по-долу, ще бъдете пренасочени към страницата за завършване на поръчката, където ще можете да попълните останалата информация.</p>
           </div>
 
