@@ -18,26 +18,21 @@
     get: originalOnClickDescriptor.get
   });
 
-  // Office selector modal HTML (direct injection)
+  // Office selector modal container
   const OFFICE_SELECTOR_HTML = `
     <div id="office-selector-modal" style="
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      max-width: 500px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      border: 1px solid #e5e7eb;
-      z-index: 10000;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
       display: none;
-      padding: 1rem;
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
     ">
-      <div id="office-selector-content">
-        <!-- Content will be loaded here -->
-      </div>
+      <div id="office-selector-mount"></div>
     </div>
   `;
 
@@ -118,13 +113,13 @@
     
     // Show the modal
     const modal = document.getElementById('office-selector-modal');
-    const content = document.getElementById('office-selector-content');
+    const mountPoint = document.getElementById('office-selector-mount');
     
-    if (modal && content) {
-      // Load the office selector content directly
-      loadOfficeSelectorContent(content, productData);
+    if (modal && mountPoint) {
+      // Load the React component
+      loadReactComponent(mountPoint, productData);
       
-      modal.style.display = 'block';
+      modal.style.display = 'flex';
       console.log('🏢 Office selector modal shown');
       
       // Listen for messages from the iframe
@@ -215,174 +210,45 @@
     }
   }
 
-  // Load office selector content directly
-  function loadOfficeSelectorContent(container, productData) {
-    container.innerHTML = `
-      <div style="position: relative;">
-        <!-- Close button -->
-        <button id="close-office-selector" style="
-          position: absolute;
-          top: 0.5rem;
-          right: 0.5rem;
-          background: none;
-          border: none;
-          font-size: 1.25rem;
-          cursor: pointer;
-          color: #6b7280;
-          z-index: 10;
-        ">×</button>
-
-        <!-- Header -->
-        <div style="margin-bottom: 1.5rem;">
-          <h2 style="font-size: 1.25rem; font-weight: bold; color: #111827; margin-bottom: 0.5rem;">
-            Метод на доставка
-          </h2>
-          <h3 style="font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 1rem;">
-            Изберете куриер и начин на доставка
-          </h3>
-          
-          <!-- Courier Selection -->
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-            <button id="select-speedy" style="
-              flex: 1;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
-              padding: 0.75rem;
-              border-radius: 0.5rem;
-              border: 2px solid #ef4444;
-              background: #fef2f2;
-              cursor: pointer;
-              transition: all 0.2s;
-            ">
-              <div style="width: 1.5rem; height: 1.5rem; background: #ef4444; border-radius: 0.25rem;"></div>
-              <span style="font-size: 0.875rem; font-weight: 500; color: #dc2626;">Спиди</span>
-            </button>
-            
-            <button id="select-econt" style="
-              flex: 1;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
-              padding: 0.75rem;
-              border-radius: 0.5rem;
-              border: 2px solid #d1d5db;
-              background: white;
-              cursor: pointer;
-              transition: all 0.2s;
-            ">
-              <div style="width: 1.5rem; height: 1.5rem; background: #6b7280; border-radius: 0.25rem;"></div>
-              <span style="font-size: 0.875rem; font-weight: 500; color: #6b7280;">Еконт</span>
-            </button>
-          </div>
-          
-          <!-- Delivery Type Selection -->
-          <div style="display: flex; gap: 0.5rem;">
-            <button id="select-office" style="
-              flex: 1;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
-              padding: 0.75rem;
-              border-radius: 0.5rem;
-              border: 2px solid #10b981;
-              background: #ecfdf5;
-              cursor: pointer;
-              transition: all 0.2s;
-            ">
-              <span style="font-size: 1.25rem;">🏢</span>
-              <span style="font-size: 0.875rem; font-weight: 500; color: #059669;">До Офис</span>
-            </button>
-            
-            <button id="select-address" style="
-              flex: 1;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 0.5rem;
-              padding: 0.75rem;
-              border-radius: 0.5rem;
-              border: 2px solid #d1d5db;
-              background: white;
-              cursor: pointer;
-              transition: all 0.2s;
-            ">
-              <span style="font-size: 1.25rem;">📍</span>
-              <span style="font-size: 0.875rem; font-weight: 500; color: #6b7280;">До Адрес</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Form Fields -->
-        <div style="margin-bottom: 1.5rem;">
-          <!-- City Selection -->
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;">
-              Град<span style="color: #ef4444; margin-left: 0.25rem;">*</span>
-            </label>
-            <input type="text" id="city-input" placeholder="Изберете населено място" style="
-              width: 100%;
-              padding: 0.75rem;
-              border: 1px solid #d1d5db;
-              border-radius: 0.375rem;
-              font-size: 0.875rem;
-              box-sizing: border-box;
-            ">
-          </div>
-
-          <!-- Office Selection -->
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;">
-              Изберете офис<span style="color: #ef4444; margin-left: 0.25rem;">*</span>
-            </label>
-            <input type="text" id="office-input" placeholder="Изберете Офис на Спиди" style="
-              width: 100%;
-              padding: 0.75rem;
-              border: 1px solid #d1d5db;
-              border-radius: 0.375rem;
-              font-size: 0.875rem;
-              box-sizing: border-box;
-            ">
-          </div>
-        </div>
-
-        <!-- Explanatory Text -->
-        <div style="text-align: center; font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">
-          <p>След като натиснете бутона по-долу, ще бъдете пренасочени към страницата за завършване на поръчката, където ще можете да попълните останалата информация.</p>
-        </div>
-
-        <!-- Action Button -->
-        <button id="proceed-button" style="
-          width: 100%;
-          background: #dc2626;
-          color: white;
-          border: none;
-          border-radius: 0.375rem;
-          padding: 0.75rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        " onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
-          Продължи към завършване на поръчката
-        </button>
-      </div>
+  // Load React component
+  function loadReactComponent(container, productData) {
+    // Create a script to load React and render the component
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = `
+      import React from 'https://esm.sh/react@18';
+      import ReactDOM from 'https://esm.sh/react-dom@18';
+      import { StandaloneOfficeSelector } from '${baseUrl}/components/standalone-office-selector';
+      
+      const container = document.getElementById('office-selector-mount');
+      
+      const handleClose = () => {
+        const modal = document.getElementById('office-selector-modal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      };
+      
+      const handleOrderCreated = (checkoutUrl) => {
+        if ('${productData.productId}' === 'cart') {
+          window.location.href = '/checkout';
+        } else {
+          window.location.href = checkoutUrl;
+        }
+      };
+      
+      ReactDOM.render(
+        React.createElement(StandaloneOfficeSelector, {
+          productId: '${productData.productId}',
+          variantId: '${productData.variantId}',
+          onClose: handleClose,
+          onOrderCreated: handleOrderCreated
+        }),
+        container
+      );
     `;
-
-    // Add event listeners
-    document.getElementById('close-office-selector').onclick = hideOfficeSelector;
-    document.getElementById('proceed-button').onclick = () => {
-      // For now, just proceed to checkout
-      if (productData.productId === 'cart') {
-        window.location.href = '/checkout';
-      } else {
-        // Create draft order and redirect
-        window.location.href = '/checkout';
-      }
-    };
+    
+    document.head.appendChild(script);
   }
 
   // Hide office selector
