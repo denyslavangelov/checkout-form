@@ -187,6 +187,14 @@
               window.shopifyCart = freshCartData;
               window.cartData = freshCartData;
               
+              // Store in localStorage for Chrome mobile fallback
+              try {
+                localStorage.setItem('shopify-cart-data', JSON.stringify(freshCartData));
+                console.log('🏢 Cart data stored in localStorage for Chrome mobile fallback');
+              } catch (error) {
+                console.log('🏢 Could not store cart data in localStorage:', error);
+              }
+              
               // Send fresh cart data to the office selector iframe
               if (iframe.contentWindow) {
                 console.log('🏢 Sending fresh cart data to iframe:', freshCartData);

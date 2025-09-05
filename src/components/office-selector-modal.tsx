@@ -55,6 +55,11 @@ export function OfficeSelectorModal({
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
   const [addressInput, setAddressInput] = useState('');
   
+  // Browser detection
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isChrome = /Chrome/i.test(navigator.userAgent);
+  const isChromeMobile = isMobile && isChrome;
+  
   // Reset office selection when courier or delivery type changes
   useEffect(() => {
     setSelectedOffice(null);
@@ -79,8 +84,7 @@ export function OfficeSelectorModal({
 
   // Function to get cart data from parent window with mobile retry
   const getCartDataFromParent = async () => {
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const maxRetries = isMobile ? 2 : 1; // Retry 2 times on mobile, 1 time on desktop
+    const maxRetries = isChromeMobile ? 1 : (isMobile ? 2 : 1); // Chrome mobile gets 1 retry, others get 2
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       console.log(`🏢 Cart data request attempt ${attempt}/${maxRetries}`);
@@ -93,10 +97,25 @@ export function OfficeSelectorModal({
         // Request fresh cart data from parent
         if (window.parent && window.parent !== window) {
           try {
-            window.parent.postMessage({ 
+            const message = { 
               type: 'request-fresh-cart-data',
-              attempt: attempt
-            }, '*');
+              attempt: attempt,
+              isChromeMobile: isChromeMobile
+            };
+            
+            // Chrome mobile specific handling
+            if (isChromeMobile) {
+              console.log('🏢 Chrome mobile detected - using alternative message sending');
+              // Try multiple ways to send message for Chrome mobile
+              window.parent.postMessage(message, '*');
+              // Also try with window.top for Chrome mobile
+              if (window.top && window.top !== window) {
+                window.top.postMessage(message, '*');
+              }
+            } else {
+              window.parent.postMessage(message, '*');
+            }
+            
             console.log(`🏢 Fresh cart data request sent to parent (attempt ${attempt})`);
           } catch (error) {
             console.error('🏢 Error sending message to parent:', error);
@@ -124,8 +143,8 @@ export function OfficeSelectorModal({
           
           window.addEventListener('message', messageHandler);
           
-          // Timeout - shorter for better UX
-          const timeoutDuration = isMobile ? 8000 : 5000; // 8 seconds for mobile, 5 for desktop
+          // Timeout - Chrome mobile needs longer timeout
+          const timeoutDuration = isChromeMobile ? 12000 : (isMobile ? 8000 : 5000);
           
           setTimeout(() => {
             console.error(`🏢 Fresh cart data request timed out after ${timeoutDuration/1000} seconds (attempt ${attempt})`);
@@ -319,7 +338,21 @@ export function OfficeSelectorModal({
         let cartData = await getCartDataFromParent() as any;
         console.log('🏢 Raw cart data received from parent:', cartData);
         
-        // No fallback needed - parent communication is the only way due to CORS
+        // Chrome mobile fallback - try to get cart data from localStorage
+        if (!cartData && isChromeMobile) {
+          console.log('🏢 Chrome mobile: trying localStorage fallback...');
+          try {
+            const storedCartData = localStorage.getItem('shopify-cart-data');
+            if (storedCartData) {
+              cartData = JSON.parse(storedCartData);
+              console.log('🏢 Chrome mobile: got cart data from localStorage:', cartData);
+            }
+          } catch (error) {
+            console.error('🏢 Chrome mobile: localStorage fallback failed:', error);
+          }
+        }
+        
+        // No other fallback needed - parent communication is the only way due to CORS
         if (!cartData) {
           console.log('🏢 Parent communication failed - this is expected due to CORS restrictions');
           console.log('🏢 The parent window should handle cart data fetching');
