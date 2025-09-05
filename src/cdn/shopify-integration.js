@@ -9,11 +9,11 @@
       const result = originalOnClickDescriptor.set.call(this, value);
       
       // Add our handler after a short delay to ensure it runs after the original
-      setTimeout(() => {
-        addOurCheckoutHandler(this);
-      }, 100);
-    
-    return result;
+        setTimeout(() => {
+          addOurCheckoutHandler(this);
+        }, 100);
+      
+      return result;
     },
     get: originalOnClickDescriptor.get
   });
@@ -281,6 +281,8 @@
         text.includes('завърши поръчката') || text.includes('продължи към плащане'),
         // Class patterns
         className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
+        // Specific cart checkout button pattern
+        className.includes('cart__checkout-button') && className.includes('button'),
         // ID patterns
         id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
         // Form submit patterns
@@ -541,7 +543,7 @@
               type: 'cart-data',
             cart: productData
           }, baseUrl);
-            break;
+          break;
         case 'submit-checkout':
           console.log('Checkout form submitted');
           handleOrderCreation(event.data.formData, event.source);
