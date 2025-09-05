@@ -447,36 +447,36 @@ export function OfficeSelectorModal({
           </h3>
           
           {/* Courier Selection */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-6">
             <button
               onClick={() => setSelectedCourier('speedy')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-colors ${
                 selectedCourier === 'speedy' 
                   ? 'border-red-500 bg-red-50' 
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <div className="w-6 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 sm:w-6 sm:h-6 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 307 287" className="w-full h-full">
                   <g transform="translate(0,287) scale(0.1,-0.1)" fill={selectedCourier === 'speedy' ? '#f02a2a' : '#6b7280'}>
                     <path d="M1370 2557 c-52 -29 -267 -147 -477 -261 -211 -114 -383 -211 -383 -214 0 -4 100 -65 223 -136 122 -71 285 -166 362 -212 77 -45 212 -123 300 -173 88 -51 168 -101 178 -113 16 -19 17 -56 17 -475 0 -293 -4 -461 -10 -474 -6 -10 -29 -28 -51 -39 l-40 -21 -44 22 c-25 13 -46 23 -47 23 -1 1 -5 192 -8 426 l-5 424 -85 52 c-139 83 -829 484 -845 490 -13 5 -15 -60 -15 -536 0 -344 4 -548 10 -560 9 -17 71 -55 500 -308 80 -47 188 -111 240 -142 200 -119 277 -160 300 -160 13 0 88 38 165 83 77 46 219 130 315 187 565 333 541 318 557 350 10 19 13 151 13 559 0 494 -1 533 -17 527 -17 -7 -97 -53 -378 -216 -277 -162 -259 -154 -297 -134 -58 29 -68 43 -68 94 0 32 5 52 16 61 17 15 172 106 486 286 103 60 187 110 188 113 0 3 -33 23 -72 45 -40 21 -89 47 -108 58 -19 11 -107 59 -195 107 -88 48 -234 127 -325 177 -215 118 -266 143 -287 143 -10 0 -61 -24 -113 -53z"/>
                   </g>
                 </svg>
               </div>
-              <span className={`text-sm font-medium ${selectedCourier === 'speedy' ? 'text-red-600' : 'text-gray-600'}`}>
+              <span className={`text-xs sm:text-sm font-medium ${selectedCourier === 'speedy' ? 'text-red-600' : 'text-gray-600'}`}>
                 Спиди
               </span>
             </button>
             
             <button
               onClick={() => setSelectedCourier('econt')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-colors ${
                 selectedCourier === 'econt' 
                   ? 'border-blue-500 bg-blue-50' 
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <div className="w-6 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 sm:w-6 sm:h-6 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" className="w-full h-full">
                   <g transform="translate(0,500) scale(0.1,-0.1)" fill={selectedCourier === 'econt' ? '#2a4786' : '#6b7280'}>
                     <path d="M1668 4335 c-137 -37 -263 -127 -341 -242 -79 -114 -90 -162 -147 -608 -28 -220 -103 -789 -166 -1265 -63 -476 -119 -896 -124 -933 -19 -154 32 -300 140 -400 65 -61 134 -92 235 -108 35 -6 434 -9 975 -7 l915 3 66 22 c215 74 379 290 379 503 0 183 -102 331 -275 396 -47 17 -93 19 -707 22 -646 3 -658 3 -658 23 0 11 29 236 65 502 35 265 83 626 105 802 22 176 42 330 45 343 l5 22 648 0 c714 0 707 -1 826 63 125 67 233 198 272 332 25 86 23 214 -6 288 -43 113 -133 199 -247 236 -63 21 -75 21 -1011 20 -742 -1 -957 -4 -994 -14z"/>
@@ -484,38 +484,38 @@ export function OfficeSelectorModal({
                   </g>
                 </svg>
               </div>
-              <span className={`text-sm font-medium ${selectedCourier === 'econt' ? 'text-blue-600' : 'text-gray-600'}`}>
+              <span className={`text-xs sm:text-sm font-medium ${selectedCourier === 'econt' ? 'text-blue-600' : 'text-gray-600'}`}>
                 Еконт
               </span>
             </button>
           </div>
           
           {/* Delivery Type Selection */}
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2">
             <button
               onClick={() => setDeliveryType('office')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-colors ${
                 deliveryType === 'office' 
                   ? 'border-green-500 bg-green-50' 
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <Building2 className={`w-5 h-5 ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-500'}`} />
-              <span className={`text-sm font-medium ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-600'}`}>
+              <Building2 className={`w-4 h-4 sm:w-5 sm:h-5 ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-500'}`} />
+              <span className={`text-xs sm:text-sm font-medium ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-600'}`}>
                 До Офис
               </span>
             </button>
             
             <button
               onClick={() => setDeliveryType('address')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 transition-colors ${
                 deliveryType === 'address' 
                   ? 'border-green-500 bg-green-50' 
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <MapPin className={`w-5 h-5 ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-500'}`} />
-              <span className={`text-sm font-medium ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-600'}`}>
+              <MapPin className={`w-4 h-4 sm:w-5 sm:h-5 ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-500'}`} />
+              <span className={`text-xs sm:text-sm font-medium ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-600'}`}>
                 До Адрес
               </span>
             </button>
@@ -737,7 +737,10 @@ export function OfficeSelectorModal({
               </>
             ) : (
               <span className="text-sm sm:text-base">
-                {productId === 'cart' ? 'Продължи към завършване на поръчката' : 'Продължи към завършване на поръчката'}
+                <span className="sm:hidden">Продължи</span>
+                <span className="hidden sm:inline">
+                  {productId === 'cart' ? 'Продължи към завършване на поръчката' : 'Продължи към завършване на поръчката'}
+                </span>
               </span>
             )}
           </Button>

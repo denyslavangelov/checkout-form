@@ -20,29 +20,19 @@
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
-    <div id="office-selector-backdrop" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-      z-index: 9999;
-      display: none;
-    ">
-      <iframe 
-        id="office-selector-iframe"
-        src=""
-        style="
+    <iframe 
+      id="office-selector-iframe"
+      src=""
+              style="
           position: fixed;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 90%;
+          width: 95%;
           max-width: 500px;
           height: auto;
-          min-height: 800px;
+          min-height: 600px;
+          max-height: 90vh;
           border: none;
           border-radius: 8px;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -50,9 +40,8 @@
           display: none;
           background: white;
         "
-        allow="clipboard-write"
-      ></iframe>
-    </div>
+      allow="clipboard-write"
+    ></iframe>
   `;
 
   // Function to show office selector
@@ -125,23 +114,21 @@
     const baseUrl = 'https://checkout-form-zeta.vercel.app';
     
     // Add backdrop and iframe to page if not already there
-    if (!document.getElementById('office-selector-backdrop')) {
-      console.log('🏢 Adding office selector backdrop and iframe to page');
+    if (!document.getElementById('office-selector-iframe')) {
+      console.log('🏢 Adding office selector iframe to page');
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
-    // Show the backdrop and iframe
-    const backdrop = document.getElementById('office-selector-backdrop');
+    // Show the iframe
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (backdrop && iframe) {
+    if (iframe) {
       // Set iframe source with product data
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}`;
       iframe.src = officeSelectorUrl;
       
-      backdrop.style.display = 'block';
       iframe.style.display = 'block';
-      console.log('🏢 Office selector backdrop and iframe shown:', officeSelectorUrl);
+      console.log('🏢 Office selector iframe shown:', officeSelectorUrl);
       
       // Listen for messages from the iframe
       const messageHandler = (event) => {
@@ -233,11 +220,7 @@
 
   // Hide office selector
   function hideOfficeSelector() {
-    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
-    if (backdrop) {
-      backdrop.style.display = 'none';
-    }
     if (iframe) {
       iframe.style.display = 'none';
     }
