@@ -182,7 +182,7 @@
                 iframe.contentWindow.postMessage({
                   type: 'cart-data',
                   cart: freshCartData
-                }, event.origin);
+                }, 'https://checkout-form-zeta.vercel.app');
               } else {
                 console.error('🏢 No iframe contentWindow found');
               }
@@ -199,13 +199,13 @@
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: fallbackCart
-                  }, event.origin);
+                  }, 'https://checkout-form-zeta.vercel.app');
                 } else {
                   console.error('🏢 No fallback cart data available');
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: null
-                  }, event.origin);
+                  }, 'https://checkout-form-zeta.vercel.app');
                 }
               } else {
                 console.error('🏢 No iframe contentWindow found for fallback');

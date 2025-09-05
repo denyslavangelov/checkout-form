@@ -279,55 +279,10 @@ export function OfficeSelectorModal({
         let cartData = await getCartDataFromParent() as any;
         console.log('🏢 Raw cart data received from parent:', cartData);
         
-        // Fallback: try to fetch cart data directly if parent communication failed
+        // No fallback needed - parent communication is the only way due to CORS
         if (!cartData) {
-          console.log('🏢 Parent communication failed, trying direct cart fetch...');
-          
-          // Try multiple methods to get cart data
-          const methods = [
-            // Method 1: Try parent origin
-            () => {
-              const parentOrigin = window.parent?.location?.origin || window.location.ancestorOrigins?.[0];
-              return parentOrigin ? fetch(`${parentOrigin}/cart.js`) : null;
-            },
-            // Method 2: Try document.referrer
-            () => {
-              const referrer = document.referrer;
-              if (referrer) {
-                const referrerOrigin = new URL(referrer).origin;
-                return fetch(`${referrerOrigin}/cart.js`);
-              }
-              return null;
-            },
-            // Method 3: Try window.top location
-            () => {
-              try {
-                const topOrigin = window.top?.location?.origin;
-                return topOrigin ? fetch(`${topOrigin}/cart.js`) : null;
-              } catch (e) {
-                return null; // Cross-origin access blocked
-              }
-            }
-          ];
-          
-          for (let i = 0; i < methods.length; i++) {
-            try {
-              console.log(`🏢 Trying cart fetch method ${i + 1}...`);
-              const fetchPromise = methods[i]();
-              if (fetchPromise) {
-                const response = await fetchPromise;
-                if (response && response.ok) {
-                  cartData = await response.json();
-                  console.log(`🏢 Cart data fetch successful with method ${i + 1}:`, cartData);
-                  break;
-                } else {
-                  console.log(`🏢 Method ${i + 1} failed:`, response?.status);
-                }
-              }
-            } catch (error) {
-              console.log(`🏢 Method ${i + 1} error:`, error);
-            }
-          }
+          console.log('🏢 Parent communication failed - this is expected due to CORS restrictions');
+          console.log('🏢 The parent window should handle cart data fetching');
         }
         
         if (!cartData) {
