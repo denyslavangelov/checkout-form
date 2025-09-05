@@ -53,6 +53,14 @@ export function OfficeSelectorModal({
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>('speedy');
   const [deliveryType, setDeliveryType] = useState<'office' | 'address'>('office');
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
+  
+  // Reset office selection when courier or delivery type changes
+  useEffect(() => {
+    setSelectedOffice(null);
+    setOfficeSearch('');
+    setOffices([]);
+    setShowOfficeDropdown(false);
+  }, [selectedCourier, deliveryType]);
 
   // Function to get cart data from parent window
   const getCartDataFromParent = async () => {
