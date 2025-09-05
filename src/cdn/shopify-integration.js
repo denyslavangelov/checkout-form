@@ -20,33 +20,26 @@
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
-    <div id="office-selector-modal" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: transparent;
-      display: none;
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-    ">
-      <iframe 
-        id="office-selector-iframe"
-        src=""
-        style="
-          width: 90%;
-          max-width: 500px;
-          height: auto;
-          min-height: 500px;
-          border: none;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        "
-        allow="clipboard-write"
-      ></iframe>
-    </div>
+    <iframe 
+      id="office-selector-iframe"
+      src=""
+      style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 500px;
+        height: auto;
+        min-height: 500px;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 10000;
+        display: none;
+      "
+      allow="clipboard-write"
+    ></iframe>
   `;
 
   // Function to show office selector
@@ -118,23 +111,22 @@
     // Production URL for live sites
     const baseUrl = 'https://checkout-form-zeta.vercel.app';
     
-    // Add modal to page if not already there
-    if (!document.getElementById('office-selector-modal')) {
-      console.log('🏢 Adding office selector modal to page');
+    // Add iframe to page if not already there
+    if (!document.getElementById('office-selector-iframe')) {
+      console.log('🏢 Adding office selector iframe to page');
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
-    // Show the modal with iframe
-    const modal = document.getElementById('office-selector-modal');
+    // Show the iframe
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (modal && iframe) {
+    if (iframe) {
       // Set iframe source with product data
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}`;
       iframe.src = officeSelectorUrl;
       
-      modal.style.display = 'flex';
-      console.log('🏢 Office selector modal shown with iframe:', officeSelectorUrl);
+      iframe.style.display = 'block';
+      console.log('🏢 Office selector iframe shown:', officeSelectorUrl);
       
       // Listen for messages from the iframe
       const messageHandler = (event) => {
@@ -226,9 +218,9 @@
 
   // Hide office selector
   function hideOfficeSelector() {
-    const modal = document.getElementById('office-selector-modal');
-    if (modal) {
-      modal.style.display = 'none';
+    const iframe = document.getElementById('office-selector-iframe');
+    if (iframe) {
+      iframe.style.display = 'none';
     }
   }
 
