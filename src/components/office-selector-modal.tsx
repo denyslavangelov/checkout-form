@@ -77,52 +77,73 @@ export function OfficeSelectorModal({
     }
   }, [isOpen]);
 
-  // Function to get cart data from parent window
+  // Function to get cart data from parent window with mobile retry
   const getCartDataFromParent = async () => {
-    return new Promise((resolve) => {
-      console.log('🏢 Requesting fresh cart data from parent...');
-      console.log('🏢 User agent:', navigator.userAgent);
-      console.log('🏢 Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const maxRetries = isMobile ? 3 : 1; // Retry 3 times on mobile, 1 time on desktop
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`🏢 Cart data request attempt ${attempt}/${maxRetries}`);
       
-      // Request fresh cart data from parent
-      if (window.parent && window.parent !== window) {
-        try {
-          window.parent.postMessage({ 
-            type: 'request-fresh-cart-data'
-          }, '*');
-          console.log('🏢 Fresh cart data request sent to parent');
-        } catch (error) {
-          console.error('🏢 Error sending message to parent:', error);
-          resolve(null);
-          return;
-        }
+      const result = await new Promise((resolve) => {
+        console.log('🏢 Requesting fresh cart data from parent...');
+        console.log('🏢 User agent:', navigator.userAgent);
+        console.log('🏢 Is mobile:', isMobile);
         
-        // Listen for response
-        const messageHandler = (event: MessageEvent) => {
-          console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
-          console.log('🏢 Expected origin: https://checkout-form-zeta.vercel.app');
-          console.log('🏢 Message type:', event.data?.type);
-          
-          if (event.data?.type === 'cart-data') {
-            console.log('🏢 Fresh cart data received:', event.data.cart);
-            window.removeEventListener('message', messageHandler);
-            resolve(event.data.cart);
+        // Request fresh cart data from parent
+        if (window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage({ 
+              type: 'request-fresh-cart-data',
+              attempt: attempt
+            }, '*');
+            console.log(`🏢 Fresh cart data request sent to parent (attempt ${attempt})`);
+          } catch (error) {
+            console.error('🏢 Error sending message to parent:', error);
+            resolve(null);
+            return;
           }
-        };
-        
-        window.addEventListener('message', messageHandler);
-        
-        // Timeout after 8 seconds (longer for mobile)
-        setTimeout(() => {
-          console.error('🏢 Fresh cart data request timed out after 8 seconds');
-          window.removeEventListener('message', messageHandler);
+          
+          // Listen for response
+          const messageHandler = (event: MessageEvent) => {
+            console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
+            console.log('🏢 Expected origin: https://checkout-form-zeta.vercel.app');
+            console.log('🏢 Message type:', event.data?.type);
+            
+            if (event.data?.type === 'cart-data') {
+              console.log('🏢 Fresh cart data received:', event.data.cart);
+              window.removeEventListener('message', messageHandler);
+              resolve(event.data.cart);
+            }
+          };
+          
+          window.addEventListener('message', messageHandler);
+          
+          // Timeout - longer for mobile devices
+          const timeoutDuration = isMobile ? 15000 : 8000; // 15 seconds for mobile, 8 for desktop
+          
+          setTimeout(() => {
+            console.error(`🏢 Fresh cart data request timed out after ${timeoutDuration/1000} seconds (attempt ${attempt})`);
+            window.removeEventListener('message', messageHandler);
+            resolve(null);
+          }, timeoutDuration);
+        } else {
+          console.log('🏢 No parent window found or same window');
           resolve(null);
-        }, 8000);
-      } else {
-        console.log('🏢 No parent window found or same window');
-        resolve(null);
+        }
+      });
+      
+      if (result) {
+        console.log(`🏢 Cart data received successfully on attempt ${attempt}`);
+        return result;
+      } else if (attempt < maxRetries) {
+        console.log(`🏢 Attempt ${attempt} failed, retrying in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
       }
-    });
+    }
+    
+    console.error('🏢 All cart data request attempts failed');
+    return null;
   };
 
   // Search cities function

@@ -158,6 +158,7 @@
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
           console.log('🏢 Office selector requesting cart data:', event.data.type);
+          console.log('🏢 Attempt:', event.data.attempt || 1);
           console.log('🏢 User agent:', navigator.userAgent);
           console.log('🏢 Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
           
