@@ -634,6 +634,18 @@ export function OfficeSelectorModal({
               )}
             </div>
           </div>
+          ) : (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Адрес за доставка<span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Input
+                type="text"
+                placeholder="Въведете адрес за доставка"
+                className="w-full"
+              />
+            </div>
+          )}
 
           {/* Office Preview */}
           {selectedOffice && (
