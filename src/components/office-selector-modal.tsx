@@ -68,15 +68,23 @@ export function OfficeSelectorModal({
   const getCartDataFromParent = async () => {
     return new Promise((resolve) => {
       console.log('🏢 Requesting fresh cart data from parent...');
+      console.log('🏢 User agent:', navigator.userAgent);
+      console.log('🏢 Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
       
       // Request fresh cart data from parent
-      if (window.parent) {
-        window.parent.postMessage({ type: 'request-fresh-cart-data' }, '*');
-        console.log('🏢 Fresh cart data request sent to parent');
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage({ type: 'request-fresh-cart-data' }, '*');
+          console.log('🏢 Fresh cart data request sent to parent');
+        } catch (error) {
+          console.error('🏢 Error sending message to parent:', error);
+          resolve(null);
+          return;
+        }
         
         // Listen for response
         const messageHandler = (event: MessageEvent) => {
-          console.log('🏢 Received message in iframe:', event.data);
+          console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
           
           if (event.data?.type === 'cart-data') {
             console.log('🏢 Fresh cart data received:', event.data.cart);
@@ -87,14 +95,14 @@ export function OfficeSelectorModal({
         
         window.addEventListener('message', messageHandler);
         
-        // Timeout after 5 seconds (longer for fresh fetch)
+        // Timeout after 8 seconds (longer for mobile)
         setTimeout(() => {
-          console.error('🏢 Fresh cart data request timed out after 5 seconds');
+          console.error('🏢 Fresh cart data request timed out after 8 seconds');
           window.removeEventListener('message', messageHandler);
           resolve(null);
-        }, 5000);
+        }, 8000);
       } else {
-        console.log('🏢 No parent window found');
+        console.log('🏢 No parent window found or same window');
         resolve(null);
       }
     });
@@ -265,11 +273,27 @@ export function OfficeSelectorModal({
         
         // Get cart data from the parent window
         console.log('🏢 Starting cart data fetch...');
-        const cartData = await getCartDataFromParent() as any;
-        console.log('🏢 Raw cart data received:', cartData);
+        let cartData = await getCartDataFromParent() as any;
+        console.log('🏢 Raw cart data received from parent:', cartData);
+        
+        // Fallback: try to fetch cart data directly if parent communication failed
+        if (!cartData) {
+          console.log('🏢 Parent communication failed, trying direct cart fetch...');
+          try {
+            const response = await fetch('/cart.js');
+            if (response.ok) {
+              cartData = await response.json();
+              console.log('🏢 Direct cart data fetch successful:', cartData);
+            } else {
+              console.error('🏢 Direct cart fetch failed:', response.status);
+            }
+          } catch (error) {
+            console.error('🏢 Direct cart fetch error:', error);
+          }
+        }
         
         if (!cartData) {
-          console.error('🏢 No cart data received from parent');
+          console.error('🏢 No cart data received from any method');
           setError('Не можахме да получим данните за кошницата. Моля, опитайте отново.');
           return;
         }

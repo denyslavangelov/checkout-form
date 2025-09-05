@@ -155,6 +155,8 @@
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
           console.log('🏢 Office selector requesting cart data:', event.data.type);
+          console.log('🏢 User agent:', navigator.userAgent);
+          console.log('🏢 Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
           
           // Fetch fresh cart data from Shopify
           console.log('🏢 Fetching fresh cart data from /cart.js...');
