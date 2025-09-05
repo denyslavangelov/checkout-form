@@ -64,6 +64,19 @@ export function OfficeSelectorModal({
     setAddressInput('');
   }, [selectedCourier, deliveryType]);
 
+  // Test message to parent when component mounts
+  useEffect(() => {
+    if (isOpen && window.parent && window.parent !== window) {
+      console.log('🏢 Sending test message to parent...');
+      try {
+        window.parent.postMessage({ type: 'iframe-ready' }, '*');
+        console.log('🏢 Test message sent successfully');
+      } catch (error) {
+        console.error('🏢 Error sending test message:', error);
+      }
+    }
+  }, [isOpen]);
+
   // Function to get cart data from parent window
   const getCartDataFromParent = async () => {
     return new Promise((resolve) => {
@@ -75,8 +88,7 @@ export function OfficeSelectorModal({
       if (window.parent && window.parent !== window) {
         try {
           window.parent.postMessage({ 
-            type: 'request-fresh-cart-data',
-            storeDomain: window.location.ancestorOrigins?.[0] || window.parent?.location?.origin
+            type: 'request-fresh-cart-data'
           }, '*');
           console.log('🏢 Fresh cart data request sent to parent');
         } catch (error) {
@@ -88,6 +100,8 @@ export function OfficeSelectorModal({
         // Listen for response
         const messageHandler = (event: MessageEvent) => {
           console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
+          console.log('🏢 Expected origin: https://checkout-form-zeta.vercel.app');
+          console.log('🏢 Message type:', event.data?.type);
           
           if (event.data?.type === 'cart-data') {
             console.log('🏢 Fresh cart data received:', event.data.cart);

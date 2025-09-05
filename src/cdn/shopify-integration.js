@@ -133,6 +133,7 @@
       // Listen for messages from the iframe
       const messageHandler = (event) => {
         console.log('🏢 Parent received message:', event.data, 'from origin:', event.origin);
+        console.log('🏢 Message type:', event.data?.type);
         
         // Allow messages from our iframe domain
         const allowedOrigins = [
@@ -144,7 +145,9 @@
           return;
         }
         
-        if (event.data.type === 'office-selector-closed') {
+        if (event.data.type === 'iframe-ready') {
+          console.log('🏢 Iframe is ready and can communicate');
+        } else if (event.data.type === 'office-selector-closed') {
           console.log('🏢 Office selector closed');
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
