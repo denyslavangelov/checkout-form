@@ -31,7 +31,7 @@
         width: 90%;
         max-width: 500px;
         height: auto;
-        min-height: 600px;
+        min-height: 800px;
         border: none;
         border-radius: 8px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
