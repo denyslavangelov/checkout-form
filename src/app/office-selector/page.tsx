@@ -66,12 +66,14 @@ export default function OfficeSelectorPage() {
   };
 
   return (
-    <OfficeSelectorModal
-      isOpen={isOpen}
-      onClose={handleClose}
-      onOrderCreated={handleOrderCreated}
-      productId={productId}
-      variantId={variantId}
-    />
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <OfficeSelectorModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        onOrderCreated={handleOrderCreated}
+        productId={productId}
+        variantId={variantId}
+      />
+    </div>
   );
 }
