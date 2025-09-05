@@ -737,6 +737,123 @@
     startObserving();
   }
 
+  // Test function to analyze button HTML
+  function testButtonDetection(buttonHtml) {
+    console.log('🧪 Testing button detection for:', buttonHtml);
+    
+    // Create a temporary element to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = buttonHtml;
+    const button = tempDiv.firstElementChild;
+    
+    if (!button) {
+      console.log('❌ Invalid button HTML');
+      return;
+    }
+    
+    // Run the detection logic
+    const tagName = button.tagName.toLowerCase();
+    const text = button.textContent?.toLowerCase().trim() || '';
+    const className = button.className?.toLowerCase() || '';
+    const id = button.id?.toLowerCase() || '';
+    const type = button.type?.toLowerCase() || '';
+    const name = button.name?.toLowerCase() || '';
+
+    // Smart detection patterns for different Shopify themes
+    const patterns = {
+      // Primary target: All submit buttons (covers most checkout/buy now buttons)
+      submitButtons: [
+        type === 'submit'
+      ],
+      
+      // Buy Now / Quick Buy patterns
+      buyNow: [
+        // Text patterns
+        text.includes('buy now') || text.includes('buy it now') || text.includes('купи сега'),
+        // Class patterns
+        className.includes('buy-now') || className.includes('quick-buy') || className.includes('shopify-payment-button'),
+        // ID patterns
+        id.includes('buy-now') || id.includes('quick-buy'),
+        // Type patterns
+        type === 'button' && (className.includes('payment') || className.includes('checkout')),
+        // Specific Shopify payment button pattern
+        type === 'button' && className.includes('shopify-payment-button__button') && className.includes('shopify-payment-button__button--unbranded')
+      ],
+      
+      // Checkout patterns
+      checkout: [
+        // Text patterns
+        text.includes('checkout') || text.includes('proceed to checkout') || text.includes('go to checkout') || 
+        text.includes('завърши поръчката') || text.includes('продължи към плащане'),
+        // Class patterns
+        className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
+        // Specific cart checkout button pattern
+        className.includes('cart__checkout-button') && className.includes('button'),
+        // ID patterns
+        id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
+        // Form submit patterns
+        (type === 'submit' && (className.includes('checkout') || name.includes('checkout')))
+      ],
+      
+      // Exclude patterns (Add to Cart, etc.)
+      exclude: [
+        // Add to Cart patterns
+        text.includes('add to cart') || text.includes('добави в кошницата') || text.includes('add to bag'),
+        className.includes('add-to-cart') || className.includes('cart-add') || className.includes('product-form__submit'),
+        id.includes('add-to-cart') || id.includes('cart-add') || id.startsWith('productsubmitbutton-'),
+        name.includes('add') && (name.includes('cart') || name.includes('product')),
+        // Other exclusions
+        className.includes('close') || className.includes('remove') || className.includes('delete'),
+        button.getAttribute('aria-label')?.toLowerCase().includes('close') ||
+        button.getAttribute('aria-label')?.toLowerCase().includes('remove')
+      ]
+    };
+
+    // Check if button matches any exclusion patterns
+    const isExcluded = patterns.exclude.some(pattern => pattern);
+    if (isExcluded) {
+      console.log('🚫 EXCLUDED - Matches exclusion pattern');
+      return 'EXCLUDED';
+    }
+
+    // Check if button matches any target patterns
+    const isSubmitButton = patterns.submitButtons.some(pattern => pattern);
+    const isBuyNow = patterns.buyNow.some(pattern => pattern);
+    const isCheckout = patterns.checkout.some(pattern => pattern);
+    const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
+
+    console.log('🔍 Analysis:', {
+      tagName,
+      text: text.substring(0, 50),
+      className,
+      id,
+      type,
+      name,
+      isSubmitButton,
+      isBuyNow,
+      isCheckout,
+      isExcluded,
+      result: isTargetButton
+    });
+
+    if (isSubmitButton) {
+      console.log('✅ DETECTED AS: SUBMIT BUTTON');
+      return 'SUBMIT_BUTTON';
+    } else if (isBuyNow) {
+      console.log('✅ DETECTED AS: BUY NOW BUTTON');
+      return 'BUY_NOW';
+    } else if (isCheckout) {
+      console.log('✅ DETECTED AS: CHECKOUT BUTTON');
+      return 'CHECKOUT';
+    } else {
+      console.log('❌ NOT DETECTED - No matching patterns');
+      return 'NOT_DETECTED';
+    }
+  }
+
+  // Make test function globally available
+  window.testButtonDetection = testButtonDetection;
+
   // When page loads, make cart data globally available
   document.addEventListener('DOMContentLoaded', function() {
     // Get cart data on page load and make it available for the checkout form
