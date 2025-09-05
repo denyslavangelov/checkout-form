@@ -140,10 +140,14 @@
           'https://checkout-form-zeta.vercel.app'
         ];
         
+        console.log('🏢 Checking message origin:', event.origin, 'against allowed:', allowedOrigins);
+        
         if (!allowedOrigins.includes(event.origin)) {
           console.log('🏢 Message origin not allowed:', event.origin, 'allowed:', allowedOrigins);
           return;
         }
+        
+        console.log('🏢 Message origin is allowed, processing...');
         
         if (event.data.type === 'iframe-ready') {
           console.log('🏢 Iframe is ready and can communicate');
@@ -167,6 +171,7 @@
           fetch('/cart.js')
             .then(response => {
               console.log('🏢 Cart fetch response status:', response.status);
+              console.log('🏢 Cart fetch response headers:', response.headers);
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
               }
@@ -174,6 +179,9 @@
             })
             .then(freshCartData => {
               console.log('🏢 Fresh cart data fetched successfully:', freshCartData);
+              console.log('🏢 Cart data type:', typeof freshCartData);
+              console.log('🏢 Cart data keys:', Object.keys(freshCartData));
+              console.log('🏢 Cart items count:', freshCartData.items?.length || 0);
               
               // Update global cart data
               window.shopifyCart = freshCartData;
@@ -182,11 +190,18 @@
               // Send fresh cart data to the office selector iframe
               if (iframe.contentWindow) {
                 console.log('🏢 Sending fresh cart data to iframe:', freshCartData);
+                console.log('🏢 Iframe src:', iframe.src);
+                console.log('🏢 Target origin: https://checkout-form-zeta.vercel.app');
                 
-                iframe.contentWindow.postMessage({
-                  type: 'cart-data',
-                  cart: freshCartData
-                }, 'https://checkout-form-zeta.vercel.app');
+                try {
+                  iframe.contentWindow.postMessage({
+                    type: 'cart-data',
+                    cart: freshCartData
+                  }, 'https://checkout-form-zeta.vercel.app');
+                  console.log('🏢 Message sent successfully to iframe');
+                } catch (error) {
+                  console.error('🏢 Error sending message to iframe:', error);
+                }
               } else {
                 console.error('🏢 No iframe contentWindow found');
               }

@@ -80,7 +80,7 @@ export function OfficeSelectorModal({
   // Function to get cart data from parent window with mobile retry
   const getCartDataFromParent = async () => {
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const maxRetries = isMobile ? 3 : 1; // Retry 3 times on mobile, 1 time on desktop
+    const maxRetries = isMobile ? 2 : 1; // Retry 2 times on mobile, 1 time on desktop
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       console.log(`🏢 Cart data request attempt ${attempt}/${maxRetries}`);
@@ -104,23 +104,28 @@ export function OfficeSelectorModal({
             return;
           }
           
-          // Listen for response
-          const messageHandler = (event: MessageEvent) => {
-            console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
-            console.log('🏢 Expected origin: https://checkout-form-zeta.vercel.app');
-            console.log('🏢 Message type:', event.data?.type);
-            
-            if (event.data?.type === 'cart-data') {
-              console.log('🏢 Fresh cart data received:', event.data.cart);
-              window.removeEventListener('message', messageHandler);
-              resolve(event.data.cart);
-            }
-          };
+                  // Listen for response
+        const messageHandler = (event: MessageEvent) => {
+          console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
+          console.log('🏢 Expected origin: https://checkout-form-zeta.vercel.app');
+          console.log('🏢 Message type:', event.data?.type);
+          console.log('🏢 Full event object:', event);
+          
+          if (event.data?.type === 'cart-data') {
+            console.log('🏢 Fresh cart data received:', event.data.cart);
+            console.log('🏢 Cart data type:', typeof event.data.cart);
+            console.log('🏢 Cart data keys:', event.data.cart ? Object.keys(event.data.cart) : 'null');
+            window.removeEventListener('message', messageHandler);
+            resolve(event.data.cart);
+          } else {
+            console.log('🏢 Received message but not cart-data type:', event.data?.type);
+          }
+        };
           
           window.addEventListener('message', messageHandler);
           
-          // Timeout - longer for mobile devices
-          const timeoutDuration = isMobile ? 15000 : 8000; // 15 seconds for mobile, 8 for desktop
+          // Timeout - shorter for better UX
+          const timeoutDuration = isMobile ? 8000 : 5000; // 8 seconds for mobile, 5 for desktop
           
           setTimeout(() => {
             console.error(`🏢 Fresh cart data request timed out after ${timeoutDuration/1000} seconds (attempt ${attempt})`);
@@ -137,8 +142,8 @@ export function OfficeSelectorModal({
         console.log(`🏢 Cart data received successfully on attempt ${attempt}`);
         return result;
       } else if (attempt < maxRetries) {
-        console.log(`🏢 Attempt ${attempt} failed, retrying in 2 seconds...`);
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+        console.log(`🏢 Attempt ${attempt} failed, retrying in 1 second...`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
       }
     }
     
@@ -322,7 +327,7 @@ export function OfficeSelectorModal({
         
         if (!cartData) {
           console.error('🏢 No cart data received from any method');
-          setError('Не можахме да получим данните за кошницата. Моля, опитайте отново.');
+          setError('Не можахме да получим данните за кошницата. Моля, опитайте отново или обновете страницата.');
           return;
         }
         
