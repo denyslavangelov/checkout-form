@@ -53,6 +53,7 @@ export function OfficeSelectorModal({
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>('speedy');
   const [deliveryType, setDeliveryType] = useState<'office' | 'address'>('office');
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
+  const [addressInput, setAddressInput] = useState('');
   
   // Reset office selection when courier or delivery type changes
   useEffect(() => {
@@ -60,6 +61,7 @@ export function OfficeSelectorModal({
     setOfficeSearch('');
     setOffices([]);
     setShowOfficeDropdown(false);
+    setAddressInput('');
   }, [selectedCourier, deliveryType]);
 
   // Function to get cart data from parent window
@@ -650,6 +652,8 @@ export function OfficeSelectorModal({
               <Input
                 type="text"
                 placeholder="Въведете адрес за доставка"
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
                 className="w-full"
               />
             </div>
@@ -701,7 +705,11 @@ export function OfficeSelectorModal({
           {/* Create Order Button */}
           <Button
             onClick={handleCreateOrder}
-            disabled={!selectedOffice || creatingOrder}
+            disabled={
+              creatingOrder || 
+              (deliveryType === 'office' && !selectedOffice) ||
+              (deliveryType === 'address' && !addressInput.trim())
+            }
             className="w-full bg-red-600 hover:bg-red-700 text-white py-3 sm:py-4 text-sm sm:text-base font-medium"
           >
             {creatingOrder ? (
