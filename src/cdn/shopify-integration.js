@@ -32,30 +32,20 @@
       align-items: center;
       justify-content: center;
     ">
-      <div style="
-        background: white;
-        border-radius: 8px;
-        width: 90%;
-        max-width: 500px;
-        height: auto;
-        max-height: 500px;
-        position: relative;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-      ">
-        <iframe 
-          id="office-selector-iframe"
-          src=""
-          style="
-            width: 100%;
-            height: 600px;
-            border: none;
-            border-radius: 8px;
-          "
-          allow="clipboard-write"
-        ></iframe>
-      </div>
+      <iframe 
+        id="office-selector-iframe"
+        src=""
+        style="
+          width: 90%;
+          max-width: 500px;
+          height: auto;
+          min-height: 500px;
+          border: none;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        "
+        allow="clipboard-write"
+      ></iframe>
     </div>
   `;
 

@@ -400,7 +400,7 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200 min-h-[600px] max-h-[700px] overflow-y-auto">
+    <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
         {/* Close button */}
         <button
           onClick={handleClose}
