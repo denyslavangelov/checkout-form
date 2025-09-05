@@ -239,9 +239,17 @@ export function OfficeSelectorModal({
 
   // Create order function
   const handleCreateOrder = async () => {
-    if (!selectedOffice || !selectedCity) {
-      setError('Моля, изберете град и офис');
-      return;
+    // Validate based on delivery type
+    if (deliveryType === 'office') {
+      if (!selectedOffice || !selectedCity) {
+        setError('Моля, изберете град и офис');
+        return;
+      }
+    } else if (deliveryType === 'address') {
+      if (!addressInput.trim() || !selectedCity) {
+        setError('Моля, изберете град и въведете адрес за доставка');
+        return;
+      }
     }
 
     try {
@@ -293,18 +301,23 @@ export function OfficeSelectorModal({
             cartData: { ...cartData, items: items },
             shippingAddress: {
               address1: (() => {
-                if (typeof selectedOffice.address === 'string') {
-                  return selectedOffice.address;
-                } else if (selectedOffice.fullAddressString) {
-                  return selectedOffice.fullAddressString;
-                } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-                  return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+                if (deliveryType === 'address') {
+                  return addressInput.trim();
+                } else if (deliveryType === 'office' && selectedOffice) {
+                  if (typeof selectedOffice.address === 'string') {
+                    return selectedOffice.address;
+                  } else if (selectedOffice.fullAddressString) {
+                    return selectedOffice.fullAddressString;
+                  } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
+                    return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+                  }
+                  return 'Address not available';
                 }
                 return 'Address not available';
               })(),
-              city: selectedCity.name,
+              city: selectedCity?.name || '',
               country: 'Bulgaria',
-              postalCode: selectedCity.postCode || ''
+              postalCode: selectedCity?.postCode || ''
             }
           })
         });
@@ -338,18 +351,23 @@ export function OfficeSelectorModal({
           variantId,
           shippingAddress: {
             address1: (() => {
-              if (typeof selectedOffice.address === 'string') {
-                return selectedOffice.address;
-              } else if (selectedOffice.fullAddressString) {
-                return selectedOffice.fullAddressString;
-              } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-                return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+              if (deliveryType === 'address') {
+                return addressInput.trim();
+              } else if (deliveryType === 'office' && selectedOffice) {
+                if (typeof selectedOffice.address === 'string') {
+                  return selectedOffice.address;
+                } else if (selectedOffice.fullAddressString) {
+                  return selectedOffice.fullAddressString;
+                } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
+                  return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+                }
+                return 'Address not available';
               }
               return 'Address not available';
             })(),
-            city: selectedCity.name,
+            city: selectedCity?.name || '',
             country: 'Bulgaria',
-            postalCode: selectedCity.postCode || ''
+            postalCode: selectedCity?.postCode || ''
           }
         })
       });
