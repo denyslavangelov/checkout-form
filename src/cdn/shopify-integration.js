@@ -164,6 +164,7 @@
         closeButton.onclick = () => {
           hideOfficeSelector();
         };
+        closeButton.style.display = 'flex'; // Make sure close button is visible
       }
       
       // Listen for messages from the iframe
@@ -287,11 +288,15 @@
   function hideOfficeSelector() {
     const container = document.getElementById('office-selector-container');
     const iframe = document.getElementById('office-selector-iframe');
+    const closeButton = document.getElementById('office-selector-close');
     if (container) {
       container.style.display = 'none';
     }
     if (iframe) {
       iframe.style.display = 'none';
+    }
+    if (closeButton) {
+      closeButton.style.display = 'none';
     }
   }
 
