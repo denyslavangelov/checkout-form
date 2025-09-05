@@ -518,14 +518,7 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
-        >
-          <X className="h-4 w-4 sm:h-5 sm:w-5" />
-        </button>
+    <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative border border-gray-200">
 
         {/* Header with Courier Selection */}
         <div className="mb-6 sm:mb-8">
@@ -805,10 +798,10 @@ export function OfficeSelectorModal({
             </div>
           )}
 
-          {/* Explanatory Text */}
+          {/* Explanatory Text
           <div className="text-center text-sm text-gray-600 mb-6">
             <p>След като натиснете бутона по-долу, ще бъдете пренасочени към страницата за завършване на поръчката, където ще можете да попълните останалата информация.</p>
-          </div>
+          </div> */}
 
           {/* Create Order Button */}
           <Button
