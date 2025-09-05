@@ -20,54 +20,28 @@
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
-    <div id="office-selector-container" style="
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 95%;
-      max-width: 500px;
-      height: auto;
-      min-height: 600px;
-      max-height: 90vh;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      z-index: 10000;
-      display: none;
-      background: white;
-    ">
-      <button id="office-selector-close" style="
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 50%;
-        cursor: pointer;
-        z-index: 10001;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        color: #6b7280;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      ">×</button>
-      <iframe 
-        id="office-selector-iframe"
-        src=""
-        style="
-          width: 100%;
-          height: 100%;
+    <iframe 
+      id="office-selector-iframe"
+      src=""
+              style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 95%;
+          max-width: 500px;
+          height: auto;
+          min-height: 600px;
+          max-height: 90vh;
           border: none;
           border-radius: 8px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          z-index: 10000;
           display: none;
           background: white;
         "
-        allow="clipboard-write"
-      ></iframe>
-    </div>
+      allow="clipboard-write"
+    ></iframe>
   `;
 
   // Function to show office selector
@@ -139,33 +113,22 @@
     // Production URL for live sites
     const baseUrl = 'https://checkout-form-zeta.vercel.app';
     
-    // Add container and iframe to page if not already there
-    if (!document.getElementById('office-selector-container')) {
-      console.log('🏢 Adding office selector container to page');
+    // Add backdrop and iframe to page if not already there
+    if (!document.getElementById('office-selector-iframe')) {
+      console.log('🏢 Adding office selector iframe to page');
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
-    // Show the container and iframe
-    const container = document.getElementById('office-selector-container');
+    // Show the iframe
     const iframe = document.getElementById('office-selector-iframe');
-    const closeButton = document.getElementById('office-selector-close');
     
-    if (container && iframe) {
+    if (iframe) {
       // Set iframe source with product data
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}`;
       iframe.src = officeSelectorUrl;
       
-      container.style.display = 'block';
       iframe.style.display = 'block';
-      console.log('🏢 Office selector container and iframe shown:', officeSelectorUrl);
-      
-      // Add close button event listener
-      if (closeButton) {
-        closeButton.onclick = () => {
-          hideOfficeSelector();
-        };
-        closeButton.style.display = 'flex'; // Make sure close button is visible
-      }
+      console.log('🏢 Office selector iframe shown:', officeSelectorUrl);
       
       // Listen for messages from the iframe
       const messageHandler = (event) => {
@@ -286,17 +249,9 @@
 
   // Hide office selector
   function hideOfficeSelector() {
-    const container = document.getElementById('office-selector-container');
     const iframe = document.getElementById('office-selector-iframe');
-    const closeButton = document.getElementById('office-selector-close');
-    if (container) {
-      container.style.display = 'none';
-    }
     if (iframe) {
       iframe.style.display = 'none';
-    }
-    if (closeButton) {
-      closeButton.style.display = 'none';
     }
   }
 
