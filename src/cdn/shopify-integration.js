@@ -49,7 +49,7 @@
           src=""
           style="
             width: 100%;
-            height: 450px;
+            height: 600px;
             border: none;
             border-radius: 8px;
           "
