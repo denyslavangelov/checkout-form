@@ -765,12 +765,12 @@
   }
   
   // Function to continuously monitor for checkout buttons
-  function monitorForCheckoutButtons() {
-    // Only run detection if not using custom selectors
-    if (finalConfig.buttonTargets.customSelectors.length === 0) {
-      findAndInitializeCheckoutButtons();
-    }
-  }
+  // function monitorForCheckoutButtons() {
+  //   // Only run detection if not using custom selectors
+  //   if (finalConfig.buttonTargets.customSelectors.length === 0) {
+  //     findAndInitializeCheckoutButtons();
+  //   }
+  // }
   
   // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
