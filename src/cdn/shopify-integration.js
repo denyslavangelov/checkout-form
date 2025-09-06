@@ -774,10 +774,7 @@
   
   // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
-    // Check for checkout buttons (reduced frequency to avoid console spam)
-    setInterval(monitorForCheckoutButtons, 2000);
-    
-    // Also use MutationObserver for more efficient monitoring
+    // Only use MutationObserver for efficient monitoring (no constant scanning)
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList') {
