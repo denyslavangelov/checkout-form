@@ -3,31 +3,35 @@ import { NextRequest, NextResponse } from 'next/server';
 const STORE_URL = 'testing-client-check.myshopify.com';
 const ACCESS_TOKEN = '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';
 
-// GraphQL query to get shipping zones and their methods
+// GraphQL query to get delivery profiles and their method definitions
 const SHIPPING_METHODS_QUERY = `
-  query getShippingZones {
-    shippingZones(first: 10) {
-      edges {
-        node {
-          id
-          name
-          countries {
-            code
-            name
-          }
-          deliveryMethods {
-            id
-            title
-            code
-            price {
-              amount
-              currencyCode
-            }
-            deliveryCategory
-            carrierService {
-              id
-              name
-              serviceName
+  query getDeliveryProfiles {
+    deliveryProfiles(first: 10) {
+      nodes {
+        id
+        name
+        profileLocationGroups {
+          locationGroupZones(first: 50) {
+            nodes {
+              zone {
+                id
+                name
+              }
+              methodDefinitions(first: 50) {
+                nodes {
+                  id
+                  name
+                  rateProvider {
+                    __typename
+                    ... on DeliveryRateDefinition {
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -108,33 +112,37 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Process the shipping zones and their methods
-    const shippingZones = data.data?.shippingZones?.edges || [];
+    // Process the delivery profiles and their method definitions
+    const deliveryProfiles = data.data?.deliveryProfiles?.nodes || [];
     const allShippingMethods: any[] = [];
     
-    shippingZones.forEach((zoneEdge: any) => {
-      const zone = zoneEdge.node;
-      console.log(`🔍 Processing shipping zone: ${zone.name}`);
+    deliveryProfiles.forEach((profile: any) => {
+      console.log(`🔍 Processing delivery profile: ${profile.name}`);
       
-      zone.deliveryMethods?.forEach((method: any) => {
-        const shippingMethod = {
-          id: method.id,
-          title: method.title,
-          code: method.code,
-          price: method.price?.amount || '0.00',
-          currency: method.price?.currencyCode || 'BGN',
-          deliveryCategory: method.deliveryCategory,
-          carrierService: method.carrierService ? {
-            id: method.carrierService.id,
-            name: method.carrierService.name,
-            serviceName: method.carrierService.serviceName
-          } : null,
-          zone: zone.name,
-          countries: zone.countries?.map((country: any) => country.code) || []
-        };
-        
-        allShippingMethods.push(shippingMethod);
-        console.log(`🔍 Added shipping method: ${method.title} (${method.code})`);
+      profile.profileLocationGroups?.forEach((locationGroup: any) => {
+        const locationGroupZones = locationGroup.locationGroupZones?.nodes || [];
+        locationGroupZones.forEach((zoneData: any) => {
+          const zone = zoneData.zone;
+          console.log(`🔍 Processing zone: ${zone.name}`);
+          
+          const methodDefinitions = zoneData.methodDefinitions?.nodes || [];
+          methodDefinitions.forEach((method: any) => {
+            const shippingMethod = {
+              id: method.id,
+              name: method.name,
+              title: method.name, // Use name as title for consistency
+              price: method.rateProvider?.price?.amount || '0.00',
+              currency: method.rateProvider?.price?.currencyCode || 'BGN',
+              rateProviderType: method.rateProvider?.__typename,
+              profile: profile.name,
+              zone: zone.name,
+              zoneId: zone.id
+            };
+            
+            allShippingMethods.push(shippingMethod);
+            console.log(`🔍 Added shipping method: ${method.name} - ${method.rateProvider?.price?.amount} ${method.rateProvider?.price?.currencyCode}`);
+          });
+        });
       });
     });
 
@@ -142,13 +150,15 @@ export async function GET(request: NextRequest) {
 
     // Filter for Bulgaria-specific methods or methods that might be relevant
     const bulgariaMethods = allShippingMethods.filter(method => 
-      method.countries.includes('BG') || 
-      method.title.toLowerCase().includes('speedy') ||
-      method.title.toLowerCase().includes('econt') ||
-      method.title.toLowerCase().includes('спиди') ||
-      method.title.toLowerCase().includes('еконт') ||
-      method.title.toLowerCase().includes('доставка') ||
-      method.title.toLowerCase().includes('shipping')
+      method.zone?.toLowerCase().includes('domestic') ||
+      method.zone?.toLowerCase().includes('bulgaria') ||
+      method.name?.toLowerCase().includes('спиди') ||
+      method.name?.toLowerCase().includes('еконт') ||
+      method.name?.toLowerCase().includes('speedy') ||
+      method.name?.toLowerCase().includes('econt') ||
+      method.name?.toLowerCase().includes('офис') ||
+      method.name?.toLowerCase().includes('адрес') ||
+      method.name?.toLowerCase().includes('доставка')
     );
 
     console.log(`🔍 Bulgaria-relevant methods: ${bulgariaMethods.length}`);
@@ -159,10 +169,10 @@ Total: ${allShippingMethods.length}
 Bulgaria-relevant: ${bulgariaMethods.length}
 
 All Methods:
-${allShippingMethods.map(method => `- ${method.title} (${method.code}) - ${method.price} ${method.currency}`).join('\n')}
+${allShippingMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}
 
 Bulgaria Methods:
-${bulgariaMethods.map(method => `- ${method.title} (${method.code}) - ${method.price} ${method.currency}`).join('\n')}`;
+${bulgariaMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}`;
 
     console.log('🚨 ALERT - Shipping Methods:', alertMessage);
 

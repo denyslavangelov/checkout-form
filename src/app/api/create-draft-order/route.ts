@@ -162,38 +162,33 @@ export async function POST(request: NextRequest) {
           console.log('🔍 DEBUG: Found', shippingMethodsData.shippingMethods.length, 'shipping methods');
           
           // Find matching shipping method based on courier and delivery type
-          const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
-            const title = method.title?.toLowerCase() || '';
-            const code = method.code?.toLowerCase() || '';
-            
-            // Match courier
-            const courierMatch = (courier === 'speedy' && (
-              title.includes('speedy') || 
-              code.includes('speedy') ||
-              title.includes('спиди') ||    // Bulgarian name
-              code.includes('спиди')        // Bulgarian name
-            )) || (courier === 'econt' && (
-              title.includes('econt') || 
-              code.includes('econt') ||
-              title.includes('еконт') ||    // Bulgarian name
-              code.includes('еконт')        // Bulgarian name
-            ));
-            
-            // Match delivery type
-            const deliveryMatch = (deliveryType === 'office' && (
-              title.includes('office') || 
-              title.includes('офис') ||     // Bulgarian
-              title.includes('pickup') ||
-              title.includes('вземане')     // Bulgarian
-            )) || (deliveryType === 'address' && (
-              title.includes('address') || 
-              title.includes('адрес') ||    // Bulgarian
-              title.includes('delivery') ||
-              title.includes('доставка')    // Bulgarian
-            ));
-            
-            return courierMatch && deliveryMatch;
-          });
+            const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
+              const name = method.name?.toLowerCase() || '';
+              
+              // Match courier
+              const courierMatch = (courier === 'speedy' && (
+                name.includes('speedy') || 
+                name.includes('спиди')        // Bulgarian name
+              )) || (courier === 'econt' && (
+                name.includes('econt') || 
+                name.includes('еконт')        // Bulgarian name
+              ));
+              
+              // Match delivery type
+              const deliveryMatch = (deliveryType === 'office' && (
+                name.includes('office') || 
+                name.includes('офис') ||     // Bulgarian
+                name.includes('pickup') ||
+                name.includes('вземане')     // Bulgarian
+              )) || (deliveryType === 'address' && (
+                name.includes('address') || 
+                name.includes('адрес') ||    // Bulgarian
+                name.includes('delivery') ||
+                name.includes('доставка')    // Bulgarian
+              ));
+              
+              return courierMatch && deliveryMatch;
+            });
           
           if (matchingMethod) {
             console.log('🔍 DEBUG: Found matching shipping method:', matchingMethod);
