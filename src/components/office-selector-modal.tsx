@@ -739,8 +739,7 @@ export function OfficeSelectorModal({
           textTransform: 'inherit',
           fontStyle: 'inherit',
           textDecoration: 'inherit',
-          fontVariant: 'inherit',
-          color: 'inherit'
+          fontVariant: 'inherit'
         }}
       >
         <div className="flex items-center justify-center min-h-[400px]">
@@ -765,8 +764,7 @@ export function OfficeSelectorModal({
         textTransform: 'inherit',
         fontStyle: 'inherit',
         textDecoration: 'inherit',
-        fontVariant: 'inherit',
-        color: 'inherit'
+        fontVariant: 'inherit'
       }}
     >
         {/* Close button */}
