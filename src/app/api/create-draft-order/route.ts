@@ -211,29 +211,54 @@ export async function POST(request: NextRequest) {
             const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
               const name = method.name?.toLowerCase() || '';
               
-              // Match courier
-              const courierMatch = (courier === 'speedy' && (
-                name.includes('speedy') || 
-                name.includes('спиди')        // Bulgarian name
-              )) || (courier === 'econt' && (
-                name.includes('econt') || 
-                name.includes('еконт')        // Bulgarian name
-              ));
+              // First, try to match by courier and delivery type
+              if (courier === 'speedy' || courier === 'econt') {
+                // Match courier
+                const courierMatch = (courier === 'speedy' && (
+                  name.includes('speedy') || 
+                  name.includes('спиди')        // Bulgarian name
+                )) || (courier === 'econt' && (
+                  name.includes('econt') || 
+                  name.includes('еконт')        // Bulgarian name
+                ));
+                
+                // Match delivery type
+                const deliveryMatch = (deliveryType === 'office' && (
+                  name.includes('office') || 
+                  name.includes('офис') ||     // Bulgarian
+                  name.includes('pickup') ||
+                  name.includes('вземане')     // Bulgarian
+                )) || (deliveryType === 'address' && (
+                  name.includes('address') || 
+                  name.includes('адрес') ||    // Bulgarian
+                  name.includes('delivery') ||
+                  name.includes('доставка')    // Bulgarian
+                ));
+                
+                return courierMatch && deliveryMatch;
+              } else {
+                // For cases where courier is not specified (like "Личен адрес")
+                // Just match by delivery type
+                if (deliveryType === 'office') {
+                  return name.includes('office') || 
+                         name.includes('офис') || 
+                         name.includes('pickup') ||
+                         name.includes('вземане');
+                } else if (deliveryType === 'address') {
+                  // For address delivery, match methods that are NOT office-related
+                  return (name.includes('address') || 
+                          name.includes('адрес') || 
+                          name.includes('delivery') ||
+                          name.includes('доставка') ||
+                          name.includes('личен')) && 
+                         !name.includes('office') && 
+                         !name.includes('офис') && 
+                         !name.includes('pickup') &&
+                         !name.includes('вземане');
+                }
+              }
               
-              // Match delivery type
-              const deliveryMatch = (deliveryType === 'office' && (
-                name.includes('office') || 
-                name.includes('офис') ||     // Bulgarian
-                name.includes('pickup') ||
-                name.includes('вземане')     // Bulgarian
-              )) || (deliveryType === 'address' && (
-                name.includes('address') || 
-                name.includes('адрес') ||    // Bulgarian
-                name.includes('delivery') ||
-                name.includes('доставка')    // Bulgarian
-              ));
-              
-              return courierMatch && deliveryMatch;
+              return false;
             });
           
           if (matchingMethod) {
