@@ -75,6 +75,11 @@ export function OfficeSelectorModal({
   const [detectedLineHeight, setDetectedLineHeight] = useState<string>('');
   const [detectedBackgroundColor, setDetectedBackgroundColor] = useState<string>('');
   const [detectedTextColor, setDetectedTextColor] = useState<string>('');
+  const [detectedLetterSpacing, setDetectedLetterSpacing] = useState<string>('');
+  const [detectedTextTransform, setDetectedTextTransform] = useState<string>('');
+  const [detectedFontStyle, setDetectedFontStyle] = useState<string>('');
+  const [detectedTextDecoration, setDetectedTextDecoration] = useState<string>('');
+  const [detectedFontVariant, setDetectedFontVariant] = useState<string>('');
   const [fontLoaded, setFontLoaded] = useState<boolean>(false);
   
   // Courier selection states
@@ -832,6 +837,21 @@ export function OfficeSelectorModal({
             if (event.data.color) {
               setDetectedTextColor(event.data.color);
             }
+            if (event.data.letterSpacing) {
+              setDetectedLetterSpacing(event.data.letterSpacing);
+            }
+            if (event.data.textTransform) {
+              setDetectedTextTransform(event.data.textTransform);
+            }
+            if (event.data.fontStyle) {
+              setDetectedFontStyle(event.data.fontStyle);
+            }
+            if (event.data.textDecoration) {
+              setDetectedTextDecoration(event.data.textDecoration);
+            }
+            if (event.data.fontVariant) {
+              setDetectedFontVariant(event.data.fontVariant);
+            }
             
             window.removeEventListener('message', handleFontResponse);
           }
@@ -873,6 +893,15 @@ export function OfficeSelectorModal({
         [data-modal-container="true"], 
         [data-modal-container="true"] * {
           font-family: ${fontFamily} !important;
+          ${detectedFontWeight ? `font-weight: ${detectedFontWeight} !important;` : ''}
+          ${detectedFontSize ? `font-size: ${detectedFontSize} !important;` : ''}
+          ${detectedLineHeight ? `line-height: ${detectedLineHeight} !important;` : ''}
+          ${detectedLetterSpacing ? `letter-spacing: ${detectedLetterSpacing} !important;` : ''}
+          ${detectedTextTransform ? `text-transform: ${detectedTextTransform} !important;` : ''}
+          ${detectedFontStyle ? `font-style: ${detectedFontStyle} !important;` : ''}
+          ${detectedTextDecoration ? `text-decoration: ${detectedTextDecoration} !important;` : ''}
+          ${detectedFontVariant ? `font-variant: ${detectedFontVariant} !important;` : ''}
+          ${detectedTextColor ? `color: ${detectedTextColor} !important;` : ''}
         }
       `;
       
@@ -1003,7 +1032,11 @@ export function OfficeSelectorModal({
           fontWeight: detectedFontWeight || 'inherit',
           fontSize: detectedFontSize || 'inherit',
           lineHeight: detectedLineHeight || 'inherit',
-          letterSpacing: 'inherit',
+          letterSpacing: detectedLetterSpacing || 'inherit',
+          textTransform: (detectedTextTransform as any) || 'inherit',
+          fontStyle: detectedFontStyle || 'inherit',
+          textDecoration: detectedTextDecoration || 'inherit',
+          fontVariant: detectedFontVariant || 'inherit',
           textRendering: 'inherit',
           WebkitFontSmoothing: 'inherit',
           MozOsxFontSmoothing: 'inherit',
@@ -1030,7 +1063,11 @@ export function OfficeSelectorModal({
         fontWeight: detectedFontWeight || 'inherit',
         fontSize: detectedFontSize || 'inherit',
         lineHeight: detectedLineHeight || 'inherit',
-        letterSpacing: 'inherit',
+        letterSpacing: detectedLetterSpacing || 'inherit',
+        textTransform: (detectedTextTransform as any) || 'inherit',
+        fontStyle: detectedFontStyle || 'inherit',
+        textDecoration: detectedTextDecoration || 'inherit',
+        fontVariant: detectedFontVariant || 'inherit',
         textRendering: 'inherit',
         WebkitFontSmoothing: 'inherit',
         MozOsxFontSmoothing: 'inherit',

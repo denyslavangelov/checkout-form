@@ -324,6 +324,42 @@
           let detectedLineHeight = null;
           let detectedBackgroundColor = null;
           let detectedTextColor = null;
+          let detectedLetterSpacing = null;
+          let detectedTextTransform = null;
+          let detectedFontStyle = null;
+          let detectedTextDecoration = null;
+          let detectedFontVariant = null;
+          
+          // Try to detect actual loaded fonts first
+          let actualLoadedFont = null;
+          const commonFonts = ['Jost', 'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins'];
+          
+          for (const fontName of commonFonts) {
+            try {
+              const testElement = document.createElement('div');
+              testElement.style.fontFamily = fontName;
+              testElement.style.position = 'absolute';
+              testElement.style.top = '-9999px';
+              testElement.style.left = '-9999px';
+              testElement.style.fontSize = '16px';
+              testElement.textContent = 'Test';
+              document.body.appendChild(testElement);
+              
+              const fontWidth = testElement.offsetWidth;
+              testElement.style.fontFamily = 'Arial';
+              const arialWidth = testElement.offsetWidth;
+              
+              document.body.removeChild(testElement);
+              
+              if (fontWidth !== arialWidth) {
+                actualLoadedFont = fontName;
+                console.log(`🔤 Detected ${fontName} font is loaded and working!`);
+                break; // Use the first working font we find
+              }
+            } catch (e) {
+              console.log(`Could not test ${fontName} font:`, e);
+            }
+          }
           
           const selectors = [
             'body',
@@ -337,7 +373,15 @@
             '.price',
             '.product-info',
             '.site-header',
-            '.header'
+            '.header',
+            // Add more specific selectors for better matching
+            '.product-form__buttons',
+            '.product__title',
+            '.product__price',
+            '.form__label',
+            '.field__input',
+            '.btn--primary',
+            '.btn--secondary'
           ];
           
           for (const selector of selectors) {
@@ -355,14 +399,21 @@
                     fontSize: computedStyle.fontSize,
                     fontDisplay: computedStyle.fontDisplay
                   });
-                  detectedFont = fontFamily;
                   
-                  // Also capture other typography properties
+                  // Use the actual loaded font if we found it, otherwise use the detected font
+                  detectedFont = actualLoadedFont || fontFamily;
+                  
+                  // Capture ALL typography and styling properties
                   const fontWeight = computedStyle.fontWeight;
                   const fontSize = computedStyle.fontSize;
                   const lineHeight = computedStyle.lineHeight;
                   const backgroundColor = computedStyle.backgroundColor;
                   const color = computedStyle.color;
+                  const letterSpacing = computedStyle.letterSpacing;
+                  const textTransform = computedStyle.textTransform;
+                  const fontStyle = computedStyle.fontStyle;
+                  const textDecoration = computedStyle.textDecoration;
+                  const fontVariant = computedStyle.fontVariant;
                   
                   if (fontWeight && fontWeight !== 'initial' && fontWeight !== 'inherit') {
                     detectedFontWeight = fontWeight;
@@ -379,6 +430,36 @@
                   if (color && color !== 'initial' && color !== 'inherit') {
                     detectedTextColor = color;
                   }
+                  if (letterSpacing && letterSpacing !== 'initial' && letterSpacing !== 'inherit') {
+                    detectedLetterSpacing = letterSpacing;
+                  }
+                  if (textTransform && textTransform !== 'initial' && textTransform !== 'inherit') {
+                    detectedTextTransform = textTransform;
+                  }
+                  if (fontStyle && fontStyle !== 'initial' && fontStyle !== 'inherit') {
+                    detectedFontStyle = fontStyle;
+                  }
+                  if (textDecoration && textDecoration !== 'initial' && textDecoration !== 'inherit') {
+                    detectedTextDecoration = textDecoration;
+                  }
+                  if (fontVariant && fontVariant !== 'initial' && fontVariant !== 'inherit') {
+                    detectedFontVariant = fontVariant;
+                  }
+                  
+                  // Log all captured properties for debugging
+                  console.log(`🔤 Captured all styles from ${selector}:`, {
+                    fontFamily,
+                    fontWeight,
+                    fontSize,
+                    lineHeight,
+                    backgroundColor,
+                    color,
+                    letterSpacing,
+                    textTransform,
+                    fontStyle,
+                    textDecoration,
+                    fontVariant
+                  });
                   
                   break;
                 }
@@ -410,24 +491,31 @@
             // Try to find the actual font file being used
             let actualFont = detectedFont;
             try {
-              // Check if M-Body-Font is actually a CSS variable
-              const bodyElement = document.body;
-              const computedStyle = getComputedStyle(bodyElement);
-              const actualFontFamily = computedStyle.fontFamily;
+              // Always try to get the resolved font from the element we detected it from
+              const testElement = document.createElement('div');
+              testElement.style.fontFamily = detectedFont;
+              testElement.style.position = 'absolute';
+              testElement.style.top = '-9999px';
+              testElement.style.left = '-9999px';
+              testElement.textContent = 'Test';
+              document.body.appendChild(testElement);
               
-              // If it's a CSS variable, try to resolve it
-              if (actualFontFamily.includes('var(')) {
-                console.log(`🔤 Found CSS variable font:`, actualFontFamily);
-                // Try to get the resolved value
-                const tempElement = document.createElement('div');
-                tempElement.style.fontFamily = actualFontFamily;
-                document.body.appendChild(tempElement);
-                const resolvedFont = getComputedStyle(tempElement).fontFamily;
-                document.body.removeChild(tempElement);
-                actualFont = resolvedFont;
+              const resolvedFont = getComputedStyle(testElement).fontFamily;
+              document.body.removeChild(testElement);
+              
+              // Extract the first font from the resolved font family
+              const firstFont = resolvedFont.split(',')[0].trim().replace(/['"]/g, '');
+              
+              if (firstFont && firstFont !== detectedFont) {
+                console.log(`🔤 Resolved font:`, {
+                  original: detectedFont,
+                  resolved: resolvedFont,
+                  firstFont: firstFont
+                });
+                actualFont = firstFont;
               }
             } catch (e) {
-              console.log('Could not resolve CSS variable font');
+              console.log('Could not resolve font:', e);
             }
             
             console.log(`🔤 Font loading test:`, {
@@ -453,7 +541,13 @@
               fontSize: detectedFontSize,
               lineHeight: detectedLineHeight,
               backgroundColor: detectedBackgroundColor,
-              color: detectedTextColor
+              color: detectedTextColor,
+              // Send additional properties for better matching
+              letterSpacing: detectedLetterSpacing,
+              textTransform: detectedTextTransform,
+              fontStyle: detectedFontStyle,
+              textDecoration: detectedTextDecoration,
+              fontVariant: detectedFontVariant
             }, 'https://checkout-form-zeta.vercel.app');
           }
         }
