@@ -568,10 +568,11 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
         const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
         const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
         
-        if (checkoutUrl) {
-          onOrderCreated(checkoutUrl);
-        } else if (invoiceUrl) {
+        // Prioritize invoiceUrl as it's the customer-facing checkout URL
+        if (invoiceUrl) {
           onOrderCreated(invoiceUrl);
+        } else if (checkoutUrl) {
+          onOrderCreated(checkoutUrl);
         } else {
           console.error('No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
@@ -630,10 +631,11 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
       const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
       const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
       
-      if (checkoutUrl) {
-        onOrderCreated(checkoutUrl);
-      } else if (invoiceUrl) {
+      // Prioritize invoiceUrl as it's the customer-facing checkout URL
+      if (invoiceUrl) {
         onOrderCreated(invoiceUrl);
+      } else if (checkoutUrl) {
+        onOrderCreated(checkoutUrl);
       } else {
         throw new Error('No checkout URL received');
       }
