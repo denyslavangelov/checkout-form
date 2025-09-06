@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const STORE_URL = 'colorlamb-bulgaria.myshopify.com';
+const STORE_URL = 'colorlamb-bulgaria.com';
 const ACCESS_TOKEN = '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';
 
 // GraphQL mutation to create draft order with office address
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         console.log('🔍 DEBUG: Fetching details for shipping method ID:', selectedShippingMethodId);
         
         // Fetch shipping methods to get the details for this specific ID
-        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods`);
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods-rest`);
         const shippingMethodsData = await shippingMethodsResponse.json();
         
         if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
       try {
         console.log('🔍 DEBUG: Fetching store shipping methods to match courier:', courier, 'deliveryType:', deliveryType);
         
-        // Fetch shipping methods from our API
-        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods`);
+        // Fetch shipping methods from our REST API
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods-rest`);
         const shippingMethodsData = await shippingMethodsResponse.json();
         
         if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {

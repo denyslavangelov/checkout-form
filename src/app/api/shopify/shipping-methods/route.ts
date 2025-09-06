@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const STORE_URL = 'colorlamb-bulgaria.myshopify.com';
+const STORE_URL = 'colorlamb-bulgaria.com';
 const ACCESS_TOKEN = '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';
 
 // GraphQL query to get delivery profiles and their method definitions
