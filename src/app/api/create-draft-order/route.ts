@@ -206,13 +206,18 @@ export async function POST(request: NextRequest) {
         
         if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
           console.log('🔍 DEBUG: Found', shippingMethodsData.shippingMethods.length, 'shipping methods');
+          console.log('🔍 DEBUG: Available shipping methods:', shippingMethodsData.shippingMethods.map((m: any) => m.name));
+          console.log('🔍 DEBUG: Looking for deliveryType:', deliveryType, 'courier:', courier);
           
           // Find matching shipping method based on courier and delivery type
             const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
               const name = method.name?.toLowerCase() || '';
               
+              console.log(`🔍 DEBUG: Checking method: "${method.name}" (normalized: "${name}") for deliveryType: "${deliveryType}"`);
+              
               // Special case: If "До Адрес" is selected, prioritize "Личен адрес" method
-              if (deliveryType === 'address' && name.includes('личен адрес')) {
+              if (deliveryType === 'address' && (name.includes('личен адрес') || name.includes('личен') || name.includes('личный адрес'))) {
+                console.log(`🔍 DEBUG: Found "Личен адрес" match: "${method.name}"`);
                 return true;
               }
               
@@ -267,6 +272,7 @@ export async function POST(request: NextRequest) {
           
           if (matchingMethod) {
             console.log('🔍 DEBUG: Found matching shipping method:', matchingMethod);
+            console.log('🔍 DEBUG: Selected method name:', matchingMethod.name);
             shippingLine = {
               title: matchingMethod.name,
               priceWithCurrency: {
