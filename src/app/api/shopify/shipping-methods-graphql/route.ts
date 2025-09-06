@@ -6,46 +6,23 @@ const ACCESS_TOKEN = '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';
 // GraphQL query to fetch shipping methods
 const SHIPPING_METHODS_QUERY = `
   query getShippingMethods {
-    deliveryProfiles(first: 10) {
-      edges {
-        node {
-          id
-          name
-          profileLocationGroups {
-            locationGroupZones(first: 10) {
-              edges {
-                node {
-                  id
-                  zone {
-                    id
-                    name
-                    countries {
-                      code
-                      name
-                    }
-                  }
-                  methodDefinitions(first: 10) {
-                    edges {
-                      node {
-                        id
-                        name
-                        description
-                        rateDefinition {
-                          ... on WeightRateDefinition {
-                            pricePerUnit {
-                              amount
-                              currencyCode
-                            }
-                            weightUnit
-                          }
-                          ... on PriceRateDefinition {
-                            pricePerUnit {
-                              amount
-                              currencyCode
-                            }
-                            currencyCode
-                          }
-                        }
+    deliveryProfiles(first: 1) {
+      nodes {
+        profileLocationGroups {
+          locationGroupZones(first: 50) {
+            nodes {
+              zone {
+                name
+              }
+              methodDefinitions(first: 50) {
+                nodes {
+                  name
+                  rateProvider {
+                    __typename
+                    ... on DeliveryRateDefinition {
+                      price {
+                        amount
+                        currencyCode
                       }
                     }
                   }
@@ -128,42 +105,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Process the GraphQL response
-    const deliveryProfiles = data.data?.deliveryProfiles?.edges || [];
+    const deliveryProfiles = data.data?.deliveryProfiles?.nodes || [];
     const allShippingMethods: any[] = [];
     
-    deliveryProfiles.forEach((profileEdge: any) => {
-      const profile = profileEdge.node;
-      
+    deliveryProfiles.forEach((profile: any) => {
       profile.profileLocationGroups?.forEach((locationGroup: any) => {
-        locationGroup.locationGroupZones?.edges?.forEach((zoneEdge: any) => {
-          const zone = zoneEdge.node;
-          
-          zone.methodDefinitions?.edges?.forEach((methodEdge: any) => {
-            const method = methodEdge.node;
-            
-            // Extract price information
+        locationGroup.locationGroupZones?.nodes?.forEach((zone: any) => {
+          zone.methodDefinitions?.nodes?.forEach((method: any) => {
+            // Extract price information from rateProvider
             let price = '0.00';
             let currency = 'BGN';
             
-            if (method.rateDefinition) {
-              if (method.rateDefinition.pricePerUnit) {
-                price = method.rateDefinition.pricePerUnit.amount || '0.00';
-                currency = method.rateDefinition.pricePerUnit.currencyCode || 'BGN';
+            if (method.rateProvider && method.rateProvider.__typename === 'DeliveryRateDefinition') {
+              if (method.rateProvider.price) {
+                price = method.rateProvider.price.amount || '0.00';
+                currency = method.rateProvider.price.currencyCode || 'BGN';
               }
             }
             
             const shippingMethod = {
-              id: method.id,
+              id: method.name, // Use name as ID since we don't have a separate ID field
               name: method.name,
               title: method.name,
-              description: method.description,
               price: price,
               currency: currency,
               zone: zone.zone?.name || 'Unknown Zone',
-              zoneId: zone.zone?.id,
-              profileId: profile.id,
-              profileName: profile.name,
-              countries: zone.zone?.countries?.map((country: any) => country.code) || []
+              rateProviderType: method.rateProvider?.__typename || 'Unknown'
             };
             
             allShippingMethods.push(shippingMethod);
@@ -172,18 +139,17 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Filter for Bulgaria-specific methods
+    // Filter for Bulgaria-specific methods (Domestic zone and Bulgarian shipping methods)
     const bulgariaMethods = allShippingMethods.filter(method => 
-      method.countries?.includes('BG') ||
       method.zone?.toLowerCase().includes('domestic') ||
-      method.zone?.toLowerCase().includes('bulgaria') ||
       method.name?.toLowerCase().includes('спиди') ||
       method.name?.toLowerCase().includes('еконт') ||
       method.name?.toLowerCase().includes('speedy') ||
       method.name?.toLowerCase().includes('econt') ||
       method.name?.toLowerCase().includes('офис') ||
       method.name?.toLowerCase().includes('адрес') ||
-      method.name?.toLowerCase().includes('доставка')
+      method.name?.toLowerCase().includes('доставка') ||
+      method.name?.toLowerCase().includes('личен')
     );
 
     console.log(`GraphQL Shipping Methods Found:
@@ -192,11 +158,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      shippingMethods: allShippingMethods,
-      bulgariaMethods: bulgariaMethods,
-      total: allShippingMethods.length,
+      shippingMethods: bulgariaMethods, // Return only Bulgaria-specific methods
+      total: bulgariaMethods.length,
       source: 'GraphQL API',
-      deliveryProfiles: deliveryProfiles.length
+      zone: 'Domestic (Bulgaria)'
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
