@@ -35,16 +35,6 @@
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
-    <div id="office-selector-backdrop" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      -webkit-backdrop-filter: blur(4px);
-      z-index: 9999;
-      display: none;
-    "></div>
     <iframe 
       id="office-selector-iframe"
       src=""
@@ -60,7 +50,8 @@
         min-height: 600px;
         max-height: 90vh;
         border: none;
-        border-radius: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         z-index: 10000;
         display: none;
         background: white;
