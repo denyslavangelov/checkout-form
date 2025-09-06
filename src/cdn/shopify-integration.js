@@ -34,6 +34,45 @@
   };
   
   console.log('🏢 Office selector config:', finalConfig);
+
+  // Office selector iframe container
+  const OFFICE_SELECTOR_HTML = `
+    <div id="office-selector-backdrop" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+    "></div>
+    <iframe 
+      id="office-selector-iframe"
+      src=""
+      loading="eager"
+      style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 95%;
+        max-width: 500px;
+        height: auto;
+        min-height: 600px;
+        max-height: 90vh;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 10000;
+        display: none;
+        background: white;
+      "
+      allow="clipboard-write"
+    ></iframe>
+  `;
   
   // Log the targeting mode
   if (finalConfig.buttonTargets.customSelectors.length > 0) {
@@ -84,47 +123,7 @@
     // For enhanced targeting, use the standard approach
     console.log('🎯 Using enhanced targeting approach');
     findAndInitializeCheckoutButtons();
-    monitorForCheckoutButtons();
   }
-
-  // Office selector iframe container
-  const OFFICE_SELECTOR_HTML = `
-    <div id="office-selector-backdrop" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      z-index: 9999;
-      display: none;
-    "></div>
-    <iframe 
-      id="office-selector-iframe"
-      src=""
-      loading="eager"
-      style="
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 95%;
-        max-width: 500px;
-        height: auto;
-        min-height: 600px;
-        max-height: 90vh;
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        z-index: 10000;
-        display: none;
-        background: white;
-      "
-      allow="clipboard-write"
-    ></iframe>
-  `;
 
   // Function to show office selector
   function showOfficeSelector(event) {
@@ -764,18 +763,9 @@
     });
   }
   
-  // Function to continuously monitor for checkout buttons
-  // function monitorForCheckoutButtons() {
-  //   // Only run detection if not using custom selectors
-  //   if (finalConfig.buttonTargets.customSelectors.length === 0) {
-  //     findAndInitializeCheckoutButtons();
-  //   }
-  // }
-  
   // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
     // Check for checkout buttons (reduced frequency to avoid console spam)
-    setInterval(monitorForCheckoutButtons, 2000);
     
     // Also use MutationObserver for more efficient monitoring
     const observer = new MutationObserver((mutations) => {

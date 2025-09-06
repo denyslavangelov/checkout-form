@@ -84,7 +84,6 @@
     // For enhanced targeting, use the standard approach
     console.log('🎯 Using enhanced targeting approach');
     findAndInitializeCheckoutButtons();
-    monitorForCheckoutButtons();
   }
 
   // Office selector iframe container
@@ -764,18 +763,9 @@
     });
   }
   
-  // Function to continuously monitor for checkout buttons
-  // function monitorForCheckoutButtons() {
-  //   // Only run detection if not using custom selectors
-  //   if (finalConfig.buttonTargets.customSelectors.length === 0) {
-  //     findAndInitializeCheckoutButtons();
-  //   }
-  // }
-  
   // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
     // Check for checkout buttons (reduced frequency to avoid console spam)
-    setInterval(monitorForCheckoutButtons, 2000);
     
     // Also use MutationObserver for more efficient monitoring
     const observer = new MutationObserver((mutations) => {
