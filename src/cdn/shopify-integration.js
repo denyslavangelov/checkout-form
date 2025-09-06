@@ -189,7 +189,6 @@
     }
     
     // Show the backdrop and iframe
-    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
     if (backdrop && iframe) {
@@ -316,7 +315,6 @@
 
   // Hide office selector
   function hideOfficeSelector() {
-    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
     if (backdrop) {
