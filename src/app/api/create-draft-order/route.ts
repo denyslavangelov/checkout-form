@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Received request body:', JSON.stringify(body, null, 2));
     
-    const { productId, variantId, shippingAddress, cartData } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData } = body;
     
     console.log('🔍 DEBUG: Extracted data:', {
       productId,
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       // Use single product
       lineItems = [{
         variantId: `gid://shopify/ProductVariant/${variantId}`,
-        quantity: 1
+        quantity: quantity || 1
       }];
       console.log('🔍 DEBUG: Using single product:', lineItems);
     }

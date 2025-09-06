@@ -28,6 +28,7 @@ interface OfficeSelectorModalProps {
   onOrderCreated: (checkoutUrl: string) => void;
   productId: string;
   variantId: string;
+  quantity?: string;
   config?: {
     availableCouriers: string[];
     defaultCourier: string;
@@ -41,6 +42,7 @@ export function OfficeSelectorModal({
   onOrderCreated, 
   productId, 
   variantId,
+  quantity = '1',
   config = {
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
@@ -481,6 +483,7 @@ export function OfficeSelectorModal({
         body: JSON.stringify({
           productId,
           variantId,
+          quantity: parseInt(quantity) || 1, // Use quantity from props
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {

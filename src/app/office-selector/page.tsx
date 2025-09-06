@@ -7,6 +7,7 @@ export default function OfficeSelectorPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [productId, setProductId] = useState('');
   const [variantId, setVariantId] = useState('');
+  const [quantity, setQuantity] = useState('1');
   const [config, setConfig] = useState({
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
@@ -31,6 +32,7 @@ export default function OfficeSelectorPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('productId') || '';
     const variant = urlParams.get('variantId') || '';
+    const quantity = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
     
     let parsedConfig = {
@@ -48,7 +50,7 @@ export default function OfficeSelectorPage() {
       }
     }
     
-    return { product, variant, parsedConfig };
+    return { product, variant, quantity, parsedConfig };
   }, []);
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export default function OfficeSelectorPage() {
     
     setProductId(urlData.product);
     setVariantId(urlData.variant);
+    setQuantity(urlData.quantity);
     setConfig(urlData.parsedConfig);
 
     // Listen for messages from parent window
@@ -118,6 +121,7 @@ export default function OfficeSelectorPage() {
         onOrderCreated={handleOrderCreated}
         productId={productId}
         variantId={variantId}
+        quantity={quantity}
         config={config}
       />
     </div>

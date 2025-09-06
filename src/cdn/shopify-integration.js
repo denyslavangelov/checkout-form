@@ -151,6 +151,29 @@
         }
       }
       
+      // Get quantity from the form or button
+      let quantity = 1; // Default quantity
+      if (button.dataset.quantity) {
+        quantity = parseInt(button.dataset.quantity) || 1;
+        console.log('🏢 Found quantity in button dataset:', quantity);
+      } else {
+        // Try to find quantity input in the form
+        const productForm = button.closest('form[action*="/cart/add"]');
+        if (productForm) {
+          const quantityInput = productForm.querySelector('input[name="quantity"]');
+          if (quantityInput) {
+            quantity = parseInt(quantityInput.value) || 1;
+            console.log('🏢 Found quantity in form input:', quantity);
+          }
+        }
+      }
+      
+      // Add quantity to product data
+      if (productData) {
+        productData.quantity = quantity;
+        console.log('🏢 Final product data with quantity:', productData);
+      }
+      
       // If no product data found, use test data
       if (!productData) {
         productData = {
@@ -208,7 +231,8 @@
       
       // Set iframe source with product data and configuration
       const configParam = encodeURIComponent(JSON.stringify(finalConfig));
-      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}&config=${configParam}`;
+      const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
+      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
       iframe.src = officeSelectorUrl;
       
       iframe.style.display = 'block';
