@@ -102,18 +102,23 @@ export function OfficeSelectorModal({
       const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch shipping methods');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('🏢 Shipping methods fetched:', data);
+      console.log('🏢 Shipping methods response:', data);
       
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
         console.log('🏢 Available shipping methods:', data.shippingMethods.length);
+      } else if (data.error) {
+        console.warn('🏢 Shipping methods API error:', data.error);
+        console.log('🏢 Will use fallback shipping methods');
+        setAvailableShippingMethods([]);
       }
     } catch (error) {
       console.error('🏢 Error fetching shipping methods:', error);
+      console.log('🏢 Will use fallback shipping methods');
       setAvailableShippingMethods([]);
     } finally {
       setLoadingShippingMethods(false);
