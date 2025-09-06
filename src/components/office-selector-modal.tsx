@@ -82,11 +82,56 @@ export function OfficeSelectorModal({
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
   const [addressInput, setAddressInput] = useState('');
   
+  // Shipping methods state
+  const [availableShippingMethods, setAvailableShippingMethods] = useState<any[]>([]);
+  const [loadingShippingMethods, setLoadingShippingMethods] = useState(false);
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | null>(null);
+  
   // Browser detection
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isChrome = /Chrome/i.test(navigator.userAgent);
   const isChromeMobile = isMobile && isChrome;
   
+  // Fetch shipping methods from Shopify
+  const fetchShippingMethods = useCallback(async () => {
+    try {
+      setLoadingShippingMethods(true);
+      console.log('🏢 Fetching shipping methods from Shopify...');
+      
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
+      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('🏢 Shipping methods response:', data);
+      
+      if (data.success && data.shippingMethods) {
+        setAvailableShippingMethods(data.shippingMethods);
+        console.log('🏢 Available shipping methods:', data.shippingMethods.length);
+      } else if (data.error) {
+        console.warn('🏢 Shipping methods API error:', data.error);
+        console.log('🏢 Will use fallback shipping methods');
+        setAvailableShippingMethods([]);
+      }
+    } catch (error) {
+      console.error('🏢 Error fetching shipping methods:', error);
+      console.log('🏢 Will use fallback shipping methods');
+      setAvailableShippingMethods([]);
+    } finally {
+      setLoadingShippingMethods(false);
+    }
+  }, []);
+
+  // Load shipping methods when component mounts
+  useEffect(() => {
+    if (isOpen) {
+      fetchShippingMethods();
+    }
+  }, [isOpen, fetchShippingMethods]);
+
   // Update courier selection when config changes
   useEffect(() => {
     console.log('🏢 Config changed, updating courier selection');
@@ -107,6 +152,74 @@ export function OfficeSelectorModal({
     setShowOfficeDropdown(false);
     setAddressInput('');
   }, [selectedCourier, deliveryType]);
+
+  // Auto-select shipping method based on courier and delivery type
+  useEffect(() => {
+    if (availableShippingMethods.length > 0) {
+      console.log('🏢 Auto-selecting shipping method based on courier and delivery type');
+      console.log('🏢 Selected courier:', selectedCourier);
+      console.log('🏢 Selected delivery type:', deliveryType);
+      console.log('🏢 Available shipping methods:', availableShippingMethods);
+      
+      // Try to find a matching shipping method
+      const matchingMethod = availableShippingMethods.find(method => {
+        const title = method.title.toLowerCase();
+        const code = method.code?.toLowerCase() || '';
+        
+        // Check for courier match (both English and Bulgarian names)
+        const courierMatch = (selectedCourier === 'speedy' && (
+          title.includes('speedy') || 
+          code.includes('speedy') ||
+          title.includes('спиди') ||
+          code.includes('спиди')
+        )) || (selectedCourier === 'econt' && (
+          title.includes('econt') || 
+          code.includes('econt') ||
+          title.includes('еконт') ||
+          code.includes('еконт')
+        ));
+        
+        // Check for delivery type match
+        const deliveryMatch = (deliveryType === 'office' && (title.includes('офис') || title.includes('office'))) ||
+                            (deliveryType === 'address' && (title.includes('адрес') || title.includes('address')));
+        
+        return courierMatch && deliveryMatch;
+      });
+      
+      if (matchingMethod) {
+        setSelectedShippingMethodId(matchingMethod.id);
+        console.log('🏢 Auto-selected shipping method:', matchingMethod.title, matchingMethod.id);
+      } else {
+        // Fallback: select first method that matches the courier
+        const courierMethod = availableShippingMethods.find(method => {
+          const title = method.title.toLowerCase();
+          const code = method.code?.toLowerCase() || '';
+          return (selectedCourier === 'speedy' && (
+            title.includes('speedy') || 
+            code.includes('speedy') ||
+            title.includes('спиди') ||
+            code.includes('спиди')
+          )) || (selectedCourier === 'econt' && (
+            title.includes('econt') || 
+            code.includes('econt') ||
+            title.includes('еконт') ||
+            code.includes('еконт')
+          ));
+        });
+        
+        if (courierMethod) {
+          setSelectedShippingMethodId(courierMethod.id);
+          console.log('🏢 Fallback selected shipping method:', courierMethod.title, courierMethod.id);
+        } else {
+          // Last resort: select first available method
+          if (availableShippingMethods.length > 0) {
+            setSelectedShippingMethodId(availableShippingMethods[0].id);
+            console.log('🏢 Default selected shipping method:', availableShippingMethods[0].title, availableShippingMethods[0].id);
+          }
+        }
+      }
+    }
+  }, [availableShippingMethods, selectedCourier, deliveryType]);
 
   // Test message to parent when component mounts
   useEffect(() => {
@@ -459,6 +572,7 @@ export function OfficeSelectorModal({
               courier: selectedCourier,
               deliveryType: deliveryType
             },
+            selectedShippingMethodId: selectedShippingMethodId,
             shippingAddress: {
               address1: (() => {
                 if (deliveryType === 'address') {
@@ -517,6 +631,7 @@ export function OfficeSelectorModal({
             courier: selectedCourier,
             deliveryType: deliveryType
           },
+          selectedShippingMethodId: selectedShippingMethodId,
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {

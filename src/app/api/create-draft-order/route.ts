@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Received request body:', JSON.stringify(body, null, 2));
     
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId } = body;
     
     console.log('🔍 DEBUG: Extracted data:', {
       productId,
@@ -140,7 +140,15 @@ export async function POST(request: NextRequest) {
 
     // Create shipping line based on shipping method
     let shippingLine = null;
-    if (shippingMethod) {
+    
+    // If we have a specific shipping method ID, use that
+    if (selectedShippingMethodId) {
+      shippingLine = {
+        shippingMethodId: selectedShippingMethodId
+      };
+      console.log('🔍 DEBUG: Using specific shipping method ID:', selectedShippingMethodId);
+    } else if (shippingMethod) {
+      // Fallback to hardcoded shipping methods based on courier and delivery type
       const { courier, deliveryType } = shippingMethod;
       
       // Define shipping methods based on courier and delivery type
@@ -174,7 +182,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      console.log('🔍 DEBUG: Created shipping line:', shippingLine);
+      console.log('🔍 DEBUG: Created fallback shipping line:', shippingLine);
     }
 
     // Create draft order
@@ -211,6 +219,27 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DEBUG: Shopify response:', JSON.stringify(data, null, 2));
 
     if (data.errors) {
+      console.error('🔍 Draft order creation GraphQL errors:', data.errors);
+      
+      // Check if it's a permission error
+      const permissionError = data.errors.some((error: any) => 
+        error.message?.includes('permission') || 
+        error.message?.includes('access') ||
+        error.message?.includes('unauthorized') ||
+        error.message?.includes('forbidden')
+      );
+      
+      if (permissionError) {
+        console.log('🔍 Permission error in draft order creation - API token may not have draft order permissions');
+        return NextResponse.json({ 
+          error: 'Permission denied - API token needs draft order permissions',
+          details: data.errors
+        }, { 
+          status: 403,
+          headers: { 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+      
       return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
         status: 400,
         headers: { 'Access-Control-Allow-Origin': '*' }
