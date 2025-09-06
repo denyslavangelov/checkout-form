@@ -156,24 +156,28 @@ export async function POST(request: NextRequest) {
         if (deliveryType === 'office') {
           shippingLine = {
             title: 'Спиди - До офис',
-            price: '0.00'
+            price: '0.00',
+            code: 'speedy-office'
           };
         } else if (deliveryType === 'address') {
           shippingLine = {
             title: 'Спиди - До адрес',
-            price: '0.00'
+            price: '0.00',
+            code: 'speedy-address'
           };
         }
       } else if (courier === 'econt') {
         if (deliveryType === 'office') {
           shippingLine = {
             title: 'Еконт - До офис',
-            price: '0.00'
+            price: '0.00',
+            code: 'econt-office'
           };
         } else if (deliveryType === 'address') {
           shippingLine = {
             title: 'Еконт - До адрес',
-            price: '0.00'
+            price: '0.00',
+            code: 'econt-address'
           };
         }
       }
