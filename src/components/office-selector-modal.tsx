@@ -804,7 +804,7 @@ export function OfficeSelectorModal({
   if (showLoading) {
     return (
       <div 
-        className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+        className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
         style={{ fontFamily: detectedFont || config.storeFont || 'inherit' }}
       >
         <div className="flex items-center justify-center min-h-[400px]">
@@ -819,7 +819,7 @@ export function OfficeSelectorModal({
 
   return (
     <div 
-      className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+      className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
       style={{ fontFamily: detectedFont || config.storeFont || 'inherit' }}
     >
         {/* Close button */}
