@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const STORE_URL = 'colorlamb-bulgaria.com';
-const ACCESS_TOKEN = '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';
+const STORE_URL = 'testing-client-check.myshopify.com';
+const ACCESS_TOKEN = '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';
 
 // GraphQL mutation to create draft order with office address
 const CREATE_DRAFT_ORDER_MUTATION = `
