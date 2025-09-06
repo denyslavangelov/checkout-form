@@ -315,6 +315,50 @@
                 console.error('🏢 No iframe contentWindow found for fallback');
               }
             });
+        } else if (event.data.type === 'get-store-font') {
+          // Detect and send store font to iframe
+          let detectedFont = null;
+          
+          const selectors = [
+            'body',
+            '.main',
+            '.page-content', 
+            '.content',
+            '.product-title',
+            '.product-form',
+            'h1, h2, h3',
+            '.btn, button',
+            '.price',
+            '.product-info',
+            '.site-header',
+            '.header'
+          ];
+          
+          for (const selector of selectors) {
+            try {
+              const element = document.querySelector(selector);
+              if (element) {
+                const computedStyle = getComputedStyle(element);
+                const fontFamily = computedStyle.fontFamily;
+                
+                if (fontFamily && fontFamily !== 'initial' && fontFamily !== 'inherit') {
+                  console.log(`🔤 Detected store font from ${selector}:`, fontFamily);
+                  detectedFont = fontFamily;
+                  break;
+                }
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+          
+          // Send font back to iframe
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'store-font-response',
+              fontFamily: detectedFont
+            }, 'https://checkout-form-zeta.vercel.app');
+          }
         }
       };
       

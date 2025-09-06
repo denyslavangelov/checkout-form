@@ -33,6 +33,7 @@ interface OfficeSelectorModalProps {
     availableCouriers: string[];
     defaultCourier: string;
     defaultDeliveryType: string;
+    storeFont?: string;
     shopify?: {
       storeUrl: string;
       accessToken: string;
@@ -66,6 +67,9 @@ export function OfficeSelectorModal({
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
+  
+  // Font detection state
+  const [detectedFont, setDetectedFont] = useState<string>('');
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -724,11 +728,85 @@ export function OfficeSelectorModal({
     }
   }, [isOpen]);
 
+  // Detect and apply store font
+  useEffect(() => {
+    if (isOpen) {
+      // First, try to use the font from config
+      if (config.storeFont) {
+        setDetectedFont(config.storeFont);
+        return;
+      }
+
+      // If no font in config, try to detect from parent window
+      try {
+        if (window.parent && window.parent !== window) {
+          // Common selectors for store text elements
+          const selectors = [
+            'body',
+            '.main',
+            '.page-content',
+            '.content',
+            '.product-title',
+            '.product-form',
+            'h1, h2, h3',
+            '.btn, button',
+            '.price',
+            '.product-info'
+          ];
+
+          for (const selector of selectors) {
+            try {
+              const element = window.parent.document.querySelector(selector);
+              if (element) {
+                const computedStyle = window.parent.getComputedStyle(element);
+                const fontFamily = computedStyle.fontFamily;
+                
+                if (fontFamily && fontFamily !== 'initial' && fontFamily !== 'inherit') {
+                  console.log(`Detected font from ${selector}:`, fontFamily);
+                  setDetectedFont(fontFamily);
+                  return;
+                }
+              }
+            } catch (e) {
+              // Cross-origin restrictions might prevent access
+              continue;
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Could not detect parent font due to cross-origin restrictions');
+      }
+
+      // Fallback: Request font info from parent via message
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'get-store-font' }, '*');
+        
+        const handleFontResponse = (event: MessageEvent) => {
+          if (event.data?.type === 'store-font-response' && event.data?.fontFamily) {
+            console.log('Received font from parent:', event.data.fontFamily);
+            setDetectedFont(event.data.fontFamily);
+            window.removeEventListener('message', handleFontResponse);
+          }
+        };
+        
+        window.addEventListener('message', handleFontResponse);
+        
+        // Cleanup after 1 second
+        setTimeout(() => {
+          window.removeEventListener('message', handleFontResponse);
+        }, 1000);
+      }
+    }
+  }, [isOpen, config.storeFont]);
+
   if (!isOpen) return null;
 
   if (showLoading) {
     return (
-      <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
+      <div 
+        className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+        style={{ fontFamily: detectedFont || config.storeFont || 'inherit' }}
+      >
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-red-600" />
@@ -740,7 +818,10 @@ export function OfficeSelectorModal({
   }
 
   return (
-    <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
+    <div 
+      className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+      style={{ fontFamily: detectedFont || config.storeFont || 'inherit' }}
+    >
         {/* Close button */}
         <button
           onClick={handleClose}
