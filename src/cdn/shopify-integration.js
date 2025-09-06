@@ -375,7 +375,6 @@
           }
         });
         if (excludeMatch) {
-          console.log('🚫 Excluded by custom selector:', element);
           return false;
         }
       }
@@ -389,7 +388,6 @@
         }
       });
       if (customMatch) {
-        console.log('🎯 Custom selector match:', element);
         return true;
       }
       
@@ -632,7 +630,10 @@
   
   // Function to continuously monitor for checkout buttons
   function monitorForCheckoutButtons() {
-    findAndInitializeCheckoutButtons();
+    // Only run smart detection if not using custom selectors
+    if (finalConfig.buttonTargets.customSelectors.length === 0) {
+      findAndInitializeCheckoutButtons();
+    }
   }
   
   // Monitor the DOM for changes to catch when buttons appear
@@ -1095,16 +1096,29 @@
     const buttons = document.querySelectorAll(selector);
     console.log('Found buttons:', buttons.length);
     
-    buttons.forEach((button, index) => {
-      const isTarget = isCheckoutButton(button);
-      console.log(`Button ${index + 1}:`, {
-        element: button,
-        text: button.textContent?.trim(),
-        classes: button.className,
-        isTarget: isTarget,
-        hasHandler: button._hasOurHandler
+    // If using custom selectors, just show the buttons without calling isCheckoutButton
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      buttons.forEach((button, index) => {
+        console.log(`Custom selector button ${index + 1}:`, {
+          element: button,
+          text: button.textContent?.trim(),
+          classes: button.className,
+          hasHandler: button._hasOurHandler
+        });
       });
-    });
+    } else {
+      // Smart detection mode
+      buttons.forEach((button, index) => {
+        const isTarget = isCheckoutButton(button);
+        console.log(`Button ${index + 1}:`, {
+          element: button,
+          text: button.textContent?.trim(),
+          classes: button.className,
+          isTarget: isTarget,
+          hasHandler: button._hasOurHandler
+        });
+      });
+    }
     
     return buttons;
   };
@@ -1112,6 +1126,32 @@
   // Debug function to scan all buttons on page
   window.scanAllButtons = function() {
     console.log('🔍 Scanning all buttons on page...');
+    
+    // If using custom selectors, only scan those
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      console.log('🎯 Custom selector mode - only scanning custom selectors');
+      const targetedButtons = [];
+      
+      finalConfig.buttonTargets.customSelectors.forEach(selector => {
+        const buttons = document.querySelectorAll(selector);
+        console.log(`Found ${buttons.length} buttons for selector: ${selector}`);
+        
+        buttons.forEach((button, index) => {
+          targetedButtons.push(button);
+          console.log(`Custom selector button ${index + 1}:`, {
+            element: button,
+            text: button.textContent?.trim(),
+            classes: button.className,
+            id: button.id
+          });
+        });
+      });
+      
+      console.log('Total custom selector buttons:', targetedButtons.length);
+      return targetedButtons;
+    }
+    
+    // Smart detection mode
     const allButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
     console.log('Total buttons found:', allButtons.length);
     
