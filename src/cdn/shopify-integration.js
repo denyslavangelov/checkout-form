@@ -35,6 +35,18 @@
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
+    <div id="office-selector-backdrop" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+    "></div>
     <iframe 
       id="office-selector-iframe"
       src=""
@@ -49,9 +61,12 @@
         height: auto;
         min-height: 600px;
         max-height: 90vh;
+        border: none;
+        border-radius: 8px;
+        /*box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);*/
         z-index: 10000;
         display: none;
-        background: transparent;
+        background: white;
       "
       allow="clipboard-write"
     ></iframe>
@@ -180,29 +195,28 @@
     // Production URL for live sites
     const baseUrl = 'https://checkout-form-zeta.vercel.app';
     
-    // Add iframe to page if not already there
+    // Add backdrop and iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
-    // Show the iframe
+    // Show the backdrop and iframe
+    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (iframe) {
+    if (backdrop && iframe) {
+      // Show backdrop first for immediate visual feedback
+      backdrop.style.display = 'block';
       
-      // Disable body scrolling and blur the store background (but not the iframe)
+      // Add click handler to backdrop to close modal
+      backdrop.onclick = (e) => {
+        if (e.target === backdrop) {
+          hideOfficeSelector();
+        }
+      };
+      
+      // Disable body scrolling
       document.body.style.overflow = 'hidden';
-      
-      // Create a wrapper div for all body content except our iframe
-      const bodyContent = Array.from(document.body.children).filter(child => 
-        child.id !== 'office-selector-iframe'
-      );
-      
-      // Apply blur to all content except our iframe
-      bodyContent.forEach(element => {
-        element.style.filter = 'blur(2px)';
-        element.style.transition = 'filter 0.3s ease';
-      });
       
       // Add keyboard support (ESC key)
       const handleKeyDown = (e) => {
@@ -213,48 +227,8 @@
       };
       document.addEventListener('keydown', handleKeyDown);
       
-      // Detect the store's font family from actual text elements
-      const detectStoreFont = () => {
-        // Try to find common text elements to get the actual font being used
-        const selectors = [
-          'h1', 'h2', 'h3',  // Headings
-          '.product-title', '.product-name', // Product titles
-          'p', 'span', 'div', // General text
-          'button', 'a',      // Interactive elements
-          '.price', '.btn',   // Common classes
-          '[class*="title"]', '[class*="text"]' // Elements with title/text in class
-        ];
-        
-        for (const selector of selectors) {
-          const elements = document.querySelectorAll(selector);
-          for (const element of elements) {
-            if (element.textContent && element.textContent.trim()) {
-              const computedStyle = window.getComputedStyle(element);
-              const fontFamily = computedStyle.fontFamily;
-              if (fontFamily && fontFamily !== 'Times' && fontFamily !== 'serif' && !fontFamily.includes('Times')) {
-                console.log(`🎨 Detected font from ${selector}:`, fontFamily);
-                return fontFamily;
-              }
-            }
-          }
-        }
-        
-        // Fallback to body/html
-        return window.getComputedStyle(document.body).fontFamily || 
-               window.getComputedStyle(document.documentElement).fontFamily ||
-               'Geologica, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      };
-      
-      const storeFont = detectStoreFont();
-      
-      // Add font to config
-      const configWithFont = {
-        ...finalConfig,
-        storeFont: storeFont
-      };
-      
       // Set iframe source with product data and configuration
-      const configParam = encodeURIComponent(JSON.stringify(configWithFont));
+      const configParam = encodeURIComponent(JSON.stringify(finalConfig));
       const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
       iframe.src = officeSelectorUrl;
@@ -354,21 +328,19 @@
 
   // Hide office selector
   function hideOfficeSelector() {
+    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
+    if (backdrop) {
+      backdrop.style.display = 'none';
+    }
     
     if (iframe) {
       iframe.style.display = 'none';
     }
     
-    // Re-enable body scrolling and remove blur from all elements
+    // Re-enable body scrolling
     document.body.style.overflow = '';
-    
-    // Remove blur from all body children
-    Array.from(document.body.children).forEach(element => {
-      element.style.filter = '';
-      element.style.transition = '';
-    });
   }
 
   // Initialize custom selector targeting (no constant checking)
