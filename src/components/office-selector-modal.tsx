@@ -847,6 +847,36 @@ export function OfficeSelectorModal({
     }
   }, [isOpen, config.storeFont]);
 
+  // Inject dynamic CSS for font application
+  useEffect(() => {
+    if (detectedFont && isOpen) {
+      // Create or update dynamic style tag
+      let styleTag = document.getElementById('modal-font-override');
+      if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'modal-font-override';
+        document.head.appendChild(styleTag);
+      }
+      
+      const fontFamily = fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit');
+      
+      styleTag.textContent = `
+        [data-modal-container="true"], 
+        [data-modal-container="true"] * {
+          font-family: ${fontFamily} !important;
+        }
+      `;
+      
+      return () => {
+        // Clean up style tag when component unmounts
+        const existingStyleTag = document.getElementById('modal-font-override');
+        if (existingStyleTag) {
+          existingStyleTag.remove();
+        }
+      };
+    }
+  }, [detectedFont, fontLoaded, isOpen, config.storeFont]);
+
   // Check if font is actually loaded and available
   useEffect(() => {
     if (detectedFont && isOpen) {
@@ -876,6 +906,13 @@ export function OfficeSelectorModal({
         });
         
         setFontLoaded(isLoaded);
+        
+        // Also log what's actually being applied
+        console.log(`🔤 Final font application:`, {
+          detectedFont,
+          fontLoaded: isLoaded,
+          finalFontFamily: isLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit')
+        });
       };
       
       // Check immediately
@@ -883,6 +920,23 @@ export function OfficeSelectorModal({
       
       // Also check after a delay in case font is still loading
       const timeout = setTimeout(checkFontLoaded, 1000);
+      
+      // Check what font is actually being computed on modal elements
+      const checkComputedFont = () => {
+        const modalElement = document.querySelector('[data-modal-container="true"]') || 
+                           document.querySelector('.rounded-lg.p-6');
+        if (modalElement) {
+          const computedStyle = getComputedStyle(modalElement);
+          console.log(`🔤 Computed font on modal element:`, {
+            fontFamily: computedStyle.fontFamily,
+            fontWeight: computedStyle.fontWeight,
+            fontSize: computedStyle.fontSize
+          });
+        }
+      };
+      
+      // Check computed font after a short delay
+      setTimeout(checkComputedFont, 100);
       
       return () => clearTimeout(timeout);
     }
@@ -893,6 +947,7 @@ export function OfficeSelectorModal({
   if (showLoading) {
     return (
       <div 
+        data-modal-container="true"
         className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
         style={{ 
           fontFamily: fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit'),
@@ -919,6 +974,7 @@ export function OfficeSelectorModal({
 
   return (
     <div 
+      data-modal-container="true"
       className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
       style={{ 
         fontFamily: fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit'),
