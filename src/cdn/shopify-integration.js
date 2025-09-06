@@ -30,6 +30,15 @@
   };
   
   console.log('🏢 Office selector config:', finalConfig);
+  
+  // Log the targeting mode
+  if (finalConfig.buttonTargets.customSelectors.length > 0) {
+    console.log('🎯 Custom selector mode active:', finalConfig.buttonTargets.customSelectors);
+  } else if (finalConfig.buttonTargets.enableSmartDetection) {
+    console.log('🎯 Smart detection mode active');
+  } else {
+    console.log('🎯 No button targeting enabled');
+  }
 
   // Override onclick property to intercept all button clicks
   const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
@@ -290,8 +299,24 @@
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
 
-    // Check custom selectors first
+    // If we have custom selectors, ONLY use those (skip all smart detection)
     if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      // Check exclude selectors first
+      if (finalConfig.buttonTargets.excludeSelectors.length > 0) {
+        const excludeMatch = finalConfig.buttonTargets.excludeSelectors.some(selector => {
+          try {
+            return element.matches(selector);
+          } catch (e) {
+            return false;
+          }
+        });
+        if (excludeMatch) {
+          console.log('🚫 Excluded by custom selector:', element);
+          return false;
+        }
+      }
+      
+      // Check custom selectors
       const customMatch = finalConfig.buttonTargets.customSelectors.some(selector => {
         try {
           return element.matches(selector);
@@ -303,31 +328,14 @@
         console.log('🎯 Custom selector match:', element);
         return true;
       }
-    }
-    
-    // Check exclude selectors
-    if (finalConfig.buttonTargets.excludeSelectors.length > 0) {
-      const excludeMatch = finalConfig.buttonTargets.excludeSelectors.some(selector => {
-        try {
-          return element.matches(selector);
-        } catch (e) {
-          return false;
-        }
-      });
-      if (excludeMatch) {
-        console.log('🚫 Excluded by custom selector:', element);
-        return false;
-      }
-    }
-    
-    // If smart detection is disabled, only use custom selectors
-    if (!finalConfig.buttonTargets.enableSmartDetection) {
+      
+      // If we have custom selectors but this element doesn't match, return false
       return false;
     }
     
-    // If we have custom selectors, only use those (ignore smart detection)
-    if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      return false; // Custom selectors are handled above, don't use smart detection
+    // If smart detection is disabled, return false
+    if (!finalConfig.buttonTargets.enableSmartDetection) {
+      return false;
     }
 
     const tagName = element.tagName.toLowerCase();
@@ -403,7 +411,7 @@
 
     // Only log when we actually detect a target button (reduce console spam)
     if (isTargetButton) {
-      console.log('🎯 Target button detected:', {
+      console.log('🎯 Smart detection target button:', {
         tagName,
         text: text.substring(0, 30),
         className: className.substring(0, 50),
