@@ -97,13 +97,17 @@ export function Combobox({
   
   // Debug mount/unmount
   React.useEffect(() => {
-    console.log('Combobox mounted with:', {
-      initialValue: value,
+    
+    console.log('Combobox mounting with:', {
+      optionsCount: options.length,
       type,
-      optionsCount: options.length
+      value,
+      internalValue,
+      isMobile
     })
     
     return () => {
+      
       console.log('Combobox unmounting with:', {
         finalValue: internalValue,
         type,

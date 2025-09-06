@@ -17,7 +17,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    console.log('Searching for streets and complexes in site:', siteId, 'with term:', term);
     
     // Fetch streets
     const streetResponse = await fetch('https://api.speedy.bg/v1/location/street', {
@@ -65,12 +64,6 @@ export async function GET(request: Request) {
       streetResponse.json(),
       complexResponse.json()
     ]);
-
-    console.log('Speedy API response:', {
-      term,
-      streetsCount: streetData.streets?.length || 0,
-      complexesCount: complexData.complexes?.length || 0
-    });
 
     // Format the streets for autocomplete with prefixes
     const formattedStreets = streetData.streets?.map((street: any) => {

@@ -6,7 +6,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { countryId, name } = body;
 
-    console.log(`Searching for districts with countryId: ${countryId}, name: ${name || '(empty)'}`);
 
     // Get credentials from env variables
     const username = process.env.SPEEDY_USERNAME || 'demo';
@@ -34,7 +33,6 @@ export async function POST(request: Request) {
       requestBody.name = name;
     }
 
-    console.log('🏢 Calling Speedy API with request body:', requestBody);
     
     const response = await fetch('https://api.speedy.bg/v1/location/complex', {
       method: 'POST',
@@ -44,9 +42,6 @@ export async function POST(request: Request) {
       body: JSON.stringify(requestBody)
     });
 
-    console.log('🏢 Speedy API response status:', response.status);
-    console.log('🏢 Speedy API response ok:', response.ok);
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`🏢 Error from Speedy API: ${response.status} ${response.statusText}`, errorText);
@@ -54,8 +49,6 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log('🏢 Speedy API raw response:', data);
-    console.log(`🏢 District search response for term "${name || '(empty)'}" returned ${data.complexes?.length || 0} results`);
 
     // Format districts for office selector
     let districts = data.complexes?.map((complex: any) => {
@@ -69,7 +62,6 @@ export async function POST(request: Request) {
 
     // If no districts returned from Speedy API, use mock data for testing
     if (districts.length === 0) {
-      console.log('🏢 No districts from Speedy API, using mock data for testing');
       districts = [
         { id: 1, name: 'Sofia', siteId: 1, siteName: 'Sofia' },
         { id: 2, name: 'Plovdiv', siteId: 2, siteName: 'Plovdiv' },

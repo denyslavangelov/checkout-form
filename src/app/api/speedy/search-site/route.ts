@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   const searchTerm = term || '';
 
   try {
-    console.log('Searching for sites with term:', searchTerm);
     
     const response = await fetch('https://api.speedy.bg/v1/location/site', {
       method: 'POST',

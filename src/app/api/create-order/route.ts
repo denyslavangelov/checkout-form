@@ -25,7 +25,6 @@ export async function POST(request: Request) {
   try {
     const origin = request.headers.get('origin') || '';
     const body = await request.json();
-    console.log('Received request:', body);
 
     const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
       method: 'POST',
@@ -45,13 +44,11 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log('Success response:', data);
 
     return NextResponse.json(data, {
       headers: corsHeaders(origin)
     });
   } catch (error) {
-    console.error('Error creating order:', error);
     const origin = request.headers.get('origin') || '';
     
     return new NextResponse(

@@ -19,7 +19,6 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Fetching shipping methods from Shopify using REST API...');
     
     // Try to get shipping zones using REST API
     const response = await fetch(`https://${STORE_URL}/admin/api/2024-01/shipping_zones.json`, {
@@ -28,11 +27,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('🔍 DEBUG: REST API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('🔍 DEBUG: REST API request failed:', response.status, errorText);
+      console.error('REST API request failed:', response.status, errorText);
       return NextResponse.json({
         success: false,
         error: `REST API request failed: ${response.status}`,
@@ -50,14 +48,12 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('🔍 REST API shipping zones response:', JSON.stringify(data, null, 2));
 
     // Process shipping zones and their methods
     const shippingZones = data.shipping_zones || [];
     const allShippingMethods: any[] = [];
     
     shippingZones.forEach((zone: any) => {
-      console.log(`🔍 Processing shipping zone: ${zone.name}`);
       
       zone.delivery_methods?.forEach((method: any) => {
         const shippingMethod = {
@@ -71,11 +67,8 @@ export async function GET(request: NextRequest) {
         };
         
         allShippingMethods.push(shippingMethod);
-        console.log(`🔍 Added shipping method: ${method.title} - ${method.price} BGN`);
       });
     });
-
-    console.log(`🔍 Total shipping methods found: ${allShippingMethods.length}`);
 
     // Filter for Bulgaria-specific methods
     const bulgariaMethods = allShippingMethods.filter(method => 
@@ -90,7 +83,6 @@ export async function GET(request: NextRequest) {
       method.name?.toLowerCase().includes('доставка')
     );
 
-    console.log(`🔍 Bulgaria-relevant methods: ${bulgariaMethods.length}`);
 
     // Alert the shipping methods for debugging
     const alertMessage = `Shipping Methods Found (REST API):
@@ -103,7 +95,6 @@ ${allShippingMethods.map(method => `- ${method.name} (${method.id}) - ${method.p
 Bulgaria Methods:
 ${bulgariaMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}`;
 
-    console.log('🚨 ALERT - Shipping Methods (REST):', alertMessage);
 
     return NextResponse.json({
       success: true,
@@ -123,7 +114,6 @@ ${bulgariaMethods.map(method => `- ${method.name} (${method.id}) - ${method.pric
     });
 
   } catch (error) {
-    console.error('🔍 Error fetching shipping methods:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch shipping methods',

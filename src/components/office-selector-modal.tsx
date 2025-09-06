@@ -65,16 +65,12 @@ export function OfficeSelectorModal({
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
-    const defaultCourier = config.defaultCourier;
-    console.log('🏢 Initializing courier with config.defaultCourier:', defaultCourier);
-    console.log('🏢 Available couriers:', config.availableCouriers);
+    const defaultCourier = config.defaultCourier;   
     
     // Validate that the default courier is available
     if (config.availableCouriers.includes(defaultCourier)) {
-      console.log('🏢 Using configured default courier:', defaultCourier);
       return defaultCourier as 'speedy' | 'econt';
     } else {
-      console.log('🏢 Default courier not available, falling back to speedy');
       return 'speedy';
     }
   });
@@ -96,7 +92,6 @@ export function OfficeSelectorModal({
   const fetchShippingMethods = useCallback(async () => {
     try {
       setLoadingShippingMethods(true);
-      console.log('🏢 Fetching shipping methods from Shopify...');
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
@@ -106,11 +101,9 @@ export function OfficeSelectorModal({
       }
       
       const data = await response.json();
-      console.log('🏢 Shipping methods response:', data);
       
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
-        console.log('🏢 Available shipping methods:', data.shippingMethods.length);
         
         // Alert the shipping methods for debugging
         if (data.alert) {
@@ -122,16 +115,12 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
           alert(alertMessage);
         }
       } else if (data.error) {
-        console.warn('🏢 Shipping methods API error:', data.error);
-        console.log('🏢 Will use fallback shipping methods');
         setAvailableShippingMethods([]);
         
         // Alert the error
         alert(`Shipping Methods API Error: ${data.error}`);
       }
     } catch (error) {
-      console.error('🏢 Error fetching shipping methods:', error);
-      console.log('🏢 Will use fallback shipping methods');
       setAvailableShippingMethods([]);
     } finally {
       setLoadingShippingMethods(false);
@@ -147,13 +136,9 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
 
   // Update courier selection when config changes
   useEffect(() => {
-    console.log('🏢 Config changed, updating courier selection');
-    console.log('🏢 New config.defaultCourier:', config.defaultCourier);
-    console.log('🏢 New config.availableCouriers:', config.availableCouriers);
     
     if (config.availableCouriers.includes(config.defaultCourier)) {
       setSelectedCourier(config.defaultCourier as 'speedy' | 'econt');
-      console.log('🏢 Updated selectedCourier to:', config.defaultCourier);
     }
   }, [config.defaultCourier, config.availableCouriers]);
 
@@ -169,10 +154,6 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
   // Auto-select shipping method based on courier and delivery type
   useEffect(() => {
     if (availableShippingMethods.length > 0) {
-      console.log('🏢 Auto-selecting shipping method based on courier and delivery type');
-      console.log('🏢 Selected courier:', selectedCourier);
-      console.log('🏢 Selected delivery type:', deliveryType);
-      console.log('🏢 Available shipping methods:', availableShippingMethods);
       
       // Try to find a matching shipping method
       const matchingMethod = availableShippingMethods.find(method => {
@@ -201,7 +182,6 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
       
       if (matchingMethod) {
         setSelectedShippingMethodId(matchingMethod.id);
-        console.log('🏢 Auto-selected shipping method:', matchingMethod.title, matchingMethod.id);
       } else {
         // Fallback: select first method that matches the courier
         const courierMethod = availableShippingMethods.find(method => {
@@ -222,12 +202,10 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
         
         if (courierMethod) {
           setSelectedShippingMethodId(courierMethod.id);
-          console.log('🏢 Fallback selected shipping method:', courierMethod.title, courierMethod.id);
         } else {
           // Last resort: select first available method
           if (availableShippingMethods.length > 0) {
             setSelectedShippingMethodId(availableShippingMethods[0].id);
-            console.log('🏢 Default selected shipping method:', availableShippingMethods[0].title, availableShippingMethods[0].id);
           }
         }
       }
@@ -237,12 +215,10 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
   // Test message to parent when component mounts
   useEffect(() => {
     if (isOpen && window.parent && window.parent !== window) {
-      console.log('🏢 Sending test message to parent...');
       try {
         window.parent.postMessage({ type: 'iframe-ready' }, '*');
-        console.log('🏢 Test message sent successfully');
       } catch (error) {
-        console.error('🏢 Error sending test message:', error);
+        console.error('Error sending test message:', error);
       }
     }
   }, [isOpen]);
@@ -278,13 +254,9 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
   const getCartDataFromParent = async () => {
     const maxRetries = isChromeMobile ? 1 : (isMobile ? 2 : 1); // Chrome mobile gets 1 retry, others get 2
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`🏢 Cart data request attempt ${attempt}/${maxRetries}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) { 
       
       const result = await new Promise((resolve) => {
-        console.log('🏢 Requesting fresh cart data from parent...');
-        console.log('🏢 User agent:', navigator.userAgent);
-        console.log('🏢 Is mobile:', isMobile);
         
         // Request fresh cart data from parent
         if (window.parent && window.parent !== window) {
@@ -297,7 +269,6 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
             
             // Chrome mobile specific handling
             if (isChromeMobile) {
-              console.log('🏢 Chrome mobile detected - using alternative message sending');
               // Try multiple ways to send message for Chrome mobile
               window.parent.postMessage(message, '*');
               // Also try with window.top for Chrome mobile
@@ -308,28 +279,19 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
               window.parent.postMessage(message, '*');
             }
             
-            console.log(`🏢 Fresh cart data request sent to parent (attempt ${attempt})`);
           } catch (error) {
-            console.error('🏢 Error sending message to parent:', error);
+            console.error('Error sending message to parent:', error);
             resolve(null);
             return;
           }
           
                   // Listen for response
-        const messageHandler = (event: MessageEvent) => {
-          console.log('🏢 Received message in iframe:', event.data, 'from origin:', event.origin);
-          console.log('🏢 Expected origin: https://checkout-form-zeta.vercel.app');
-          console.log('🏢 Message type:', event.data?.type);
-          console.log('🏢 Full event object:', event);
+        const messageHandler = (event: MessageEvent) => {       
           
           if (event.data?.type === 'cart-data') {
-            console.log('🏢 Fresh cart data received:', event.data.cart);
-            console.log('🏢 Cart data type:', typeof event.data.cart);
-            console.log('🏢 Cart data keys:', event.data.cart ? Object.keys(event.data.cart) : 'null');
             window.removeEventListener('message', messageHandler);
             resolve(event.data.cart);
           } else {
-            console.log('🏢 Received message but not cart-data type:', event.data?.type);
           }
         };
           
@@ -339,26 +301,21 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
           const timeoutDuration = isChromeMobile ? 12000 : (isMobile ? 8000 : 5000);
           
           setTimeout(() => {
-            console.error(`🏢 Fresh cart data request timed out after ${timeoutDuration/1000} seconds (attempt ${attempt})`);
             window.removeEventListener('message', messageHandler);
             resolve(null);
           }, timeoutDuration);
         } else {
-          console.log('🏢 No parent window found or same window');
           resolve(null);
         }
       });
       
       if (result) {
-        console.log(`🏢 Cart data received successfully on attempt ${attempt}`);
         return result;
       } else if (attempt < maxRetries) {
-        console.log(`🏢 Attempt ${attempt} failed, retrying in 1 second...`);
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
       }
     }
     
-    console.error('🏢 All cart data request attempts failed');
     return null;
   };
 
@@ -523,55 +480,43 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
       // Check if this is a cart checkout
       if (productId === 'cart' && variantId === 'cart') {
         // For cart checkout, we need to create a draft order with the cart items
-        console.log('🏢 Cart checkout - creating draft order with cart items');
         
         // Get cart data from the parent window
-        console.log('🏢 Starting cart data fetch...');
         let cartData = await getCartDataFromParent() as any;
-        console.log('🏢 Raw cart data received from parent:', cartData);
         
         // Chrome mobile fallback - try to get cart data from localStorage
         if (!cartData && isChromeMobile) {
-          console.log('🏢 Chrome mobile: trying localStorage fallback...');
           try {
             const storedCartData = localStorage.getItem('shopify-cart-data');
             if (storedCartData) {
               cartData = JSON.parse(storedCartData);
-              console.log('🏢 Chrome mobile: got cart data from localStorage:', cartData);
             }
           } catch (error) {
-            console.error('🏢 Chrome mobile: localStorage fallback failed:', error);
+            console.error('Chrome mobile: localStorage fallback failed:', error);
           }
         }
         
         // No other fallback needed - parent communication is the only way due to CORS
         if (!cartData) {
-          console.log('🏢 Parent communication failed - this is expected due to CORS restrictions');
-          console.log('🏢 The parent window should handle cart data fetching');
         }
         
         if (!cartData) {
-          console.error('🏢 No cart data received from any method');
           setError('Не можахме да получим данните за кошницата. Моля, опитайте отново или обновете страницата.');
           return;
         }
         
         if (!cartData.items && !cartData.line_items && !cartData.products) {
-          console.error('🏢 Cart data received but no items found:', cartData);
           setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
           return;
         }
         
         // Check for different possible cart data structures
         const items = cartData.items || cartData.line_items || cartData.products || [];
-        console.log('🏢 Cart items found:', items);
         
         if (!items || items.length === 0) {
           setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
           return;
         }
-        
-        console.log('🏢 Cart data processed successfully:', { items, count: items.length });
         
         // Create draft order with cart items and office address
         const response = await fetch(`${baseUrl}/api/create-draft-order`, {
@@ -614,8 +559,7 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
           throw new Error(errorData.error || 'Failed to create draft order');
         }
 
-        const data = await response.json();
-        console.log('🏢 Draft order created for cart:', data);
+        const data = await response.json();   
         
         if (data.checkoutUrl) {
           onOrderCreated(data.checkoutUrl);
@@ -628,7 +572,6 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
       }
 
       // For Buy Now buttons, create draft order with product data
-      console.log('🏢 Buy Now checkout - creating draft order with product data:', { productId, variantId });
 
       // For Buy Now buttons, create draft order (no cart data needed)
       const response = await fetch(`${baseUrl}/api/create-draft-order`, {

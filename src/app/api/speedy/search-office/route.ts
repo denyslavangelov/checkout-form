@@ -22,8 +22,6 @@ export async function POST(request: Request) {
         }
       );
     }
-
-    console.log('Searching for offices in site:', siteId);
     
     const response = await fetch('https://api.speedy.bg/v1/location/office', {
       method: 'POST',
@@ -50,7 +48,6 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log('Speedy Offices API response:', data);
 
     // Format the offices for office selector
     let formattedOffices = data.offices?.map((office: any) => ({
@@ -65,7 +62,6 @@ export async function POST(request: Request) {
 
     // If no offices returned from Speedy API, use mock data for testing
     if (formattedOffices.length === 0) {
-      console.log('🏢 No offices from Speedy API, using mock data for testing');
       formattedOffices = [
         { id: 1, name: 'Speedy Office Center', address: 'ул. Витоша 1, София', siteId: siteId, siteName: 'Sofia', value: '1|Speedy Office Center|ул. Витоша 1, София', label: 'Speedy Office Center: ул. Витоша 1, София' },
         { id: 2, name: 'Speedy Office Mall', address: 'бул. Цариградско шосе 125, София', siteId: siteId, siteName: 'Sofia', value: '2|Speedy Office Mall|бул. Цариградско шосе 125, София', label: 'Speedy Office Mall: бул. Цариградско шосе 125, София' },

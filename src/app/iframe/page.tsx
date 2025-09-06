@@ -136,7 +136,6 @@ export default function IframePage() {
   useEffect(() => {
     // If we have cart data and are no longer loading, tell the parent we're ready
     if (cartData && !isLoading) {
-      console.log('Checkout is ready, notifying parent window');
       window.parent.postMessage('checkout-ready', '*');
     }
   }, [cartData, isLoading]);
@@ -144,32 +143,23 @@ export default function IframePage() {
   // Automatically open the form when the iframe loads
   useEffect(() => {
     setIsOpen(true)
-    console.log('IframePage mounted, waiting for cart data...')
     
     // Check if we have URL parameters indicating cart data should be available
     const urlParams = new URLSearchParams(window.location.search);
     const hasCartParam = urlParams.get('hasCart');
     
     if (hasCartParam === 'true') {
-      console.log('URL indicates cart data should be available, will request if not received');
     }
     
     // Add message listener for communication with parent window
     const handleMessage = (event: MessageEvent) => {
       // Handle messages from parent (Shopify store)
       if (event.data === 'close-checkout') {
-        console.log('Received close request from parent window')
         setIsOpen(false)
       }
       
       // Handle cart data
       if (event.data && event.data.type === 'cart-data') {
-        console.log('Received cart data from parent:', {
-          hasItems: !!event.data.cart?.items,
-          itemCount: event.data.cart?.items?.length || 0,
-          metadata: event.data.metadata,
-          resent: event.data.metadata?.resent || false
-        });
         
         if (!event.data.cart || !event.data.cart.items) {
           console.warn('Received cart data is invalid, missing items array');
@@ -184,12 +174,10 @@ export default function IframePage() {
             metadata: event.data.metadata,
             received: new Date().toISOString()
           };
-          console.log('Cart data made globally available in iframe window');
           
           // Also store in localStorage for backup
           try {
             localStorage.setItem('cartData', JSON.stringify(event.data.cart));
-            console.log('Cart data saved to localStorage');
           } catch (e) {
             console.warn('Could not save cart data to localStorage', e);
           }
@@ -205,14 +193,12 @@ export default function IframePage() {
     
     // Request cart data from parent immediately
     if (hasCartParam === 'true') {
-      console.log(`Requesting cart data from parent immediately...`);
       window.parent.postMessage('request-cart-data', '*');
     }
     
     // Request cart data from parent again if needed (first retry faster)
     const requestCartData = () => {
       if (!dataReceived && hasCartParam === 'true') {
-        console.log(`Requesting cart data from parent (attempt ${loadingRetries + 1})...`);
         window.parent.postMessage('request-cart-data', '*');
         setLoadingRetries(prev => prev + 1);
       }
@@ -224,11 +210,9 @@ export default function IframePage() {
     // Check for cart data in various places if not received directly - also faster
     const fallbackTimeoutId = setTimeout(() => {
       if (!dataReceived) {
-        console.log('No cart data received, checking alternatives...');
         
         // 1. Check if cart data exists in the window object (might have been set already)
         if (window.cartData) {
-          console.log('Found cart data in window.cartData');
           setCartData(window.cartData);
           setDataReceived(true);
           setIsLoading(false);
@@ -236,7 +220,6 @@ export default function IframePage() {
         }
         
         if (window.customCheckoutData?.cartData) {
-          console.log('Found cart data in window.customCheckoutData.cartData');
           setCartData(window.customCheckoutData.cartData);
           setDataReceived(true);
           setIsLoading(false);
@@ -248,7 +231,6 @@ export default function IframePage() {
           const storedCartData = localStorage.getItem('cartData');
           if (storedCartData) {
             const parsedCartData = JSON.parse(storedCartData);
-            console.log('Using cart data from localStorage');
             setCartData(parsedCartData);
             setDataReceived(true);
             setIsLoading(false);
@@ -259,7 +241,6 @@ export default function IframePage() {
           const tempCartData = localStorage.getItem('tempCartData');
           if (tempCartData) {
             const parsedTempCartData = JSON.parse(tempCartData);
-            console.log('Using temporary cart data from localStorage');
             setCartData(parsedTempCartData);
             setDataReceived(true);
             setIsLoading(false);
@@ -280,7 +261,6 @@ export default function IframePage() {
           
           // If in development, use a test cart
           if (process.env.NODE_ENV === 'development') {
-            console.log('Using test cart in development mode');
             const testCart = {
               items: [
                 {
@@ -337,7 +317,6 @@ export default function IframePage() {
       const isBuyNow = urlParams.get('buyNow') === 'true';
       
       if (isBuyNow) {
-        console.log('Buy Now context detected from URL');
         // Use a safer approach with window as an indexable type
         (window as any).isBuyNowContext = true;
         // Set flag to prevent reprocessing
@@ -356,7 +335,6 @@ export default function IframePage() {
             source: 'buy_now_button'
           };
           
-          console.log('Creating default Buy Now cart data structure');
           setCartData(buyNowCartData);
           
           // Also store in window for access from checkout form
@@ -371,7 +349,6 @@ export default function IframePage() {
     setIsOpen(open)
     if (!open) {
       // Tell parent window to close the iframe
-      console.log('Sending checkout-closed message to parent window');
       window.parent.postMessage('checkout-closed', '*')
     }
   }

@@ -31,9 +31,7 @@
       ...defaultConfig.buttonTargets,
       ...(config.buttonTargets || {})
     }
-  };
-  
-  console.log('🏢 Office selector config:', finalConfig);
+  };    
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
@@ -76,19 +74,11 @@
   
   // Log the targeting mode
   if (finalConfig.buttonTargets.customSelectors.length > 0) {
-    console.log('🎯 Custom selector mode active:', finalConfig.buttonTargets.customSelectors);
   } else if (finalConfig.buttonTargets.targetByClass.length > 0 || 
              finalConfig.buttonTargets.targetByName.length > 0 || 
              finalConfig.buttonTargets.targetByClassAndName.length > 0) {
-    console.log('🎯 Enhanced targeting mode active:', {
-      targetByClass: finalConfig.buttonTargets.targetByClass,
-      targetByName: finalConfig.buttonTargets.targetByName,
-      targetByClassAndName: finalConfig.buttonTargets.targetByClassAndName
-    });
   } else if (finalConfig.buttonTargets.enableSmartDetection) {
-    console.log('🎯 Smart detection mode active');
   } else {
-    console.log('🎯 No button targeting enabled');
   }
 
   // Only override onclick if we're using smart detection
@@ -117,18 +107,14 @@
   });
   } else if (finalConfig.buttonTargets.customSelectors.length > 0) {
     // For custom selectors, use a more targeted approach
-    console.log('🎯 Using targeted approach for custom selectors');
     initializeCustomSelectorTargeting();
   } else if (hasEnhancedTargeting) {
     // For enhanced targeting, use the standard approach
-    console.log('🎯 Using enhanced targeting approach');
     findAndInitializeCheckoutButtons();
   }
 
   // Function to show office selector
   function showOfficeSelector(event) {
-    console.log('🏢 Showing office selector');
-    console.log('🏢 Event details:', event);
     
     // Prevent default behavior
     event.preventDefault();
@@ -136,7 +122,6 @@
     
     // Get the button element
     const button = event.target;
-    console.log('🏢 Button element:', button);
     
     // Determine if this is a Buy Now button or regular checkout
     const isBuyNow = button.textContent?.toLowerCase().includes('buy now') ||
@@ -145,7 +130,6 @@
                      button.className?.toLowerCase().includes('shopify-payment-button__button') ||
                      button.id?.toLowerCase().includes('buy-now');
     
-    console.log('🏢 Is Buy Now button:', isBuyNow);
     
     let productData = null;
     let isCartCheckout = false;
@@ -157,7 +141,6 @@
           productId: button.dataset.productId,
           variantId: button.dataset.variantId
         };
-        console.log('🏢 Found product data in button attributes:', productData);
       } else {
         // Try to find product data in the page
         const productForm = button.closest('form[action*="/cart/add"]');
@@ -168,7 +151,6 @@
               productId: 'unknown',
               variantId: variantInput.value
             };
-            console.log('🏢 Found variant ID in form:', productData);
           }
         }
       }
@@ -177,7 +159,6 @@
       let quantity = 1; // Default quantity
       if (button.dataset.quantity) {
         quantity = parseInt(button.dataset.quantity) || 1;
-        console.log('🏢 Found quantity in button dataset:', quantity);
       } else {
         // Try to find quantity input in the form
         const productForm = button.closest('form[action*="/cart/add"]');
@@ -185,7 +166,6 @@
           const quantityInput = productForm.querySelector('input[name="quantity"]');
           if (quantityInput) {
             quantity = parseInt(quantityInput.value) || 1;
-            console.log('🏢 Found quantity in form input:', quantity);
           }
         }
       }
@@ -193,7 +173,6 @@
       // Add quantity to product data
       if (productData) {
         productData.quantity = quantity;
-        console.log('🏢 Final product data with quantity:', productData);
       }
       
       // If no product data found, use test data
@@ -202,7 +181,6 @@
           productId: '8378591772803',
           variantId: '44557290995843'
         };
-        console.log('🏢 Using test product data:', productData);
       }
     } else {
       // For regular checkout, this is a cart checkout
@@ -212,7 +190,6 @@
         variantId: 'cart',
         isCartCheckout: true
       };
-      console.log('🏢 This is a cart checkout');
     }
     
     // Production URL for live sites
@@ -220,7 +197,6 @@
     
     // Add backdrop and iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
-      console.log('🏢 Adding office selector iframe to page');
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
@@ -258,60 +234,40 @@
       iframe.src = officeSelectorUrl;
       
       iframe.style.display = 'block';
-      console.log('🏢 Office selector iframe shown:', officeSelectorUrl);
       
       // Listen for messages from the iframe
       const messageHandler = (event) => {
-        console.log('🏢 Parent received message:', event.data, 'from origin:', event.origin);
-        console.log('🏢 Message type:', event.data?.type);
         
         // Allow messages from our iframe domain
         const allowedOrigins = [
           'https://checkout-form-zeta.vercel.app'
         ];
         
-        console.log('🏢 Checking message origin:', event.origin, 'against allowed:', allowedOrigins);
         
         if (!allowedOrigins.includes(event.origin)) {
-          console.log('🏢 Message origin not allowed:', event.origin, 'allowed:', allowedOrigins);
           return;
         }
         
-        console.log('🏢 Message origin is allowed, processing...');
         
         if (event.data.type === 'iframe-ready') {
-          console.log('🏢 Iframe is ready and can communicate');
         } else if (event.data.type === 'office-selector-closed') {
-          console.log('🏢 Office selector closed');
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'order-created') {
-          console.log('🏢 Order created, redirecting to checkout');
           window.location.href = event.data.checkoutUrl;
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
         } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
-          console.log('🏢 Office selector requesting cart data:', event.data.type);
-          console.log('🏢 Attempt:', event.data.attempt || 1);
-          console.log('🏢 User agent:', navigator.userAgent);
-          console.log('🏢 Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
           
           // Fetch fresh cart data from Shopify
-          console.log('🏢 Fetching fresh cart data from /cart.js...');
           fetch('/cart.js')
             .then(response => {
-              console.log('🏢 Cart fetch response status:', response.status);
-              console.log('🏢 Cart fetch response headers:', response.headers);
               if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
               }
               return response.json();
             })
             .then(freshCartData => {
-              console.log('🏢 Fresh cart data fetched successfully:', freshCartData);
-              console.log('🏢 Cart data type:', typeof freshCartData);
-              console.log('🏢 Cart data keys:', Object.keys(freshCartData));
-              console.log('🏢 Cart items count:', freshCartData.items?.length || 0);
               
               // Update global cart data
               window.shopifyCart = freshCartData;
@@ -320,23 +276,17 @@
               // Store in localStorage for Chrome mobile fallback
               try {
                 localStorage.setItem('shopify-cart-data', JSON.stringify(freshCartData));
-                console.log('🏢 Cart data stored in localStorage for Chrome mobile fallback');
               } catch (error) {
-                console.log('🏢 Could not store cart data in localStorage:', error);
               }
               
               // Send fresh cart data to the office selector iframe
               if (iframe.contentWindow) {
-                console.log('🏢 Sending fresh cart data to iframe:', freshCartData);
-                console.log('🏢 Iframe src:', iframe.src);
-                console.log('🏢 Target origin: https://checkout-form-zeta.vercel.app');
                 
                 try {
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: freshCartData
                   }, 'https://checkout-form-zeta.vercel.app');
-                  console.log('🏢 Message sent successfully to iframe');
                 } catch (error) {
                   console.error('🏢 Error sending message to iframe:', error);
                 }
@@ -348,8 +298,7 @@
               console.error('🏢 Error fetching fresh cart data:', error);
               
               // Fallback to cached cart data
-              const fallbackCart = window.shopifyCart || window.cartData;
-              console.log('🏢 Using fallback cart data:', fallbackCart);
+              const fallbackCart = window.shopifyCart || window.cartData;   
               
               if (iframe.contentWindow) {
                 if (fallbackCart) {
@@ -396,12 +345,10 @@
 
   // Initialize custom selector targeting (no constant checking)
   function initializeCustomSelectorTargeting() {
-    console.log('🎯 Initializing custom selector targeting...');
     
     // Find and attach to existing buttons
     finalConfig.buttonTargets.customSelectors.forEach(selector => {
       const buttons = document.querySelectorAll(selector);
-      console.log(`🎯 Found ${buttons.length} buttons for selector: ${selector}`);
       
       buttons.forEach(button => {
         if (!button._hasOurHandler) {
@@ -418,7 +365,6 @@
             // Check if the added node matches our selectors
             finalConfig.buttonTargets.customSelectors.forEach(selector => {
               if (node.matches && node.matches(selector)) {
-                console.log('🎯 New button added:', node);
                 if (!node._hasOurHandler) {
                   addOurCheckoutHandler(node);
                 }
@@ -431,7 +377,6 @@
               if (newButtons) {
                 newButtons.forEach(button => {
                   if (!button._hasOurHandler) {
-                    console.log('🎯 New child button found:', button);
                     addOurCheckoutHandler(button);
                   }
                 });
@@ -448,7 +393,6 @@
       subtree: true
     });
     
-    console.log('🎯 Custom selector targeting initialized');
   }
 
   // Function to check if an element is a checkout button
@@ -595,7 +539,6 @@
     // Check if button matches any exclusion patterns
     const isExcluded = patterns.exclude.some(pattern => pattern);
     if (isExcluded) {
-      console.log('🏢 Button excluded:', { tagName, text, className, id, reason: 'matches exclusion pattern' });
       return false;
     }
 
@@ -608,14 +551,6 @@
 
     // Only log when we actually detect a target button (reduce console spam)
     if (isTargetButton) {
-      console.log('🎯 Smart detection target button:', {
-        tagName,
-        text: text.substring(0, 30),
-        className: className.substring(0, 50),
-        id,
-        type,
-        result: isTargetButton ? (isSubmitButton ? 'SUBMIT' : isBuyNow ? 'BUY_NOW' : 'CHECKOUT') : 'NONE'
-      });
     }
 
     return isTargetButton;
@@ -633,7 +568,6 @@
       button.onclick = function(event) {
         // For custom selectors, we know this is a target button, so no need to check
         if (finalConfig.buttonTargets.customSelectors.length > 0) {
-          console.log('🎯 Custom selector button clicked:', button);
           event.preventDefault();
           event.stopPropagation();
           showOfficeSelector(event);
@@ -642,7 +576,6 @@
         
         // For smart detection, check if this is a target button
         if (isCheckoutButton(button)) {
-          console.log('🎯 Smart detection target button clicked');
           event.preventDefault();
           event.stopPropagation();
           showOfficeSelector(event);
@@ -680,12 +613,6 @@
         button.appendChild(dot);
       }
       
-      console.log('🏢 Added red dot indicator to button:', {
-        tagName: button.tagName,
-        text: button.textContent?.substring(0, 30),
-        className: button.className,
-        id: button.id
-      });
     }
   }
   
@@ -745,17 +672,6 @@
       elements.forEach(el => buttons.push(el));
     });
     
-    // Log all found buttons for debugging
-    if (buttons.length > 0) {
-      console.log(`🔍 Scanning ${buttons.length} potential checkout buttons:`, buttons.map(b => ({
-        tagName: b.tagName,
-        text: b.textContent?.trim().substring(0, 30),
-        className: b.className,
-        id: b.id,
-        type: b.type
-      })));
-    }
-    
     buttons.forEach(button => {
       if (isCheckoutButton(button)) {
         addOurCheckoutHandler(button);
@@ -796,108 +712,13 @@
       attributeFilter: ['class', 'style', 'display', 'visibility']
     });
     
-    console.log('Persistent checkout button monitoring started');
-  }
-  
-  function openCustomCheckout(event) {
-  console.log('Opening custom checkout...');
-  
-    // Determine if this is a "Buy Now" button click
-    const isBuyNow = event.target.textContent?.toLowerCase().includes('buy now') ||
-                     event.target.textContent?.toLowerCase().includes('купи сега') ||
-                     event.target.className?.toLowerCase().includes('buy-now') ||
-                     event.target.id?.toLowerCase().includes('buy-now');
-    
-    console.log('Is Buy Now button:', isBuyNow);
-    
-    if (isBuyNow) {
-      console.log('Buy Now button clicked - showing office selector');
-      showOfficeSelector(event);
-      return;
-    }
-    
-    // For regular checkout, show office selector first, then proceed to checkout
-    console.log('Regular checkout button clicked - showing office selector');
-    showOfficeSelector(event);
-    return;
-    
-    // Extract product data from the page
-    const productData = extractProductFromPage();
-    console.log('Extracted product data:', productData);
-    
-    if (!productData) {
-      console.error('Could not extract product data from page');
-      return;
-    }
-    
-              // Production URL for live sites
-     const baseUrl = 'https://checkout-form-zeta.vercel.app';
-     
-     // Create iframe for checkout form
-        const iframe = document.createElement('iframe');
-     iframe.src = `${baseUrl}/iframe`;
-     iframe.style.cssText = `
-       position: fixed;
-       top: 0;
-       left: 0;
-       width: 100%;
-       height: 100%;
-       border: none;
-       z-index: 10000;
-       background: white;
-     `;
-     
-     document.body.appendChild(iframe);
-    
-     // Listen for messages from iframe
-     const messageHandler = (event) => {
-                const allowedOrigins = [
-           'https://checkout-form-zeta.vercel.app'
-         ];
-       if (!allowedOrigins.includes(event.origin)) return;
-      
-      switch (event.data.type) {
-        case 'checkout-closed':
-          console.log('Checkout form closed');
-          document.body.removeChild(iframe);
-          window.removeEventListener('message', messageHandler);
-          break;
-        case 'request-cart-data':
-          console.log('Checkout form requesting cart data');
-            iframe.contentWindow.postMessage({
-              type: 'cart-data',
-            cart: productData
-          }, baseUrl);
-          break;
-        case 'submit-checkout':
-          console.log('Checkout form submitted');
-          handleOrderCreation(event.data.formData, event.source);
-          break;
-        case 'GET_SHOPIFY_DOMAIN':
-          console.log('Checkout form requesting Shopify domain');
-          const domain = window.location.hostname;
-          event.source.postMessage({
-            type: 'SHOPIFY_DOMAIN_RESPONSE',
-            domain: domain
-          }, '*');
-          break;
-        case 'checkout-cleanup-done':
-          console.log('Checkout cleanup completed');
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
-          window.removeEventListener('message', messageHandler);
-          break;
-      }
-    };
-    
-    window.addEventListener('message', messageHandler);
+   
   }
 
   // Function to handle order creation
   async function handleOrderCreation(formData, source) {
     try {
-      console.log('Creating order with data:', formData);
+     
       
       const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-order', {
         method: 'POST',
@@ -913,7 +734,7 @@
       }
 
       const data = await response.json();
-      console.log('Order created successfully:', data);
+      
 
       // Send success response back to iframe
         source.postMessage({
@@ -936,8 +757,6 @@
   // Helper function to extract product data from the page
   function extractProductFromPage() {
     try {
-      console.log('Attempting to extract product data from page elements...');
-      
       // Try to get product data from various sources
       let productData = null;
       
@@ -955,7 +774,6 @@
               variant_id: meta.product.variant_id
             }
           };
-          console.log('Found product data in ShopifyAnalytics.meta:', productData);
         }
       }
       
@@ -967,7 +785,6 @@
             const product = JSON.parse(script.textContent);
             if (product && product.id) {
               productData = { product };
-              console.log('Found product data in script tag:', productData);
               break;
             }
           } catch (e) {
@@ -990,7 +807,6 @@
               price: productPriceMeta ? parseInt(productPriceMeta.content) * 100 : 0
             }
           };
-          console.log('Found product data in meta tags:', productData);
         }
       }
       
@@ -1008,7 +824,6 @@
                 quantity: quantityInput ? parseInt(quantityInput.value) || 1 : 1
               }
             };
-            console.log('Found product data in form:', productData);
           }
         }
       }
@@ -1021,7 +836,6 @@
             const obj = window[key];
             if (obj && (obj.id || obj.variant_id)) {
               productData = { product: obj };
-              console.log(`Found product data in window.${key}:`, productData);
               break;
             }
           }
@@ -1064,7 +878,6 @@
 
   // Test function to analyze button HTML
   function testButtonDetection(buttonHtml) {
-    console.log('🧪 Testing button detection for:', buttonHtml);
     
     // Create a temporary element to parse the HTML
     const tempDiv = document.createElement('div');
@@ -1072,7 +885,6 @@
     const button = tempDiv.firstElementChild;
     
     if (!button) {
-      console.log('❌ Invalid button HTML');
       return;
     }
     
@@ -1137,7 +949,6 @@
     // Check if button matches any exclusion patterns
     const isExcluded = patterns.exclude.some(pattern => pattern);
     if (isExcluded) {
-      console.log('🚫 EXCLUDED - Matches exclusion pattern');
       return 'EXCLUDED';
     }
 
@@ -1147,54 +958,23 @@
     const isCheckout = patterns.checkout.some(pattern => pattern);
     const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
 
-    console.log('🔍 Analysis:', {
-      tagName,
-      text: text.substring(0, 50),
-      className,
-      id,
-      type,
-      name,
-      isSubmitButton,
-      isBuyNow,
-      isCheckout,
-      isExcluded,
-      result: isTargetButton
-    });
-
     if (isSubmitButton) {
-      console.log('✅ DETECTED AS: SUBMIT BUTTON');
       return 'SUBMIT_BUTTON';
     } else if (isBuyNow) {
-      console.log('✅ DETECTED AS: BUY NOW BUTTON');
       return 'BUY_NOW';
     } else if (isCheckout) {
-      console.log('✅ DETECTED AS: CHECKOUT BUTTON');
       return 'CHECKOUT';
     } else {
-      console.log('❌ NOT DETECTED - No matching patterns');
       return 'NOT_DETECTED';
     }
   }
 
   // Function to scan all buttons on the page and show what we find
   function scanAllButtons() {
-    console.log('🔍 SCANNING ALL BUTTONS ON PAGE:');
     const allButtons = document.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]');
-    console.log(`Found ${allButtons.length} total buttons/links`);
-    
     allButtons.forEach((button, index) => {
       const isTarget = isCheckoutButton(button);
-      console.log(`Button ${index + 1}:`, {
-        element: button,
-        tagName: button.tagName,
-        text: button.textContent?.trim().substring(0, 40),
-        className: button.className,
-        id: button.id,
-        type: button.type,
-        name: button.name,
-        isTarget: isTarget,
-        hasHandler: button._hasOurHandler
-      });
+     
     });
   }
 
@@ -1208,7 +988,6 @@
     fetch('/cart.js')
       .then(response => response.json())
       .then(cartData => {
-        console.log('Cart data loaded:', cartData);
         window.shopifyCart = cartData;
         // Store for checkout form
         window.cartData = cartData;
@@ -1217,32 +996,17 @@
   });
 
   // Debug function to test button detection
-  window.testButtonDetection = function(selector) {
-    console.log('🔍 Testing button detection for selector:', selector);
+  window.testButtonDetection = function(selector) { 
     const buttons = document.querySelectorAll(selector);
-    console.log('Found buttons:', buttons.length);
     
     // If using custom selectors, just show the buttons without calling isCheckoutButton
     if (finalConfig.buttonTargets.customSelectors.length > 0) {
       buttons.forEach((button, index) => {
-        console.log(`Custom selector button ${index + 1}:`, {
-          element: button,
-          text: button.textContent?.trim(),
-          classes: button.className,
-          hasHandler: button._hasOurHandler
-        });
       });
     } else {
       // Smart detection mode
       buttons.forEach((button, index) => {
         const isTarget = isCheckoutButton(button);
-        console.log(`Button ${index + 1}:`, {
-          element: button,
-          text: button.textContent?.trim(),
-          classes: button.className,
-          isTarget: isTarget,
-          hasHandler: button._hasOurHandler
-        });
       });
     }
     
@@ -1251,58 +1015,39 @@
 
   // Debug function to scan all buttons on page
   window.scanAllButtons = function() {
-    console.log('🔍 Scanning all buttons on page...');
     
     // If using custom selectors, only scan those
     if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      console.log('🎯 Custom selector mode - only scanning custom selectors');
       const targetedButtons = [];
       
       finalConfig.buttonTargets.customSelectors.forEach(selector => {
         const buttons = document.querySelectorAll(selector);
-        console.log(`Found ${buttons.length} buttons for selector: ${selector}`);
         
         buttons.forEach((button, index) => {
           targetedButtons.push(button);
-          console.log(`Custom selector button ${index + 1}:`, {
-            element: button,
-            text: button.textContent?.trim(),
-            classes: button.className,
-            id: button.id
-          });
         });
       });
       
-      console.log('Total custom selector buttons:', targetedButtons.length);
       return targetedButtons;
     }
     
     // Smart detection mode
     const allButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
-    console.log('Total buttons found:', allButtons.length);
     
     const targetedButtons = [];
     allButtons.forEach((button, index) => {
       const isTarget = isCheckoutButton(button);
       if (isTarget) {
         targetedButtons.push(button);
-        console.log(`Targeted button ${index + 1}:`, {
-          element: button,
-          text: button.textContent?.trim(),
-          classes: button.className,
-          id: button.id
-        });
       }
     });
     
-    console.log('Total targeted buttons:', targetedButtons.length);
     return targetedButtons;
   };
 
   // Function to fetch and log current shipping methods
   async function fetchAndLogShippingMethods() {
     try {
-      console.log('🚢 Fetching current shipping methods from store...');
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
@@ -1311,58 +1056,20 @@
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('🚢 Shipping methods response:', data);
+      const data = await response.json(); 
       
       if (data.success && data.shippingMethods) {
-        console.log('🚢 Current Store Shipping Methods:');
-        console.log(`🚢 Total Methods: ${data.shippingMethods.length}`);
-        console.log(`🚢 Bulgaria-relevant: ${data.bulgariaMethods?.length || 0}`);
-        
-        data.shippingMethods.forEach((method, index) => {
-          console.log(`🚢 Method ${index + 1}:`, {
-            title: method.title,
-            code: method.code,
-            price: method.price,
-            currency: method.currency,
-            profile: method.profile,
-            zone: method.zone,
-            countries: method.countries
-          });
-        });
-        
-        if (data.bulgariaMethods && data.bulgariaMethods.length > 0) {
-          console.log('🚢 Bulgaria-relevant Methods:');
-          data.bulgariaMethods.forEach((method, index) => {
-            console.log(`🚢 BG Method ${index + 1}:`, {
-              title: method.title,
-              code: method.code,
-              price: method.price,
-              currency: method.currency
-            });
-          });
-        }
-        
         // Store shipping methods globally for later use
         window.storeShippingMethods = data.shippingMethods;
         window.bulgariaShippingMethods = data.bulgariaMethods;
         
-        console.log('🚢 Shipping methods stored in window.storeShippingMethods and window.bulgariaShippingMethods');
-        
       } else if (data.error) {
-        console.warn('🚢 Shipping methods API error:', data.error);
-        console.log('🚢 Will use fallback shipping methods');
       }
     } catch (error) {
-      console.error('🚢 Error fetching shipping methods:', error);
-      console.log('🚢 Will use fallback shipping methods');
+      console.error('Error fetching shipping methods:', error);
     }
   }
 
   // Fetch shipping methods when script loads
   fetchAndLogShippingMethods();
-
-  console.log('🏢 Office selector loaded. Use testButtonDetection(".shopify-payment-button__button") to test specific buttons.');
-  console.log('🏢 Use scanAllButtons() to see all targeted buttons on the page.');
-  console.log('🚢 Use window.storeShippingMethods to access fetched shipping methods.');
 })(); 

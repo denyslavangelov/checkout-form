@@ -193,13 +193,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Add custom attributes for the note if provided
-    if (customerData.note) {
-      // This would require an additional call to update cart attributes, but for now
-      // we'll just include it in the response so we can show it to the user
-      console.log('Order note:', customerData.note);
-    }
-
     // Return the checkout URL and cart ID
     return NextResponse.json({
       success: true,

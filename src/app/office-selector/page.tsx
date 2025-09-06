@@ -44,7 +44,6 @@ export default function OfficeSelectorPage() {
     if (configParam) {
       try {
         parsedConfig = JSON.parse(decodeURIComponent(configParam));
-        console.log('🏢 Office selector config loaded:', parsedConfig);
       } catch (error) {
         console.error('🏢 Error parsing config:', error);
       }
