@@ -3,31 +3,43 @@ import { NextRequest, NextResponse } from 'next/server';
 const STORE_URL = 'testing-client-check.myshopify.com';
 const ACCESS_TOKEN = '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';
 
-// GraphQL query to get shipping zones and their methods
+// GraphQL query to get delivery profiles and their methods
 const SHIPPING_METHODS_QUERY = `
-  query getShippingZones {
-    shippingZones(first: 10) {
+  query getDeliveryProfiles {
+    deliveryProfiles(first: 10) {
       edges {
         node {
           id
           name
-          countries {
-            code
-            name
-          }
-          shippingMethods {
-            id
-            title
-            code
-            price {
-              amount
-              currencyCode
-            }
-            deliveryCategory
-            carrierService {
+          profileLocationGroups {
+            locationGroup {
               id
               name
-              serviceName
+            }
+            locationGroupZones {
+              zone {
+                id
+                name
+                countries {
+                  code
+                  name
+                }
+                deliveryMethods {
+                  id
+                  title
+                  code
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  deliveryCategory
+                  carrierService {
+                    id
+                    name
+                    serviceName
+                  }
+                }
+              }
             }
           }
         }
@@ -80,33 +92,41 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Process the shipping methods
-    const shippingZones = data.data?.shippingZones?.edges || [];
+    // Process the delivery profiles and their methods
+    const deliveryProfiles = data.data?.deliveryProfiles?.edges || [];
     const allShippingMethods: any[] = [];
     
-    shippingZones.forEach((zone: any) => {
-      const zoneData = zone.node;
-      console.log(`🔍 Processing shipping zone: ${zoneData.name}`);
+    deliveryProfiles.forEach((profile: any) => {
+      const profileData = profile.node;
+      console.log(`🔍 Processing delivery profile: ${profileData.name}`);
       
-      zoneData.shippingMethods.forEach((method: any) => {
-        const shippingMethod = {
-          id: method.id,
-          title: method.title,
-          code: method.code,
-          price: method.price?.amount || '0.00',
-          currency: method.price?.currencyCode || 'BGN',
-          deliveryCategory: method.deliveryCategory,
-          carrierService: method.carrierService ? {
-            id: method.carrierService.id,
-            name: method.carrierService.name,
-            serviceName: method.carrierService.serviceName
-          } : null,
-          zone: zoneData.name,
-          countries: zoneData.countries.map((country: any) => country.code)
-        };
-        
-        allShippingMethods.push(shippingMethod);
-        console.log(`🔍 Added shipping method: ${method.title} (${method.code})`);
+      profileData.profileLocationGroups?.forEach((locationGroup: any) => {
+        locationGroup.locationGroupZones?.forEach((zoneGroup: any) => {
+          const zone = zoneGroup.zone;
+          console.log(`🔍 Processing zone: ${zone.name}`);
+          
+          zone.deliveryMethods?.forEach((method: any) => {
+            const shippingMethod = {
+              id: method.id,
+              title: method.title,
+              code: method.code,
+              price: method.price?.amount || '0.00',
+              currency: method.price?.currencyCode || 'BGN',
+              deliveryCategory: method.deliveryCategory,
+              carrierService: method.carrierService ? {
+                id: method.carrierService.id,
+                name: method.carrierService.name,
+                serviceName: method.carrierService.serviceName
+              } : null,
+              profile: profileData.name,
+              zone: zone.name,
+              countries: zone.countries?.map((country: any) => country.code) || []
+            };
+            
+            allShippingMethods.push(shippingMethod);
+            console.log(`🔍 Added shipping method: ${method.title} (${method.code})`);
+          });
+        });
       });
     });
 
