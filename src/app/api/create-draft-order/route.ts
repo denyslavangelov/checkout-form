@@ -211,6 +211,11 @@ export async function POST(request: NextRequest) {
             const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
               const name = method.name?.toLowerCase() || '';
               
+              // Special case: If "До Адрес" is selected, prioritize "Личен адрес" method
+              if (deliveryType === 'address' && name.includes('личен адрес')) {
+                return true;
+              }
+              
               // First, try to match by courier and delivery type
               if (courier === 'speedy' || courier === 'econt') {
                 // Match courier
@@ -237,7 +242,7 @@ export async function POST(request: NextRequest) {
                 
                 return courierMatch && deliveryMatch;
               } else {
-                // For cases where courier is not specified (like "Личен адрес")
+                // For cases where courier is not specified
                 // Just match by delivery type
                 if (deliveryType === 'office') {
                   return name.includes('office') || 
@@ -249,8 +254,7 @@ export async function POST(request: NextRequest) {
                   return (name.includes('address') || 
                           name.includes('адрес') || 
                           name.includes('delivery') ||
-                          name.includes('доставка') ||
-                          name.includes('личен')) && 
+                          name.includes('доставка')) && 
                          !name.includes('office') && 
                          !name.includes('офис') && 
                          !name.includes('pickup') &&
