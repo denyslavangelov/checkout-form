@@ -120,6 +120,7 @@
     const isBuyNow = button.textContent?.toLowerCase().includes('buy now') ||
                      button.textContent?.toLowerCase().includes('купи сега') ||
                      button.className?.toLowerCase().includes('buy-now') ||
+                     button.className?.toLowerCase().includes('shopify-payment-button__button') ||
                      button.id?.toLowerCase().includes('buy-now');
     
     console.log('🏢 Is Buy Now button:', isBuyNow);
