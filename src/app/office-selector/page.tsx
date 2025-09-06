@@ -7,15 +7,32 @@ export default function OfficeSelectorPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [productId, setProductId] = useState('');
   const [variantId, setVariantId] = useState('');
+  const [config, setConfig] = useState({
+    availableCouriers: ['speedy', 'econt'],
+    defaultCourier: 'speedy',
+    defaultDeliveryType: 'office'
+  });
 
   useEffect(() => {
-    // Get product and variant IDs from URL parameters
+    // Get product, variant IDs and configuration from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('productId') || '';
     const variant = urlParams.get('variantId') || '';
+    const configParam = urlParams.get('config');
     
     setProductId(product);
     setVariantId(variant);
+    
+    // Parse configuration if provided
+    if (configParam) {
+      try {
+        const parsedConfig = JSON.parse(decodeURIComponent(configParam));
+        setConfig(parsedConfig);
+        console.log('🏢 Office selector config loaded:', parsedConfig);
+      } catch (error) {
+        console.error('🏢 Error parsing config:', error);
+      }
+    }
 
     // Listen for messages from parent window
     const handleMessage = (event: MessageEvent) => {
@@ -73,6 +90,7 @@ export default function OfficeSelectorPage() {
         onOrderCreated={handleOrderCreated}
         productId={productId}
         variantId={variantId}
+        config={config}
       />
     </div>
   );

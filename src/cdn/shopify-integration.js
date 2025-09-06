@@ -1,6 +1,23 @@
 (function() {
   'use strict';
 
+  // Configuration object - can be set before script loads
+  const config = window.officeSelectorConfig || {
+    availableCouriers: ['speedy', 'econt'], // Default: both couriers available
+    defaultCourier: 'speedy', // Default selected courier
+    defaultDeliveryType: 'office', // Default delivery type
+    buttonTargets: {
+      // Button targeting configuration
+      enableSmartDetection: true, // Enable smart button detection
+      customSelectors: [], // Custom CSS selectors for buttons
+      excludeSelectors: [], // CSS selectors to exclude
+      buttonTypes: ['checkout', 'buy-now', 'cart-checkout'], // Types of buttons to target
+      debugMode: false // Show red dots on targeted buttons
+    }
+  };
+  
+  console.log('🏢 Office selector config:', config);
+
   // Override onclick property to intercept all button clicks
   const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
   
@@ -123,8 +140,9 @@
     const iframe = document.getElementById('office-selector-iframe');
     
     if (iframe) {
-      // Set iframe source with product data
-      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}`;
+      // Set iframe source with product data and configuration
+      const configParam = encodeURIComponent(JSON.stringify(config));
+      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}&config=${configParam}`;
       iframe.src = officeSelectorUrl;
       
       iframe.style.display = 'block';
@@ -259,6 +277,41 @@
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
 
+    // Check custom selectors first
+    if (config.buttonTargets.customSelectors.length > 0) {
+      const customMatch = config.buttonTargets.customSelectors.some(selector => {
+        try {
+          return element.matches(selector);
+        } catch (e) {
+          return false;
+        }
+      });
+      if (customMatch) {
+        console.log('🎯 Custom selector match:', element);
+        return true;
+      }
+    }
+    
+    // Check exclude selectors
+    if (config.buttonTargets.excludeSelectors.length > 0) {
+      const excludeMatch = config.buttonTargets.excludeSelectors.some(selector => {
+        try {
+          return element.matches(selector);
+        } catch (e) {
+          return false;
+        }
+      });
+      if (excludeMatch) {
+        console.log('🚫 Excluded by custom selector:', element);
+        return false;
+      }
+    }
+    
+    // If smart detection is disabled, only use custom selectors
+    if (!config.buttonTargets.enableSmartDetection) {
+      return false;
+    }
+
     const tagName = element.tagName.toLowerCase();
     const text = element.textContent?.toLowerCase().trim() || '';
     const className = element.className?.toLowerCase() || '';
@@ -323,11 +376,12 @@
       return false;
     }
 
-    // Check if button matches any target patterns
-    const isSubmitButton = patterns.submitButtons.some(pattern => pattern);
-    const isBuyNow = patterns.buyNow.some(pattern => pattern);
-    const isCheckout = patterns.checkout.some(pattern => pattern);
-    const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
+    // Check if button matches any target patterns based on configuration
+    const isSubmitButton = config.buttonTargets.buttonTypes.includes('submit') && patterns.submitButtons.some(pattern => pattern);
+    const isBuyNow = config.buttonTargets.buttonTypes.includes('buy-now') && patterns.buyNow.some(pattern => pattern);
+    const isCheckout = config.buttonTargets.buttonTypes.includes('checkout') && patterns.checkout.some(pattern => pattern);
+    const isCartCheckout = config.buttonTargets.buttonTypes.includes('cart-checkout') && patterns.checkout.some(pattern => pattern);
+    const isTargetButton = isSubmitButton || isBuyNow || isCheckout || isCartCheckout;
 
     // Only log when we actually detect a target button (reduce console spam)
     if (isTargetButton) {
@@ -376,28 +430,30 @@
         }
       };
       
-      // Add visual indicator - red dot
-      const dot = document.createElement('div');
-      dot.style.cssText = `
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 10px;
-        height: 10px;
-        background: #ef4444;
-        border: 2px solid white;
-        border-radius: 50%;
-        z-index: 1000;
-        pointer-events: none;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      `;
-      
-      // Make sure button has relative positioning for absolute dot
-      if (button.style.position !== 'absolute' && button.style.position !== 'relative') {
-        button.style.position = 'relative';
+      // Add visual indicator - red dot (if debug mode is enabled)
+      if (config.buttonTargets.debugMode) {
+        const dot = document.createElement('div');
+        dot.style.cssText = `
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          width: 10px;
+          height: 10px;
+          background: #ef4444;
+          border: 2px solid white;
+          border-radius: 50%;
+          z-index: 1000;
+          pointer-events: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        `;
+        
+        // Make sure button has relative positioning for absolute dot
+        if (button.style.position !== 'absolute' && button.style.position !== 'relative') {
+          button.style.position = 'relative';
+        }
+        
+        button.appendChild(dot);
       }
-      
-      button.appendChild(dot);
       
       console.log('🏢 Added red dot indicator to button:', {
         tagName: button.tagName,
