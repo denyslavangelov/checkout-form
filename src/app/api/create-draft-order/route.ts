@@ -220,7 +220,6 @@ export async function POST(request: NextRequest) {
 
     if (data.errors) {
       console.error('🔍 Draft order creation GraphQL errors:', data.errors);
-      console.error('🔍 Full draft order error details:', JSON.stringify(data.errors, null, 2));
       
       // Check if it's a permission error
       const permissionError = data.errors.some((error: any) => 
@@ -241,11 +240,7 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      return NextResponse.json({ 
-        error: 'GraphQL errors', 
-        details: data.errors,
-        message: data.errors.map((e: any) => e.message).join(', ')
-      }, { 
+      return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
         status: 400,
         headers: { 'Access-Control-Allow-Origin': '*' }
       });

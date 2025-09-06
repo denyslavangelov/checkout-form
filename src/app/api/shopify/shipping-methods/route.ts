@@ -56,14 +56,12 @@ export async function GET(request: NextRequest) {
 
     if (data.errors) {
       console.error('🔍 GraphQL errors:', data.errors);
-      console.error('🔍 Full error details:', JSON.stringify(data.errors, null, 2));
       
       // Check if it's a permission error
       const permissionError = data.errors.some((error: any) => 
         error.message?.includes('permission') || 
         error.message?.includes('access') ||
-        error.message?.includes('unauthorized') ||
-        error.message?.includes('forbidden')
+        error.message?.includes('unauthorized')
       );
       
       if (permissionError) {
@@ -77,11 +75,7 @@ export async function GET(request: NextRequest) {
         });
       }
       
-      return NextResponse.json({ 
-        error: 'GraphQL errors', 
-        details: data.errors,
-        message: data.errors.map((e: any) => e.message).join(', ')
-      }, { 
+      return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
         status: 400 
       });
     }
