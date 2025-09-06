@@ -1,515 +1,625 @@
-// Custom checkout integration for Shopify
 (function() {
-  // Store original addEventListener method
-  const originalAddEventListener = EventTarget.prototype.addEventListener;
+  'use strict';
+
+  // Configuration object - can be set before script loads
+  const config = window.officeSelectorConfig || {};
   
-  // Override addEventListener to intercept checkout button click handlers
-  EventTarget.prototype.addEventListener = function(type, listener, options) {
-    // Call the original method
-    const result = originalAddEventListener.call(this, type, listener, options);
-    
-    // Check if this is a checkout button and a click event
-    if (isCheckoutButton(this) && type === 'click') {
-      console.log('Detected click handler being added to checkout button!');
-      
-      // Add our custom handler right after (this will run last)
-      setTimeout(() => {
-        addOurCheckoutHandler(this);
-      }, 100);
+  // Ensure all configuration properties have defaults
+  const defaultConfig = {
+    availableCouriers: ['speedy', 'econt'], // Default: both couriers available
+    defaultCourier: 'speedy', // Default selected courier
+    defaultDeliveryType: 'office', // Default delivery type
+    buttonTargets: {
+      // Button targeting configuration
+      enableSmartDetection: true, // Enable smart button detection
+      customSelectors: [], // Custom CSS selectors for buttons
+      excludeSelectors: [], // CSS selectors to exclude
+      buttonTypes: ['checkout', 'buy-now', 'cart-checkout'], // Types of buttons to target
+      debugMode: false, // Show red dots on targeted buttons
+      // Enhanced targeting by class and name
+      targetByClass: [], // Array of class names to target
+      targetByName: [], // Array of name attributes to target
+      targetByClassAndName: [] // Array of objects with both class and name: [{class: 'btn', name: 'checkout'}]
     }
-    
-    return result;
   };
   
-  // Store original onclick setter
+  // Merge user config with defaults
+  const finalConfig = {
+    ...defaultConfig,
+    ...config,
+    buttonTargets: {
+      ...defaultConfig.buttonTargets,
+      ...(config.buttonTargets || {})
+    }
+  };
+  
+  console.log('🏢 Office selector config:', finalConfig);
+  
+  // Log the targeting mode
+  if (finalConfig.buttonTargets.customSelectors.length > 0) {
+    console.log('🎯 Custom selector mode active:', finalConfig.buttonTargets.customSelectors);
+  } else if (finalConfig.buttonTargets.targetByClass.length > 0 || 
+             finalConfig.buttonTargets.targetByName.length > 0 || 
+             finalConfig.buttonTargets.targetByClassAndName.length > 0) {
+    console.log('🎯 Enhanced targeting mode active:', {
+      targetByClass: finalConfig.buttonTargets.targetByClass,
+      targetByName: finalConfig.buttonTargets.targetByName,
+      targetByClassAndName: finalConfig.buttonTargets.targetByClassAndName
+    });
+  } else if (finalConfig.buttonTargets.enableSmartDetection) {
+    console.log('🎯 Smart detection mode active');
+  } else {
+    console.log('🎯 No button targeting enabled');
+  }
+
+  // Only override onclick if we're using smart detection
+  // For custom selectors and enhanced targeting, we'll use a different approach
+  const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
+                              finalConfig.buttonTargets.targetByName.length > 0 ||
+                              finalConfig.buttonTargets.targetByClassAndName.length > 0;
+  
+  if (finalConfig.buttonTargets.enableSmartDetection && 
+      finalConfig.buttonTargets.customSelectors.length === 0 && 
+      !hasEnhancedTargeting) {
   const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
   
-  // Override onclick property
   Object.defineProperty(HTMLElement.prototype, 'onclick', {
-    set: function(newValue) {
-      const result = originalOnClickDescriptor.set.call(this, newValue);
-      
-      // Check if this is a checkout button
-      if (isCheckoutButton(this)) {
-        console.log('Detected onclick property being set on checkout button!');
+      set: function(value) {
+        const result = originalOnClickDescriptor.set.call(this, value);
         
-        // Add our custom handler right after
+        // Add our handler after a short delay to ensure it runs after the original
         setTimeout(() => {
           addOurCheckoutHandler(this);
         }, 100);
-      }
       
       return result;
     },
     get: originalOnClickDescriptor.get
   });
+  } else if (finalConfig.buttonTargets.customSelectors.length > 0) {
+    // For custom selectors, use a more targeted approach
+    console.log('🎯 Using targeted approach for custom selectors');
+    initializeCustomSelectorTargeting();
+  } else if (hasEnhancedTargeting) {
+    // For enhanced targeting, use the standard approach
+    console.log('🎯 Using enhanced targeting approach');
+    findAndInitializeCheckoutButtons();
+    monitorForCheckoutButtons();
+  }
 
-  // Office selector modal HTML
+  // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
-    <div id="office-selector-modal" style="
+    <div id="office-selector-backdrop" style="
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9999;
       display: none;
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-    ">
-      <div style="
-        background: white;
-        border-radius: 8px;
-        padding: 24px;
+    "></div>
+    <iframe 
+      id="office-selector-iframe"
+      src=""
+      loading="eager"
+      style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 95%;
         max-width: 500px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        position: relative;
-      ">
-        <button id="office-modal-close" style="
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          background: none;
-          border: none;
-          font-size: 24px;
-          cursor: pointer;
-          color: #666;
-        ">&times;</button>
-        
-        <h3 style="margin: 0 0 20px 0; color: #333;">Select Pickup Office</h3>
-        
-        <div id="office-form">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">City</label>
-            <select id="office-city-select" style="
-              width: 100%;
-              padding: 12px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-            ">
-              <option value="">Loading cities...</option>
-            </select>
-          </div>
-          
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Office</label>
-            <select id="office-office-select" style="
-              width: 100%;
-              padding: 12px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              font-size: 14px;
-            " disabled>
-              <option value="">Select city first</option>
-            </select>
-          </div>
-          
-          <div id="office-preview" style="
-            margin-bottom: 16px;
-            padding: 12px;
-            background: #f0f8ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 4px;
-            display: none;
-          ">
-            <div style="font-weight: 500; margin-bottom: 4px;">Selected Office:</div>
-            <div id="office-details"></div>
-          </div>
-          
-          <button id="office-create-order" style="
-            width: 100%;
-            padding: 12px;
-            background: #007cba;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            margin-bottom: 12px;
-          " disabled>
-            Create Order & Checkout
-          </button>
-          
-          <div id="office-error" style="
-            padding: 12px;
-            background: #ffe6e6;
-            border: 1px solid #ffb3b3;
-            border-radius: 4px;
-            color: #d00;
-            display: none;
-            margin-bottom: 16px;
-          "></div>
-        </div>
-      </div>
-    </div>
+        height: auto;
+        min-height: 600px;
+        max-height: 90vh;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 10000;
+        display: none;
+        background: white;
+      "
+      allow="clipboard-write"
+    ></iframe>
   `;
 
   // Function to show office selector
   function showOfficeSelector(event) {
-    console.log('🏢 Showing office selector for Buy Now button');
+    console.log('🏢 Showing office selector');
     console.log('🏢 Event details:', event);
-    console.log('🏢 Event target:', event?.target);
     
-    // Add modal to page if not already there
-    if (!document.getElementById('office-selector-modal')) {
-      console.log('🏢 Adding office selector modal to page');
+    // Prevent default behavior
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Get the button element
+    const button = event.target;
+    console.log('🏢 Button element:', button);
+    
+    // Determine if this is a Buy Now button or regular checkout
+    const isBuyNow = button.textContent?.toLowerCase().includes('buy now') ||
+                     button.textContent?.toLowerCase().includes('купи сега') ||
+                     button.className?.toLowerCase().includes('buy-now') ||
+                     button.className?.toLowerCase().includes('shopify-payment-button__button') ||
+                     button.id?.toLowerCase().includes('buy-now');
+    
+    console.log('🏢 Is Buy Now button:', isBuyNow);
+    
+    let productData = null;
+    let isCartCheckout = false;
+    
+    if (isBuyNow) {
+      // For Buy Now buttons, try to get product data from the button or its parent
+      if (button.dataset.productId && button.dataset.variantId) {
+        productData = {
+          productId: button.dataset.productId,
+          variantId: button.dataset.variantId
+        };
+        console.log('🏢 Found product data in button attributes:', productData);
+      } else {
+        // Try to find product data in the page
+        const productForm = button.closest('form[action*="/cart/add"]');
+        if (productForm) {
+          const variantInput = productForm.querySelector('input[name="id"]');
+          if (variantInput) {
+            productData = {
+              productId: 'unknown',
+              variantId: variantInput.value
+            };
+            console.log('🏢 Found variant ID in form:', productData);
+          }
+        }
+      }
+      
+      // Get quantity from the form or button
+      let quantity = 1; // Default quantity
+      if (button.dataset.quantity) {
+        quantity = parseInt(button.dataset.quantity) || 1;
+        console.log('🏢 Found quantity in button dataset:', quantity);
+      } else {
+        // Try to find quantity input in the form
+        const productForm = button.closest('form[action*="/cart/add"]');
+        if (productForm) {
+          const quantityInput = productForm.querySelector('input[name="quantity"]');
+          if (quantityInput) {
+            quantity = parseInt(quantityInput.value) || 1;
+            console.log('🏢 Found quantity in form input:', quantity);
+          }
+        }
+      }
+      
+      // Add quantity to product data
+      if (productData) {
+        productData.quantity = quantity;
+        console.log('🏢 Final product data with quantity:', productData);
+      }
+      
+      // If no product data found, use test data
+      if (!productData) {
+        productData = {
+          productId: '8378591772803',
+          variantId: '44557290995843'
+        };
+        console.log('🏢 Using test product data:', productData);
+      }
+    } else {
+      // For regular checkout, this is a cart checkout
+      isCartCheckout = true;
+      productData = {
+        productId: 'cart',
+        variantId: 'cart',
+        isCartCheckout: true
+      };
+      console.log('🏢 This is a cart checkout');
+    }
+    
+    // Production URL for live sites
+    const baseUrl = 'https://checkout-form-zeta.vercel.app';
+    
+    // Add backdrop and iframe to page if not already there
+    if (!document.getElementById('office-selector-iframe')) {
+      console.log('🏢 Adding office selector iframe to page');
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
-      setupOfficeSelectorEvents();
-    } else {
-      console.log('🏢 Office selector modal already exists');
     }
     
-    // Show the modal
-    const modal = document.getElementById('office-selector-modal');
-    if (modal) {
-      console.log('🏢 Showing office selector modal');
-      modal.style.display = 'flex';
-    } else {
-      console.error('🏢 Office selector modal not found!');
-    }
+    // Show the backdrop and iframe
+    const backdrop = document.getElementById('office-selector-backdrop');
+    const iframe = document.getElementById('office-selector-iframe');
     
-    // Load cities
-    console.log('🏢 Loading cities for office selector');
-    loadCitiesForOfficeSelector();
-  }
-
-  // Setup office selector event listeners
-  function setupOfficeSelectorEvents() {
-    const modal = document.getElementById('office-selector-modal');
-    const closeBtn = document.getElementById('office-modal-close');
-    const citySelect = document.getElementById('office-city-select');
-    const officeSelect = document.getElementById('office-office-select');
-    const createOrderBtn = document.getElementById('office-create-order');
-
-    // Close modal
-    closeBtn.addEventListener('click', hideOfficeSelector);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) hideOfficeSelector();
-    });
-
-    // City selection
-    citySelect.addEventListener('change', (e) => {
-      loadOfficesForOfficeSelector(e.target.value);
-    });
-
-    // Office selection
-    officeSelect.addEventListener('change', (e) => {
-      updateOfficePreview();
-      updateCreateOrderButton();
-    });
-
-    // Create order
-    createOrderBtn.addEventListener('click', createOrderFromOfficeSelector);
+    if (backdrop && iframe) {
+      // Show backdrop first for immediate visual feedback
+      backdrop.style.display = 'block';
+      
+      // Add click handler to backdrop to close modal
+      backdrop.onclick = (e) => {
+        if (e.target === backdrop) {
+          hideOfficeSelector();
+        }
+      };
+      
+      // Disable body scrolling
+      document.body.style.overflow = 'hidden';
+      
+      // Add keyboard support (ESC key)
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          hideOfficeSelector();
+          document.removeEventListener('keydown', handleKeyDown);
+        }
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      
+      // Set iframe source with product data and configuration
+      const configParam = encodeURIComponent(JSON.stringify(finalConfig));
+      const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
+      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
+      iframe.src = officeSelectorUrl;
+      
+      iframe.style.display = 'block';
+      console.log('🏢 Office selector iframe shown:', officeSelectorUrl);
+      
+      // Listen for messages from the iframe
+      const messageHandler = (event) => {
+        console.log('🏢 Parent received message:', event.data, 'from origin:', event.origin);
+        console.log('🏢 Message type:', event.data?.type);
+        
+        // Allow messages from our iframe domain
+        const allowedOrigins = [
+          'https://checkout-form-zeta.vercel.app'
+        ];
+        
+        console.log('🏢 Checking message origin:', event.origin, 'against allowed:', allowedOrigins);
+        
+        if (!allowedOrigins.includes(event.origin)) {
+          console.log('🏢 Message origin not allowed:', event.origin, 'allowed:', allowedOrigins);
+          return;
+        }
+        
+        console.log('🏢 Message origin is allowed, processing...');
+        
+        if (event.data.type === 'iframe-ready') {
+          console.log('🏢 Iframe is ready and can communicate');
+        } else if (event.data.type === 'office-selector-closed') {
+          console.log('🏢 Office selector closed');
+          hideOfficeSelector();
+          window.removeEventListener('message', messageHandler);
+        } else if (event.data.type === 'order-created') {
+          console.log('🏢 Order created, redirecting to checkout');
+          window.location.href = event.data.checkoutUrl;
+          hideOfficeSelector();
+          window.removeEventListener('message', messageHandler);
+        } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
+          console.log('🏢 Office selector requesting cart data:', event.data.type);
+          console.log('🏢 Attempt:', event.data.attempt || 1);
+          console.log('🏢 User agent:', navigator.userAgent);
+          console.log('🏢 Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+          
+          // Fetch fresh cart data from Shopify
+          console.log('🏢 Fetching fresh cart data from /cart.js...');
+          fetch('/cart.js')
+            .then(response => {
+              console.log('🏢 Cart fetch response status:', response.status);
+              console.log('🏢 Cart fetch response headers:', response.headers);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+              return response.json();
+            })
+            .then(freshCartData => {
+              console.log('🏢 Fresh cart data fetched successfully:', freshCartData);
+              console.log('🏢 Cart data type:', typeof freshCartData);
+              console.log('🏢 Cart data keys:', Object.keys(freshCartData));
+              console.log('🏢 Cart items count:', freshCartData.items?.length || 0);
+              
+              // Update global cart data
+              window.shopifyCart = freshCartData;
+              window.cartData = freshCartData;
+              
+              // Store in localStorage for Chrome mobile fallback
+              try {
+                localStorage.setItem('shopify-cart-data', JSON.stringify(freshCartData));
+                console.log('🏢 Cart data stored in localStorage for Chrome mobile fallback');
+              } catch (error) {
+                console.log('🏢 Could not store cart data in localStorage:', error);
+              }
+              
+              // Send fresh cart data to the office selector iframe
+              if (iframe.contentWindow) {
+                console.log('🏢 Sending fresh cart data to iframe:', freshCartData);
+                console.log('🏢 Iframe src:', iframe.src);
+                console.log('🏢 Target origin: https://checkout-form-zeta.vercel.app');
+                
+                try {
+                  iframe.contentWindow.postMessage({
+                    type: 'cart-data',
+                    cart: freshCartData
+                  }, 'https://checkout-form-zeta.vercel.app');
+                  console.log('🏢 Message sent successfully to iframe');
+                } catch (error) {
+                  console.error('🏢 Error sending message to iframe:', error);
+                }
+              } else {
+                console.error('🏢 No iframe contentWindow found');
+              }
+            })
+            .catch(error => {
+              console.error('🏢 Error fetching fresh cart data:', error);
+              
+              // Fallback to cached cart data
+              const fallbackCart = window.shopifyCart || window.cartData;
+              console.log('🏢 Using fallback cart data:', fallbackCart);
+              
+              if (iframe.contentWindow) {
+                if (fallbackCart) {
+                  iframe.contentWindow.postMessage({
+                    type: 'cart-data',
+                    cart: fallbackCart
+                  }, 'https://checkout-form-zeta.vercel.app');
+                } else {
+                  console.error('🏢 No fallback cart data available');
+                  iframe.contentWindow.postMessage({
+                    type: 'cart-data',
+                    cart: null
+                  }, 'https://checkout-form-zeta.vercel.app');
+                }
+              } else {
+                console.error('🏢 No iframe contentWindow found for fallback');
+              }
+            });
+        }
+      };
+      
+      window.addEventListener('message', messageHandler);
+    } else {
+      console.error('🏢 Office selector modal or iframe not found');
+    }
   }
 
   // Hide office selector
   function hideOfficeSelector() {
-    const modal = document.getElementById('office-selector-modal');
-    if (modal) {
-      modal.style.display = 'none';
+    const backdrop = document.getElementById('office-selector-backdrop');
+    const iframe = document.getElementById('office-selector-iframe');
+    
+    if (backdrop) {
+      backdrop.style.display = 'none';
     }
+    
+    if (iframe) {
+      iframe.style.display = 'none';
+    }
+    
+    // Re-enable body scrolling
+    document.body.style.overflow = '';
   }
 
-  // Load cities for office selector - hardcoded Sofia
-  async function loadCitiesForOfficeSelector() {
-    try {
-      console.log('🏢 Loading Sofia as the only city option...');
+  // Initialize custom selector targeting (no constant checking)
+  function initializeCustomSelectorTargeting() {
+    console.log('🎯 Initializing custom selector targeting...');
+    
+    // Find and attach to existing buttons
+    finalConfig.buttonTargets.customSelectors.forEach(selector => {
+      const buttons = document.querySelectorAll(selector);
+      console.log(`🎯 Found ${buttons.length} buttons for selector: ${selector}`);
       
-      // Hardcode Sofia as the only city option
-      const citySelect = document.getElementById('office-city-select');
-      citySelect.innerHTML = '<option value="">Select city...</option>';
-      
-      // Add Sofia option (using a mock ID for Sofia)
-      const sofiaOption = document.createElement('option');
-      sofiaOption.value = '1'; // Mock Sofia ID
-      sofiaOption.textContent = 'гр. София';
-      citySelect.appendChild(sofiaOption);
-      
-      console.log('🏢 Sofia loaded successfully');
-    } catch (error) {
-      console.error('🏢 Error loading cities:', error);
-      showOfficeError(`Failed to load cities: ${error.message}`);
-    }
-  }
-
-  // Load offices for selected city
-  async function loadOfficesForOfficeSelector(cityId) {
-    try {
-      const response = await fetch('http://localhost:3000/api/speedy/search-office', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          siteId: cityId,
-          term: '' // Empty term to get all offices
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load offices');
-      }
-
-      const data = await response.json();
-      
-      if (data.offices && Array.isArray(data.offices)) {
-        const officeSelect = document.getElementById('office-office-select');
-        officeSelect.innerHTML = '<option value="">Select office...</option>';
-        
-        if (data.offices.length === 0) {
-          officeSelect.disabled = true;
-          return;
+      buttons.forEach(button => {
+        if (!button._hasOurHandler) {
+          addOurCheckoutHandler(button);
         }
-        
-        officeSelect.disabled = false;
-        data.offices.forEach(office => {
-          const option = document.createElement('option');
-          option.value = office.id.toString();
-          option.textContent = `${office.name} - ${office.address || office.fullAddress || 'Address not available'}`;
-          officeSelect.appendChild(option);
+      });
+    });
+    
+    // Watch for new buttons being added to the DOM
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) { // Element node
+            // Check if the added node matches our selectors
+            finalConfig.buttonTargets.customSelectors.forEach(selector => {
+              if (node.matches && node.matches(selector)) {
+                console.log('🎯 New button added:', node);
+                if (!node._hasOurHandler) {
+                  addOurCheckoutHandler(node);
+                }
+              }
+            });
+            
+            // Check if any child elements match our selectors
+            finalConfig.buttonTargets.customSelectors.forEach(selector => {
+              const newButtons = node.querySelectorAll && node.querySelectorAll(selector);
+              if (newButtons) {
+                newButtons.forEach(button => {
+                  if (!button._hasOurHandler) {
+                    console.log('🎯 New child button found:', button);
+                    addOurCheckoutHandler(button);
+                  }
+                });
+              }
+            });
+          }
         });
-      } else {
-        throw new Error('Invalid offices data');
-      }
-    } catch (error) {
-      console.error('Error loading offices:', error);
-      showOfficeError('Failed to load offices. Please try again.');
-    }
-  }
-
-  // Update office preview
-  function updateOfficePreview() {
-    const officeSelect = document.getElementById('office-office-select');
-    const selectedOfficeId = officeSelect.value;
-    
-    if (!selectedOfficeId) {
-      hideOfficePreview();
-      return;
-    }
-
-    const selectedOption = officeSelect.options[officeSelect.selectedIndex];
-    const officeName = selectedOption.textContent.split(' - ')[0];
-    const officeAddress = selectedOption.textContent.split(' - ')[1] || 'Address not available';
-
-    const preview = document.getElementById('office-preview');
-    const details = document.getElementById('office-details');
-    
-    details.innerHTML = `
-      <div><strong>${officeName}</strong></div>
-      <div>${officeAddress}</div>
-      <div>Sofia, Bulgaria</div>
-    `;
-    
-    preview.style.display = 'block';
-  }
-
-  // Hide office preview
-  function hideOfficePreview() {
-    const preview = document.getElementById('office-preview');
-    if (preview) {
-      preview.style.display = 'none';
-    }
-  }
-
-  // Update create order button state
-  function updateCreateOrderButton() {
-    const officeSelect = document.getElementById('office-office-select');
-    const button = document.getElementById('office-create-order');
-    if (button) {
-      button.disabled = !officeSelect.value;
-    }
-  }
-
-  // Show office error
-  function showOfficeError(message) {
-    const errorDiv = document.getElementById('office-error');
-    if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    }
-  }
-
-  // Create order from office selector
-  async function createOrderFromOfficeSelector() {
-    const officeSelect = document.getElementById('office-office-select');
-    const selectedOfficeId = officeSelect.value;
-    
-    if (!selectedOfficeId) {
-      showOfficeError('Please select an office');
-      return;
-    }
-
-    const selectedOption = officeSelect.options[officeSelect.selectedIndex];
-    const officeText = selectedOption.textContent;
-    console.log('🏢 Selected office text:', officeText);
-    
-    // Extract office name and address from the option text
-    let officeName, officeAddress;
-    if (officeText.includes(':')) {
-      // Format: "Office Name: Address"
-      [officeName, officeAddress] = officeText.split(':').map(s => s.trim());
-    } else if (officeText.includes(' - ')) {
-      // Format: "Office Name - Address"
-      [officeName, officeAddress] = officeText.split(' - ').map(s => s.trim());
-    } else {
-      // Fallback: use the whole text as name
-      officeName = officeText;
-      officeAddress = 'ул. Витоша 1, София'; // Default Sofia address
-    }
-    
-    console.log('🏢 Extracted office name:', officeName);
-    console.log('🏢 Extracted office address:', officeAddress);
-
-    const button = document.getElementById('office-create-order');
-    const originalText = button.textContent;
-    button.disabled = true;
-    button.textContent = 'Creating Order...';
-
-    try {
-      // Use current valid variant ID for testing
-      const testVariantId = '44557290995843'; // Current valid variant ID from "Sensitive" product
-      const testProductId = '8378591772803'; // Product ID for "Sensitive" product
-      
-      console.log('🏢 Creating draft order with test variant ID:', testVariantId);
-
-      const orderData = {
-        productId: testProductId,
-        variantId: testVariantId,
-        shippingAddress: {
-          address1: officeAddress,
-          city: 'Sofia', // Default city
-          country: 'Bulgaria'
-        }
-      };
-      
-      console.log('🏢 Sending order data:', orderData);
-
-      const response = await fetch('http://localhost:3000/api/create-draft-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData)
       });
-
-      console.log('🏢 API response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('🏢 API error response:', errorData);
-        console.error('🏢 Error details:', errorData.details);
-        
-        // Show more detailed error message
-        let errorMessage = errorData.error || `Failed to create order: ${response.status} ${response.statusText}`;
-        if (errorData.details && errorData.details.length > 0) {
-          errorMessage += ` - Details: ${JSON.stringify(errorData.details)}`;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      
-      if (data.checkoutUrl || data.invoiceUrl) {
-        console.log('🏢 Order created successfully, redirecting to checkout');
-        window.location.href = data.checkoutUrl || data.invoiceUrl;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-
-    } catch (error) {
-      console.error('Error creating order:', error);
-      showOfficeError(error.message || 'Failed to create order');
-    } finally {
-      button.disabled = false;
-      button.textContent = originalText;
-    }
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    console.log('🎯 Custom selector targeting initialized');
   }
 
   // Function to check if an element is a checkout button
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
 
-    // More specific checkout button identifiers with priority order
-    const checkoutIdentifiers = [
-      // Primary identifiers (most specific)
-      { attr: 'id', value: 'CartDrawer-Checkout', priority: 1 },
-      { attr: 'name', value: 'checkout', priority: 1 },
-      { attr: 'data-action', value: 'checkout', priority: 1 },
-      { attr: 'data-checkout-button', value: 'true', priority: 1 },
-      
-      // Secondary identifiers (class-based)
-      { attr: 'class', value: 'shopify-payment-button__button--buy-now', priority: 2 },
-      { attr: 'class', value: 'cart__checkout', priority: 2 },
-      { attr: 'class', value: 'cart-checkout', priority: 2 },
-      { attr: 'class', value: 'checkout-button', priority: 2 },
-      
-      // Tertiary identifiers (less specific)
-      { attr: 'href', value: '/checkout', priority: 3 },
-      { attr: 'class', value: 'shopify-payment-button__button', priority: 3 }
-    ];
-
-    // Check context first
-    const isInCart = element.closest('[data-cart], [data-section="cart"], #cart-drawer, #CartDrawer, [data-cart-drawer]') !== null;
-    const isInProductForm = element.closest('form[action*="/cart/add"]') !== null;
-    const isInCheckoutForm = element.closest('form[action="/cart"]') !== null;
-
-    // If not in any valid context, return false unless it's a very specific button
-    if (!isInCart && !isInProductForm && !isInCheckoutForm) {
-      // Only allow highly specific buttons outside these contexts
-      const hasHighPriorityMatch = checkoutIdentifiers
-        .filter(id => id.priority === 1)
-        .some(identifier => {
-          const attrValue = element.getAttribute(identifier.attr);
-          return attrValue && (
-            attrValue === identifier.value ||
-            attrValue.split(' ').includes(identifier.value)
-          );
-        });
-      
-      if (!hasHighPriorityMatch) return false;
+    // Check exclude selectors first (applies to all targeting methods)
+    if (finalConfig.buttonTargets.excludeSelectors.length > 0) {
+      const excludeMatch = finalConfig.buttonTargets.excludeSelectors.some(selector => {
+        try {
+          return element.matches(selector);
+        } catch (e) {
+          return false;
+        }
+      });
+      if (excludeMatch) {
+        return false;
+      }
     }
 
-    // Check if element matches any identifier
-    const isIdentifiedCheckout = checkoutIdentifiers.some(identifier => {
-      const attrValue = element.getAttribute(identifier.attr);
-      return attrValue && (
-        attrValue === identifier.value ||
-        attrValue.split(' ').includes(identifier.value) ||
-        (identifier.value === '/checkout' && attrValue.includes('/checkout'))
-      );
-    });
+    // If we have custom selectors, ONLY use those (skip all other detection)
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      // Check custom selectors
+      const customMatch = finalConfig.buttonTargets.customSelectors.some(selector => {
+        try {
+          return element.matches(selector);
+        } catch (e) {
+          return false;
+        }
+      });
+      if (customMatch) {
+        return true;
+      }
+      
+      // If we have custom selectors but this element doesn't match, return false
+      return false;
+    }
 
-    // More precise text content check
-    const hasCheckoutText = element.textContent && (
-      element.textContent.toLowerCase().trim() === 'checkout' ||
-      element.textContent.toLowerCase().trim() === 'check out' ||
-      element.textContent.toLowerCase().includes('proceed to checkout') ||
-      element.textContent.toLowerCase().includes('buy now')
-    );
+    // Check enhanced targeting by class and name
+    const className = element.className?.toLowerCase() || '';
+    const name = element.name?.toLowerCase() || '';
+    
+    // Target by class only
+    if (finalConfig.buttonTargets.targetByClass.length > 0) {
+      const classMatch = finalConfig.buttonTargets.targetByClass.some(targetClass => {
+        return className.includes(targetClass.toLowerCase());
+      });
+      if (classMatch) {
+        return true;
+      }
+    }
+    
+    // Target by name only
+    if (finalConfig.buttonTargets.targetByName.length > 0) {
+      const nameMatch = finalConfig.buttonTargets.targetByName.some(targetName => {
+        return name.includes(targetName.toLowerCase());
+      });
+      if (nameMatch) {
+        return true;
+      }
+    }
+    
+    // Target by both class and name (must match both)
+    if (finalConfig.buttonTargets.targetByClassAndName.length > 0) {
+      const classAndNameMatch = finalConfig.buttonTargets.targetByClassAndName.some(target => {
+        const classMatch = className.includes(target.class.toLowerCase());
+        const nameMatch = name.includes(target.name.toLowerCase());
+        return classMatch && nameMatch;
+      });
+      if (classAndNameMatch) {
+        return true;
+      }
+    }
+    
+    // If we have any enhanced targeting configured, don't use smart detection
+    const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
+                                finalConfig.buttonTargets.targetByName.length > 0 ||
+                                finalConfig.buttonTargets.targetByClassAndName.length > 0;
+    
+    if (hasEnhancedTargeting) {
+      return false; // Enhanced targeting was already checked above
+    }
+    
+    // If smart detection is disabled, return false
+    if (!finalConfig.buttonTargets.enableSmartDetection) {
+      return false;
+    }
 
-    // Additional validation for Buy Now buttons
-    const isBuyNowButton = element.matches('.shopify-payment-button__button') && (
-      element.closest('.shopify-payment-button') !== null ||
-      element.getAttribute('data-testid')?.includes('Checkout-button')
-    );
+    const tagName = element.tagName.toLowerCase();
+    const text = element.textContent?.toLowerCase().trim() || '';
+    const id = element.id?.toLowerCase() || '';
+    const type = element.type?.toLowerCase() || '';
 
-    // Exclude common false positives
-    const isExcluded = (
-      element.classList.contains('cart__remove') ||
-      element.classList.contains('remove') ||
-      element.classList.contains('quantity') ||
-      element.classList.contains('close') ||
-      element.getAttribute('aria-label')?.toLowerCase().includes('close') ||
-      element.getAttribute('aria-label')?.toLowerCase().includes('remove')
-    );
+    // Smart detection patterns for different Shopify themes
+    const patterns = {
+      // Primary target: All submit buttons (covers most checkout/buy now buttons)
+      submitButtons: [
+        type === 'submit'
+      ],
+      
+      // Buy Now / Quick Buy patterns
+      buyNow: [
+        // Text patterns
+        text.includes('buy now') || text.includes('buy it now') || text.includes('купи сега'),
+        // Class patterns
+        className.includes('buy-now') || className.includes('quick-buy') || className.includes('shopify-payment-button'),
+        // ID patterns
+        id.includes('buy-now') || id.includes('quick-buy'),
+        // Type patterns
+        type === 'button' && (className.includes('payment') || className.includes('checkout')),
+        // Specific Shopify payment button pattern
+        type === 'button' && className.includes('shopify-payment-button__button') && className.includes('shopify-payment-button__button--unbranded')
+      ],
+      
+      // Checkout patterns
+      checkout: [
+        // Text patterns
+        text.includes('checkout') || text.includes('proceed to checkout') || text.includes('go to checkout') || 
+        text.includes('завърши поръчката') || text.includes('продължи към плащане'),
+        // Class patterns
+        className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
+        // Specific cart checkout button pattern
+        className.includes('cart__checkout-button') && className.includes('button'),
+        // ID patterns
+        id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
+        // Form submit patterns
+        (type === 'submit' && (className.includes('checkout') || name.includes('checkout')))
+      ],
+      
+      // Exclude patterns (Add to Cart, etc.)
+      exclude: [
+        // Add to Cart patterns
+        text.includes('add to cart') || text.includes('добави в кошницата') || text.includes('add to bag'),
+        className.includes('add-to-cart') || className.includes('cart-add') || className.includes('product-form__submit'),
+        id.includes('add-to-cart') || id.includes('cart-add') || id.startsWith('productsubmitbutton-'),
+        name.includes('add') && (name.includes('cart') || name.includes('product')),
+        // Other exclusions
+        className.includes('close') || className.includes('remove') || className.includes('delete'),
+        element.getAttribute('aria-label')?.toLowerCase().includes('close') ||
+        element.getAttribute('aria-label')?.toLowerCase().includes('remove')
+      ]
+    };
 
-    return !isExcluded && (isIdentifiedCheckout || hasCheckoutText || isBuyNowButton);
+    // Check if button matches any exclusion patterns
+    const isExcluded = patterns.exclude.some(pattern => pattern);
+    if (isExcluded) {
+      console.log('🏢 Button excluded:', { tagName, text, className, id, reason: 'matches exclusion pattern' });
+      return false;
+    }
+
+    // Check if button matches any target patterns based on configuration
+    const isSubmitButton = finalConfig.buttonTargets.buttonTypes.includes('submit') && patterns.submitButtons.some(pattern => pattern);
+    const isBuyNow = finalConfig.buttonTargets.buttonTypes.includes('buy-now') && patterns.buyNow.some(pattern => pattern);
+    const isCheckout = finalConfig.buttonTargets.buttonTypes.includes('checkout') && patterns.checkout.some(pattern => pattern);
+    const isCartCheckout = finalConfig.buttonTargets.buttonTypes.includes('cart-checkout') && patterns.checkout.some(pattern => pattern);
+    const isTargetButton = isSubmitButton || isBuyNow || isCheckout || isCartCheckout;
+
+    // Only log when we actually detect a target button (reduce console spam)
+    if (isTargetButton) {
+      console.log('🎯 Smart detection target button:', {
+        tagName,
+        text: text.substring(0, 30),
+        className: className.substring(0, 50),
+        id,
+        type,
+        result: isTargetButton ? (isSubmitButton ? 'SUBMIT' : isBuyNow ? 'BUY_NOW' : 'CHECKOUT') : 'NONE'
+      });
+    }
+
+    return isTargetButton;
   }
   
   // Function to add our checkout handler
@@ -517,72 +627,135 @@
     if (button && !button._hasOurHandler) {
       button._hasOurHandler = true;
       
-      // Use capture phase to get event first, before other handlers
-      button.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopImmediatePropagation(); // Stop other handlers
-        
-        // Check if this is a "Buy Now" button specifically
-        const isBuyNowButton = button.closest('.shopify-payment-button__button') !== null;
-        console.log('Checkout button clicked, isBuyNowButton:', isBuyNowButton);
-        
-        // Pass the event to openCustomCheckout
-        openCustomCheckout(e);
-        return false;
-      }, { capture: true }); // Use capture to get event first
+      // Store original onclick
+      const originalOnclick = button.onclick;
       
-      // Add visual indicator
-      const dot = document.createElement('span');
-      dot.style.position = 'absolute';
-      dot.style.top = '3px';
-      dot.style.right = '3px';
-      dot.style.width = '6px';
-      dot.style.height = '6px';
-      dot.style.backgroundColor = 'red';
-      dot.style.borderRadius = '50%';
-      dot.style.zIndex = '9999';
+      // Set new onclick that calls our function
+      button.onclick = function(event) {
+        // For custom selectors, we know this is a target button, so no need to check
+        if (finalConfig.buttonTargets.customSelectors.length > 0) {
+          console.log('🎯 Custom selector button clicked:', button);
+          event.preventDefault();
+          event.stopPropagation();
+          showOfficeSelector(event);
+          return false;
+        }
+        
+        // For smart detection, check if this is a target button
+        if (isCheckoutButton(button)) {
+          console.log('🎯 Smart detection target button clicked');
+          event.preventDefault();
+          event.stopPropagation();
+          showOfficeSelector(event);
+          return false;
+        }
+        
+        // If not a target button, call original handler
+        if (originalOnclick) {
+          return originalOnclick.call(this, event);
+        }
+      };
       
-      // Make sure the button has relative positioning for the indicator
-      if (getComputedStyle(button).position === 'static') {
-        button.style.position = 'relative';
+      // Add visual indicator - red dot (if debug mode is enabled)
+      if (finalConfig.buttonTargets.debugMode) {
+        const dot = document.createElement('div');
+        dot.style.cssText = `
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          width: 10px;
+          height: 10px;
+          background: #ef4444;
+          border: 2px solid white;
+          border-radius: 50%;
+          z-index: 1000;
+          pointer-events: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        `;
+        
+        // Make sure button has relative positioning for absolute dot
+        if (button.style.position !== 'absolute' && button.style.position !== 'relative') {
+          button.style.position = 'relative';
+        }
+        
+        button.appendChild(dot);
       }
       
-      button.appendChild(dot);
+      console.log('🏢 Added red dot indicator to button:', {
+        tagName: button.tagName,
+        text: button.textContent?.substring(0, 30),
+        className: button.className,
+        id: button.id
+      });
     }
   }
   
   // Function to find and initialize all checkout buttons
   function findAndInitializeCheckoutButtons() {
-    // More specific selectors
+    // Comprehensive selectors to catch all possible buttons
     const selectors = [
-      // Primary selectors (most specific)
-      '#CartDrawer-Checkout',
-      '[name="checkout"]',
-      '[data-action="checkout"]',
-      '[data-checkout-button="true"]',
+      // All buttons and submit inputs
+      'button',
+      'input[type="submit"]',
+      'input[type="button"]',
+      'a[role="button"]',
       
-      // Cart-specific selectors
-      '[data-cart] [type="submit"]',
-      '[data-section="cart"] button',
-      '#cart-drawer button',
-      '#CartDrawer button',
+      // Specific type selectors
+      'button[type="submit"]',
+      'button[type="button"]',
       
-      // Buy Now buttons
-      '.shopify-payment-button__button--buy-now',
+      // Class-based selectors
+      'button[class*="checkout"]',
+      'button[class*="buy-now"]',
+      'button[class*="buy"]',
+      'button[class*="payment"]',
+      'button[class*="cart"]',
+      'button[class*="proceed"]',
+      'button[class*="add-to-cart"]',
+      'button[class*="product-form"]',
+      'button[class*="shopify-payment"]',
       
-      // Secondary selectors
-      '.cart__checkout',
-      '.cart-checkout',
-      '.checkout-button',
+      // ID-based selectors
+      'button[id*="checkout"]',
+      'button[id*="buy-now"]',
+      'button[id*="buy"]',
+      'button[id*="payment"]',
+      'button[id*="cart"]',
+      'button[id*="proceed"]',
+      'button[id*="add-to-cart"]',
+      'button[id*="product"]',
       
-      // Generic checkout links/buttons
-      '[href="/checkout"]',
-      '[href*="/checkout"]',
-      '.shopify-payment-button__button'
-    ].join(',');
-
-    // Find all potential checkout buttons
-    const buttons = document.querySelectorAll(selectors);
+      // Link-based selectors
+      'a[class*="checkout"]',
+      'a[class*="buy-now"]',
+      'a[class*="buy"]',
+      'a[class*="payment"]',
+      'a[class*="cart"]',
+      'a[class*="proceed"]',
+      'a[id*="checkout"]',
+      'a[id*="buy-now"]',
+      'a[id*="buy"]',
+      'a[id*="payment"]',
+      'a[id*="cart"]',
+      'a[id*="proceed"]'
+    ];
+    
+    const buttons = [];
+    selectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => buttons.push(el));
+    });
+    
+    // Log all found buttons for debugging
+    if (buttons.length > 0) {
+      console.log(`🔍 Scanning ${buttons.length} potential checkout buttons:`, buttons.map(b => ({
+        tagName: b.tagName,
+        text: b.textContent?.trim().substring(0, 30),
+        className: b.className,
+        id: b.id,
+        type: b.type
+      })));
+    }
     
     buttons.forEach(button => {
       if (isCheckoutButton(button)) {
@@ -593,714 +766,142 @@
   
   // Function to continuously monitor for checkout buttons
   // function monitorForCheckoutButtons() {
-  //   findAndInitializeCheckoutButtons();
+  //   // Only run detection if not using custom selectors
+  //   if (finalConfig.buttonTargets.customSelectors.length === 0) {
+  //     findAndInitializeCheckoutButtons();
+  //   }
   // }
   
   // Monitor the DOM for changes to catch when buttons appear
-  // function startObserving() {
-  //   // Check frequently for checkout buttons
-  //   setInterval(monitorForCheckoutButtons, 500);
+  function startObserving() {
+    // Check for checkout buttons (reduced frequency to avoid console spam)
+    setInterval(monitorForCheckoutButtons, 2000);
     
-  //   // Also use MutationObserver to detect when new buttons are added
-  //   const observer = new MutationObserver(function(mutations) {
-  //     mutations.forEach(mutation => {
-  //       if (mutation.addedNodes.length) {
-  //         findAndInitializeCheckoutButtons();
-  //       }
-  //     });
-  //   });
+    // Also use MutationObserver for more efficient monitoring
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (isCheckoutButton(node)) {
+                addOurCheckoutHandler(node);
+              }
+              // Also check children
+              const buttons = node.querySelectorAll ? node.querySelectorAll('button, input[type="submit"], a') : [];
+              buttons.forEach(button => {
+                if (isCheckoutButton(button)) {
+                  addOurCheckoutHandler(button);
+                }
+              });
+            }
+          });
+        }
+      });
+    });
     
-  //   // Observe the entire document
-  //   observer.observe(document.body, {
-  //     childList: true,
-  //     subtree: true,
-  //     attributes: true,
-  //     attributeFilter: ['class', 'style', 'display', 'visibility']
-  //   });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'display', 'visibility']
+    });
     
-  //   console.log('Persistent checkout button monitoring started');
-  // }
+    console.log('Persistent checkout button monitoring started');
+  }
   
   function openCustomCheckout(event) {
   console.log('Opening custom checkout...');
   
     // Determine if this is a "Buy Now" button click
-    let isBuyNowButton = false;
-    let currentProduct = null;
+    const isBuyNow = event.target.textContent?.toLowerCase().includes('buy now') ||
+                     event.target.textContent?.toLowerCase().includes('купи сега') ||
+                     event.target.className?.toLowerCase().includes('buy-now') ||
+                     event.target.id?.toLowerCase().includes('buy-now');
     
-    if (event && event.target) {
-      const button = event.target.closest('.shopify-payment-button__button');
-      // Check if this is a Buy Now button
-      if (button) {
-        isBuyNowButton = true;
-        console.log('Buy Now button detected, showing office selector instead of checkout form');
-        
-        // Show office selector for Buy Now buttons
-        showOfficeSelector(event);
-        return; // Don't proceed with regular checkout
-        
-        try {
-          // Get product data from the page meta tags or JSON
-          const productJson = document.getElementById('ProductJson-product-template') || 
-                             document.getElementById('ProductJson-product') ||
-                             document.querySelector('[id^="ProductJson-"]') ||
-                             document.querySelector('script[type="application/json"][data-product-json]');
-          
-          if (productJson && productJson.textContent) {
-            currentProduct = JSON.parse(productJson.textContent);
-            console.log('Found product JSON:', currentProduct);
-          } 
-          
-          // If not found in JSON, try to get from meta tags
-          if (!currentProduct) {
-            console.log('No product JSON found, trying meta tags and other methods');
-            
-            // Try data-product-json attribute first (common in many themes)
-            const productDataElements = document.querySelectorAll('[data-product-json]');
-            for (const element of productDataElements) {
-              try {
-                if (element.textContent) {
-                  currentProduct = JSON.parse(element.textContent);
-                  console.log('Found product from data-product-json attribute:', currentProduct);
-                  break;
-                }
-              } catch (e) {
-                console.warn('Failed to parse product data from element:', e);
-              }
-            }
-            
-            // Try finding JSON in any script tag that contains product data
-            if (!currentProduct) {
-              const scriptTags = document.querySelectorAll('script:not([src])');
-              for (const script of scriptTags) {
-                try {
-                  if (script.textContent && 
-                     (script.textContent.includes('"product":') || 
-                      script.textContent.includes('"variants":')) && 
-                     script.textContent.includes('"price":')) {
-                    
-                    // Try to extract just the product object
-                    const matches = script.textContent.match(/\{(?:[^{}]|(\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}/g);
-                    if (matches) {
-                      for (const jsonText of matches) {
-                        try {
-                          const parsed = JSON.parse(jsonText);
-                          if (parsed.id && parsed.title && parsed.price !== undefined) {
-                            currentProduct = parsed;
-                            console.log('Found product in script content:', currentProduct);
-                            break;
-                          }
-                        } catch (e) {
-                          // Skip invalid JSON
-                        }
-                      }
-                    }
-                    
-                    if (currentProduct) break;
-                  }
-                } catch (e) {
-                  // Skip errors
-                }
-              }
-            }
-            
-            // Try meta tags as last resort
-            if (!currentProduct) {
-              const productMetaTag = document.querySelector('meta[property="og:product"]') ||
-                                    document.querySelector('meta[property="product:price:amount"]');
-              
-              if (productMetaTag) {
-                // This is just a fallback with limited information
-                const price = document.querySelector('meta[property="product:price:amount"]')?.content;
-                const title = document.querySelector('meta[property="og:title"]')?.content;
-                const image = document.querySelector('meta[property="og:image"]')?.content;
-                const url = window.location.href;
-                
-                // Try to extract product ID from URL
-                const productId = url.match(/\/products\/([^\/\?#]+)/)?.[1];
-                
-                if (price && title) {
-                  currentProduct = {
-                    id: productId || 'unknown',
-                    title: title,
-                    price: parseFloat(price) * 100, // Convert to cents
-                    featured_image: image,
-                    url: url,
-                    quantity: 1
-                  };
-                  console.log('Constructed product from meta tags:', currentProduct);
-                }
-              }
-            }
-            
-            // Try extracting directly from the page HTML
-            if (!currentProduct) {
-              // Look for price elements
-              const priceElement = document.querySelector('.price') || 
-                                  document.querySelector('[data-product-price]') ||
-                                  document.querySelector('.product-price') ||
-                                  document.querySelector('[data-price]');
-              
-              const titleElement = document.querySelector('h1') || 
-                                  document.querySelector('.product-title') ||
-                                  document.querySelector('[data-product-title]');
-              
-              const imageElement = document.querySelector('.product-featured-image') ||
-                                  document.querySelector('[data-product-featured-image]') ||
-                                  document.querySelector('.product-single__photo') ||
-                                  document.querySelector('img.product__media-item') ||
-                                  document.querySelector('.product__media img') ||
-                                  document.querySelector('.product-image') ||
-                                  document.querySelector('img[itemprop="image"]') ||
-                                  document.querySelector('.product-page img') ||
-                                  document.querySelector('.product-single img');
-              
-              if (priceElement && titleElement) {
-                // Extract price - remove currency and non-numeric characters
-                let priceText = priceElement.textContent.trim().replace(/[^\d.,]/g, '').replace(',', '.');
-                const price = parseFloat(priceText) * 100; // Convert to cents
-                
-                const productId = window.location.pathname.match(/\/products\/([^\/\?#]+)/)?.[1] || 'unknown';
-                
-                // Get image information, look for high-quality versions
-                let imageSrc = null;
-                if (imageElement) {
-                  // Try data attributes first, which often contain better quality images
-                  imageSrc = imageElement.getAttribute('data-src') || 
-                            imageElement.getAttribute('data-srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
-                            imageElement.getAttribute('srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
-                            imageElement.src;
-                  console.log('Found image sources:', {
-                    dataSrc: imageElement.getAttribute('data-src'),
-                    dataSrcset: imageElement.getAttribute('data-srcset'),
-                    srcset: imageElement.getAttribute('srcset'),
-                    src: imageElement.src
-                  });
-                }
-                
-                currentProduct = {
-                  id: productId,
-                  title: titleElement.textContent.trim(),
-                  price: isNaN(price) ? 0 : price,
-                  featured_image: imageSrc,
-                  image: { src: imageSrc },
-                  url: window.location.href,
-                  quantity: 1
-                };
-                
-                console.log('Constructed product from page elements:', currentProduct);
-              }
-            }
-          }
-          
-          // Look for variant information if available
-          if (currentProduct) {
-            // Try to get selected variant
-            const selectedOptions = {};
-            
-            // Find all selected option inputs
-            document.querySelectorAll('select[name^="options"], input[name^="options"]:checked').forEach(input => {
-              const option = input.getAttribute('name').match(/options\[([^\]]+)\]/)?.[1];
-              if (option) {
-                selectedOptions[option] = input.value;
-              }
-            });
-            
-            // Find quantity input
-            const quantityInput = document.querySelector('input[name="quantity"]');
-            if (quantityInput && quantityInput.value) {
-              currentProduct.quantity = parseInt(quantityInput.value, 10) || 1;
-            }
-            
-            // Find the selected variant if available
-            if (currentProduct.variants && currentProduct.variants.length > 0 && Object.keys(selectedOptions).length > 0) {
-              const selectedVariant = currentProduct.variants.find(variant => {
-                // Check if all selected options match this variant
-                if (!variant.options || !variant.options.length) return false;
-                
-                return variant.options.every((option, index) => {
-                  const optionName = currentProduct.options[index];
-                  return !selectedOptions[optionName] || selectedOptions[optionName] === option;
-                });
-              });
-              
-              if (selectedVariant) {
-                console.log('Found selected variant:', selectedVariant);
-                currentProduct.variant_id = selectedVariant.id;
-                currentProduct.price = selectedVariant.price;
-                currentProduct.compare_at_price = selectedVariant.compare_at_price;
-                currentProduct.variant_title = selectedVariant.title;
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Error getting product info:', e);
-        }
-      }
+    console.log('Is Buy Now button:', isBuyNow);
+    
+    if (isBuyNow) {
+      console.log('Buy Now button clicked - showing office selector');
+      showOfficeSelector(event);
+      return;
     }
     
-    // Create and show the modal and iframe immediately
-    let modal = document.createElement('div');
-        modal.id = 'custom-checkout-modal';
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.width = '100%';
-        modal.style.height = '100%';
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        modal.style.zIndex = '9999';
-        modal.style.display = 'flex';
-        modal.style.justifyContent = 'center';
-        modal.style.alignItems = 'center';
-        
-    // Create iframe immediately
+    // For regular checkout, show office selector first, then proceed to checkout
+    console.log('Regular checkout button clicked - showing office selector');
+    showOfficeSelector(event);
+    return;
+    
+    // Extract product data from the page
+    const productData = extractProductFromPage();
+    console.log('Extracted product data:', productData);
+    
+    if (!productData) {
+      console.error('Could not extract product data from page');
+      return;
+    }
+    
+              // Production URL for live sites
+     const baseUrl = 'https://checkout-form-zeta.vercel.app';
+     
+     // Create iframe for checkout form
         const iframe = document.createElement('iframe');
-        iframe.id = 'checkout-iframe';
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.maxWidth = '600px';
-        iframe.style.maxHeight = '90vh';
-        iframe.style.border = 'none';
-        iframe.style.borderRadius = '8px';
-        iframe.style.backgroundColor = 'white';
-        iframe.style.margin = 'auto';
-        
-    // Configure iframe URL
-        const iframeUrl = new URL('https://checkout-form-zeta.vercel.app/iframe');
-        iframeUrl.searchParams.append('hasCart', 'true');
-        
-    // If this is a Buy Now button, add a flag to the URL
-    if (isBuyNowButton) {
-      iframeUrl.searchParams.append('buyNow', 'true');
-    }
+     iframe.src = `${baseUrl}/iframe`;
+     iframe.style.cssText = `
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       border: none;
+       z-index: 10000;
+       background: white;
+     `;
+     
+     document.body.appendChild(iframe);
     
-    // Get and append the Shopify domain
-    const shopifyDomain = Shopify.shop || window.Shopify.shop || 
-      document.querySelector('meta[name="shopify-checkout-api-token"]')?.dataset?.shopifyDomain ||
-      window.location.hostname;
-    iframeUrl.searchParams.append('shopifyDomain', shopifyDomain);
-    
-    // Optimize for mobile/tablet immediately
-        if (window.innerWidth < 768) {
-          iframe.style.maxWidth = '100%';
-          iframe.style.maxHeight = '100%';
-          iframe.style.height = '100%';
-          iframe.style.borderRadius = '0';
-          iframeUrl.searchParams.append('isMobile', 'true');
-          modal.style.padding = '0';
-        } else if (window.innerWidth < 992) {
-          iframe.style.maxWidth = '90%';
-          iframe.style.maxHeight = '95vh';
-          iframeUrl.searchParams.append('isTablet', 'true');
-        }
-        
-    // Add viewport information
-        iframeUrl.searchParams.append('viewportWidth', window.innerWidth);
-        iframeUrl.searchParams.append('pixelRatio', window.devicePixelRatio || 1);
-    
-    // For Buy Now button, use the current product instead of cart data
-    if (isBuyNowButton && currentProduct) {
-      console.log('Using product from Buy Now button:', currentProduct);
+     // Listen for messages from iframe
+     const messageHandler = (event) => {
+                const allowedOrigins = [
+           'https://checkout-form-zeta.vercel.app'
+         ];
+       if (!allowedOrigins.includes(event.origin)) return;
       
-      // Create a cart-like structure with the single product
-      const singleProductCart = {
-        product: currentProduct,
-        cart_type: 'buy_now',
-        source: 'buy_now_button',
-        items: [{
-          id: currentProduct.variant_id ? String(currentProduct.variant_id) : String(currentProduct.id),
-          title: currentProduct.title + (currentProduct.variant_title ? ` - ${currentProduct.variant_title}` : ''),
-          quantity: currentProduct.quantity || 1,
-          price: currentProduct.price,
-          line_price: currentProduct.price * (currentProduct.quantity || 1),
-          original_line_price: (currentProduct.compare_at_price || currentProduct.price) * (currentProduct.quantity || 1),
-          variant_id: currentProduct.variant_id ? String(currentProduct.variant_id) : String(currentProduct.id),
-          product_id: currentProduct.id ? String(currentProduct.id) : String(currentProduct.variant_id || 'unknown'),
-          sku: currentProduct.sku || '',
-          variant_title: currentProduct.variant_title || '',
-          vendor: currentProduct.vendor || '',
-          image: currentProduct.image?.src || currentProduct.featured_image || null,
-          requires_shipping: true
-        }],
-        total_price: currentProduct.price * (currentProduct.quantity || 1),
-        items_subtotal_price: currentProduct.price * (currentProduct.quantity || 1),
-        total_discount: currentProduct.compare_at_price ? 
-          (currentProduct.compare_at_price - currentProduct.price) * (currentProduct.quantity || 1) : 0,
-        item_count: currentProduct.quantity || 1,
-        currency: 'BGN'
-      };
-      
-      // Store this data globally
-      window.shopifyCart = singleProductCart;
-      window.cartData = singleProductCart;
-      window.buyNowProduct = currentProduct; // Store the individual product
-      
-      // Store in localStorage for backup
-      try {
-        localStorage.setItem('tempCartData', JSON.stringify(singleProductCart));
-        localStorage.setItem('buyNowProduct', JSON.stringify(currentProduct));
-      } catch (e) {
-        console.warn('Could not store Buy Now data in localStorage', e);
-      }
-      
-      // Now set the iframe src
-      iframe.src = iframeUrl.toString();
-      
-      // Test that product data is available
-      console.log('Product data check before iframe load:', {
-        singleProductCart,
-        currentProduct,
-        windowBuyNowProduct: window.buyNowProduct,
-        localStorageBuyNowProduct: JSON.parse(localStorage.getItem('buyNowProduct') || '{}')
-      });
-      
-      // Send the product data when iframe loads
-      iframe.onload = function() {
-        console.log('Iframe loaded, sending product data immediately');
-        
-        // Test that product data is still available
-        console.log('Product data check before sending to iframe:', {
-          fromVariable: currentProduct,
-          fromWindow: window.buyNowProduct,
-          fromCart: singleProductCart
-        });
-        
-        if (iframe.contentWindow) {
-          // Add the buyNow=true flag to the iframe URL
-          try {
-            const iframeWindow = iframe.contentWindow;
-            const currentUrl = new URL(iframeWindow.location.href);
-            currentUrl.searchParams.set('buyNow', 'true');
-            
-            // This won't actually navigate, but will make the param available to the iframe
-            iframeWindow.history.replaceState({}, '', currentUrl.toString());
-            console.log('Added buyNow=true to iframe URL:', currentUrl.toString());
-          } catch (e) {
-            console.error('Error adding buyNow param to iframe URL:', e);
-          }
-          
-          // Add a small delay to ensure iframe is ready to receive messages
-          setTimeout(() => {
-            console.log('Sending product data to iframe now');
+      switch (event.data.type) {
+        case 'checkout-closed':
+          console.log('Checkout form closed');
+          document.body.removeChild(iframe);
+          window.removeEventListener('message', messageHandler);
+          break;
+        case 'request-cart-data':
+          console.log('Checkout form requesting cart data');
             iframe.contentWindow.postMessage({
               type: 'cart-data',
-              cart: singleProductCart,
-              product: currentProduct, // Send the individual product explicitly
-              metadata: {
-                timestamp: new Date().toISOString(),
-                shopUrl: window.location.hostname,
-                shopifyDomain: shopifyDomain,
-                source: 'buy_now_button',
-                hasItems: true,
-                itemCount: singleProductCart.item_count || 1,
-                isBuyNowContext: true,
-                isSingleProduct: true
-              }
-            }, '*');
-          }, 100);
-        }
-      };
-      
-      modal.appendChild(iframe);
-      document.body.appendChild(modal);
-    } else {
-      // Regular flow - load cart data first, then set the iframe src
-      fetch('/cart.js')
-        .then(response => response.json())
-        .then(cartData => {
-          // Store cart data globally for later use
-          window.shopifyCart = cartData;
-          window.cartData = cartData;
-          window.customCheckoutData = {
-            cartData: cartData,
-            timestamp: new Date().toISOString()
-          };
-          
-        try {
-          localStorage.setItem('tempCartData', JSON.stringify(cartData));
-        } catch (e) {
-          console.warn('Could not store cart data in localStorage', e);
-        }
-        
-          // Now set the iframe src after we have the data
-          iframe.src = iframeUrl.toString();
-          
-          // Add a load event listener to immediately send data when iframe loads
-          iframe.onload = function() {
-            console.log('Iframe loaded, sending cart data immediately');
-            if (iframe.contentWindow) {
-              iframe.contentWindow.postMessage({
-                type: 'cart-data',
-                cart: cartData,
-                metadata: {
-                  timestamp: new Date().toISOString(),
-                  shopUrl: window.location.hostname,
-                  shopifyDomain: shopifyDomain,
-                  source: 'shopify-integration'
-                }
-              }, '*');
-            }
-          };
-        })
-        .catch(error => {
-          console.error('Error fetching cart data:', error);
-          // Set iframe src even if cart data fetch fails
-          iframe.src = iframeUrl.toString();
-        });
-      
-      modal.appendChild(iframe);
-      document.body.appendChild(modal);
-    }
-    
-    // Set up message handler
-    window.addEventListener('message', function messageHandler(event) {
-      // Only accept messages from our checkout form
-      if (event.origin !== 'https://checkout-form-zeta.vercel.app') return;
-
-      debugger;
-      console.log('Received message from iframe:', event.data?.type || event.data);
-
-      // Handle messages from iframe
-      const messageType = event.data?.type || event.data;
-      
-      switch (messageType) {
-        case 'request-cart-data':
-          console.log('Received request for cart data from iframe');
-          
-          // Check if we have Buy Now data
-          if (window.shopifyCart && window.shopifyCart.cart_type === 'buy_now') {
-            console.log('We have Buy Now data, sending it directly to iframe');
-            
-            // Make sure we have product data
-            const buyNowProduct = window.buyNowProduct || 
-               (localStorage.getItem('buyNowProduct') ? JSON.parse(localStorage.getItem('buyNowProduct')) : null);
-            
-            // Debug the product data
-            console.log('Buy Now product data check:', {
-              windowBuyNowProduct: window.buyNowProduct ? true : false,
-              localStorageBuyNowProduct: localStorage.getItem('buyNowProduct') ? true : false,
-              buyNowProduct: buyNowProduct,
-              windowShopifyCart: window.shopifyCart
-            });
-            
-            // Make sure the data has the expected structure with both product and items
-            if (!window.shopifyCart.items || window.shopifyCart.items.length === 0) {
-              console.log('Buy Now cart has no items, adding product to cart');
-              
-              // If we don't have product data, create a test product
-              if (!buyNowProduct) {
-                console.log('No product data found for Buy Now. Current page product data is required.');
-                
-                // Try to extract product data from the page again
-                const pageProduct = extractProductFromPage();
-                
-                if (pageProduct) {
-                  console.log('Extracted product from page:', pageProduct);
-                  window.buyNowProduct = pageProduct;
-                  localStorage.setItem('buyNowProduct', JSON.stringify(pageProduct));
-                  window.shopifyCart.product = pageProduct;
-                } else {
-                  console.error('Could not extract product data from the page.');
-                  if (event.source) {
-                    event.source.postMessage({
-                      type: 'error-message',
-                      message: 'Не можахме да намерим информация за продукта. Моля, опитайте отново.'
-                    }, '*');
-                  }
-                  return;
-                }
-              }
-              
-              // Use buyNowProduct or the test product we just created
-              const product = buyNowProduct || window.buyNowProduct;
-              
-              if (product) {
-                window.shopifyCart.items = [{
-                  id: product.variant_id ? String(product.variant_id) : String(product.id),
-                  title: product.title + (product.variant_title ? ` - ${product.variant_title}` : ''),
-                  quantity: product.quantity || 1,
-                  price: product.price,
-                  line_price: product.price * (product.quantity || 1),
-                  original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-                  variant_id: product.variant_id ? String(product.variant_id) : String(product.id),
-                  product_id: product.id ? String(product.id) : String(product.variant_id || 'unknown'),
-                  sku: product.sku || '',
-                  variant_title: product.variant_title || '',
-                  vendor: product.vendor || '',
-                  image: product.image?.src || product.featured_image || null,
-                  requires_shipping: true
-                }];
-                window.shopifyCart.total_price = product.price * (product.quantity || 1);
-                window.shopifyCart.items_subtotal_price = product.price * (product.quantity || 1);
-                window.shopifyCart.total_discount = product.compare_at_price ? 
-                  (product.compare_at_price - product.price) * (product.quantity || 1) : 0;
-                window.shopifyCart.item_count = product.quantity || 1;
-                window.shopifyCart.currency = 'BGN';
-                window.shopifyCart.product = product; // Make sure product data is included
-              }
-            }
-            
-            if (event.source) {
-              event.source.postMessage({
-                type: 'cart-data',
-                cart: window.shopifyCart,
-                product: buyNowProduct, // Send the individual product explicitly
-                metadata: {
-                  timestamp: new Date().toISOString(),
-                  shopUrl: window.location.hostname,
-                  source: 'buy_now_button',
-                  hasItems: true,
-                  itemCount: window.shopifyCart.item_count || 1,
-                  isBuyNowContext: true,
-                  isSingleProduct: true
-                }
-              }, '*');
-            }
-            break;
-          }
-          
-          // Otherwise fetch fresh cart data
-          fetch('/cart.js')
-            .then(response => response.json())
-            .then(cartData => {
-              window.shopifyCart = cartData;
-              window.cartData = cartData;
-              
-              // Check if we're in a Buy Now context (even with empty cart)
-              const isBuyNowContext = window.location.href.includes('product') || 
-                                     document.querySelector('.shopify-payment-button') !== null;
-              
-              // Add Buy Now context to empty carts when appropriate
-              if (isBuyNowContext && (!cartData.items || cartData.items.length === 0)) {
-                console.log('Adding Buy Now context to empty cart in domain response:', cartData);
-                cartData.cart_type = 'buy_now';
-                cartData.source = 'buy_now_button';
-              }
-              
-              console.log('Sending fresh cart data to iframe:', cartData);
-              if (event.source) {
-                event.source.postMessage({
-            type: 'cart-data',
-            cart: cartData,
-            metadata: {
-              timestamp: new Date().toISOString(),
-              shopUrl: window.location.hostname,
-                    hasItems: cartData.items && cartData.items.length > 0,
-                    itemCount: cartData.items?.length || 0,
-                    isBuyNowContext: isBuyNowContext
-                  }
-                }, '*');
-              }
-            })
-            .catch(error => {
-              console.error('Error fetching cart data:', error);
-            });
+            cart: productData
+          }, baseUrl);
           break;
-
-        case 'GET_SHOPIFY_DOMAIN':
-          event.source.postMessage({
-            type: 'SHOPIFY_DOMAIN_RESPONSE',
-            domain: shopifyDomain
-          }, '*');
-          
-          // Send cart data along with domain response
-          if (window.shopifyCart && event.source) {
-            // Special handling for Buy Now data
-            let metadata = { timestamp: new Date().toISOString() };
-            
-            // Ensure Buy Now data has the correct structure
-            if (window.shopifyCart.cart_type === 'buy_now') {
-              metadata.source = 'buy_now_button';
-              metadata.hasItems = true;
-              metadata.itemCount = window.shopifyCart.item_count || 1;
-              
-              // Make sure the data has the expected structure with both product and items
-              if (!window.shopifyCart.items && window.shopifyCart.product) {
-                const product = window.shopifyCart.product;
-                window.shopifyCart.items = [{
-                  id: product.variant_id ? String(product.variant_id) : String(product.id),
-                  title: product.title + (product.variant_title ? ` - ${product.variant_title}` : ''),
-                  quantity: product.quantity || 1,
-                  price: product.price,
-                  line_price: product.price * (product.quantity || 1),
-                  original_line_price: (product.compare_at_price || product.price) * (product.quantity || 1),
-                  variant_id: product.variant_id ? String(product.variant_id) : String(product.id),
-                  product_id: product.id ? String(product.id) : String(product.variant_id || 'unknown'),
-                  sku: product.sku || '',
-                  variant_title: product.variant_title || '',
-                  vendor: product.vendor || '',
-                  image: product.image?.src || product.featured_image || null,
-                  requires_shipping: true
-                }];
-                window.shopifyCart.total_price = product.price * (product.quantity || 1);
-                window.shopifyCart.items_subtotal_price = product.price * (product.quantity || 1);
-                window.shopifyCart.total_discount = product.compare_at_price ? 
-                  (product.compare_at_price - product.price) * (product.quantity || 1) : 0;
-                window.shopifyCart.item_count = product.quantity || 1;
-                window.shopifyCart.currency = 'BGN';
-              }
-            } else {
-              metadata.hasItems = window.shopifyCart.items && window.shopifyCart.items.length > 0;
-              metadata.itemCount = window.shopifyCart.items?.length || 0;
-            }
-            
-            event.source.postMessage({
-              type: 'cart-data',
-              cart: window.shopifyCart,
-              metadata: metadata
-            }, '*');
-          } else {
-            // If we don't have cart data yet, fetch it
-            fetch('/cart.js')
-              .then(response => response.json())
-              .then(cartData => {
-                window.shopifyCart = cartData;
-                window.cartData = cartData;
-                
-                // Check if we're in a Buy Now context (even with empty cart)
-                const isBuyNowContext = window.location.href.includes('product') || 
-                                      document.querySelector('.shopify-payment-button') !== null;
-                
-                // Add Buy Now context to empty carts when appropriate
-                if (isBuyNowContext && (!cartData.items || cartData.items.length === 0)) {
-                  console.log('Adding Buy Now context to empty cart in domain response:', cartData);
-                  cartData.cart_type = 'buy_now';
-                  cartData.source = 'buy_now_button';
-                }
-                
-                if (event.source) {
-                  event.source.postMessage({
-              type: 'cart-data',
-              cart: cartData,
-              metadata: {
-                timestamp: new Date().toISOString(),
-                      hasItems: cartData.items && cartData.items.length > 0,
-                      itemCount: cartData.items?.length || 0,
-                      isBuyNowContext: isBuyNowContext
-              }
-            }, '*');
-                }
-              })
-              .catch(error => console.error('Error fetching cart data:', error));
-          }
-          break;
-
         case 'submit-checkout':
+          console.log('Checkout form submitted');
           handleOrderCreation(event.data.formData, event.source);
           break;
-
-        case 'checkout-closed':
-          if (document.body.contains(modal)) {
-            document.body.removeChild(modal);
+        case 'GET_SHOPIFY_DOMAIN':
+          console.log('Checkout form requesting Shopify domain');
+          const domain = window.location.hostname;
+          event.source.postMessage({
+            type: 'SHOPIFY_DOMAIN_RESPONSE',
+            domain: domain
+          }, '*');
+          break;
+        case 'checkout-cleanup-done':
+          console.log('Checkout cleanup completed');
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
           }
           window.removeEventListener('message', messageHandler);
-          // Send cleanup confirmation back to iframe
-          if (event.source) {
-            event.source.postMessage({ type: 'checkout-cleanup-done' }, '*');
-          }
           break;
       }
-    });
+    };
+    
+    window.addEventListener('message', messageHandler);
   }
 
   // Function to handle order creation
@@ -1308,118 +909,33 @@
     try {
       console.log('Creating order with data:', formData);
       
-      debugger;
-      // Show loading state in the iframe
-      source.postMessage({
-        type: 'order-processing',
-        message: 'Създаване на поръчка..'
-      }, '*');
-      
-      debugger;
-      // Format cart data to match API expectations
-      const cartItems = formData.cartData.items.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        title: item.title,
-        price: item.price,
-        variant_id: item.variant_id ? String(item.variant_id) : String(item.id),
-        product_id: item.product_id ? String(item.product_id) : String(item.id),
-        sku: item.sku || '',
-        variant_title: item.variant_title || '',
-        vendor: item.vendor || '',
-        line_price: item.line_price
-      }));
-
-      const requestPayload = {
-        shop_domain: formData.shop_domain,
-        cart: {
-          items: cartItems,
-          currency: formData.cartData.currency,
-          total_price: formData.cartData.total_price,
-          total_weight: formData.cartData.total_weight,
-          item_count: formData.cartData.item_count,
-          items_subtotal_price: formData.cartData.items_subtotal_price,
-          total_discount: formData.cartData.total_discount,
-          requires_shipping: formData.cartData.requires_shipping
-        },
-        shipping_method: formData.shipping_method,
-        shipping_price: formData.shipping_price,
-        shipping_method_data: formData.shipping_method_data,
-        client_details: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone: formData.phone,
-          email: formData.email,
-          address: {
-            city: formData.city,
-            address1: formData.address,
-            postcode: formData.postalCode
-          },
-          note: formData.note || ''
-        }
-      };
-
-      console.log('Sending formatted request:', requestPayload);
-      
       const response = await fetch('https://checkout-form-zeta.vercel.app/api/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestPayload)
+        body: JSON.stringify(formData)
       });
 
-      debugger;
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response from API:', errorText);
-        throw new Error(`Failed to create order: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
       }
 
       const data = await response.json();
       console.log('Order created successfully:', data);
 
-      if (data.success) {
-        // First notify the iframe about successful order creation
+      // Send success response back to iframe
         source.postMessage({
           type: 'order-created',
-          data: data
+        orderId: data.orderId,
+        checkoutUrl: data.checkoutUrl
         }, '*');
-
-        // Show success message before redirect
-        source.postMessage({
-          type: 'order-redirect',
-          message: 'Пренасочване към страницата на поръчката...'
-        }, '*');
-
-        // Get the redirect URL directly from the API response
-        let orderStatusUrl;
-        
-        // Use the redirect_url or checkout_url if provided directly by the API
-        if (data.redirect_url) {
-          orderStatusUrl = data.redirect_url;
-        } else if (data.checkout_url) {
-          orderStatusUrl = data.checkout_url;
-        } else if (data.order_status_url) {
-          orderStatusUrl = data.order_status_url;
-        } else if (data.order && data.order.order_status_url) {
-          orderStatusUrl = data.order.order_status_url;
-        } else {
-          // Fallback to homepage if no redirect URL provided
-          orderStatusUrl = `https://${requestPayload.shop_domain}`;
-        }
-
-        // Short delay to show the success message
-        setTimeout(() => {
-          window.location.href = orderStatusUrl;
-        }, 500);
-      } else {
-        throw new Error(data.message || 'Failed to create order');
-      }
 
     } catch (error) {
       console.error('Error creating order:', error);
+      
+      // Send error response back to iframe
       source.postMessage({
         type: 'order-error',
         error: error.message
@@ -1432,90 +948,114 @@
     try {
       console.log('Attempting to extract product data from page elements...');
       
-      // Try JSON first
-      const productJson = document.getElementById('ProductJson-product-template') || 
-                         document.getElementById('ProductJson-product') ||
-                         document.querySelector('[id^="ProductJson-"]') ||
-                         document.querySelector('script[type="application/json"][data-product-json]');
-                         
-      if (productJson && productJson.textContent) {
-        const product = JSON.parse(productJson.textContent);
-        console.log('Found product JSON:', product);
-        // Ensure image is properly formatted for use in checkout form
-        if (product.featured_image && !product.image) {
-          product.image = { src: product.featured_image };
-        } else if (product.images && product.images.length > 0 && !product.image) {
-          product.image = { src: product.images[0] };
+      // Try to get product data from various sources
+      let productData = null;
+      
+      // Method 1: Check for Shopify product object
+      if (typeof window.ShopifyAnalytics !== 'undefined' && window.ShopifyAnalytics.meta) {
+        const meta = window.ShopifyAnalytics.meta;
+        if (meta.product) {
+          productData = {
+            product: {
+              id: meta.product.id,
+              title: meta.product.title,
+              vendor: meta.product.vendor,
+              price: meta.product.price,
+              image: meta.product.image,
+              variant_id: meta.product.variant_id
+            }
+          };
+          console.log('Found product data in ShopifyAnalytics.meta:', productData);
         }
-        return product;
       }
       
-      // Try meta tags
-      const price = document.querySelector('meta[property="product:price:amount"]')?.content;
-      const title = document.querySelector('meta[property="og:title"]')?.content;
-      const image = document.querySelector('meta[property="og:image"]')?.content;
-      const url = window.location.href;
-      const productId = url.match(/\/products\/([^\/\?#]+)/)?.[1];
-      
-      if (price && title) {
-        return {
-          id: productId || 'unknown',
-          title: title,
-          price: parseFloat(price) * 100, // Convert to cents
-          featured_image: image,
-          image: { src: image },
-          url: url,
-          quantity: 1
-        };
-      }
-      
-      // Try extracting directly from the page HTML
-      const priceElement = document.querySelector('.price') || 
-                          document.querySelector('[data-product-price]') ||
-                          document.querySelector('.product-price') ||
-                          document.querySelector('[data-price]');
-      
-      const titleElement = document.querySelector('h1') || 
-                          document.querySelector('.product-title') ||
-                          document.querySelector('[data-product-title]');
-      
-      const imageElement = document.querySelector('.product-featured-image') ||
-                          document.querySelector('[data-product-featured-image]') ||
-                          document.querySelector('.product-single__photo') ||
-                          document.querySelector('img.product__media-item') ||
-                          document.querySelector('.product__media img') ||
-                          document.querySelector('.product-image') ||
-                          document.querySelector('img[itemprop="image"]') ||
-                          document.querySelector('.product-page img') ||
-                          document.querySelector('.product-single img');
-      
-      if (priceElement && titleElement) {
-        // Extract price - remove currency and non-numeric characters
-        let priceText = priceElement.textContent.trim().replace(/[^\d.,]/g, '').replace(',', '.');
-        const price = parseFloat(priceText) * 100; // Convert to cents
-        
-        // Get image source with fallbacks
-        let imageSrc = null;
-        if (imageElement) {
-          // Try data attributes first, which often contain better quality images
-          imageSrc = imageElement.getAttribute('data-src') || 
-                    imageElement.getAttribute('data-srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
-                    imageElement.getAttribute('srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
-                    imageElement.src;
+      // Method 2: Check for product JSON in script tags
+      if (!productData) {
+        const productScripts = document.querySelectorAll('script[type="application/json"][data-product-json]');
+        for (const script of productScripts) {
+          try {
+            const product = JSON.parse(script.textContent);
+            if (product && product.id) {
+              productData = { product };
+              console.log('Found product data in script tag:', productData);
+              break;
+            }
+          } catch (e) {
+            console.warn('Failed to parse product script:', e);
+          }
         }
-        
-        return {
-          id: productId || 'unknown',
-          title: titleElement.textContent.trim(),
-          price: isNaN(price) ? 0 : price,
-          featured_image: imageSrc,
-          image: { src: imageSrc },
-          url: window.location.href,
-          quantity: 1
-        };
       }
       
-      return null;
+      // Method 3: Check for product data in meta tags
+      if (!productData) {
+        const productIdMeta = document.querySelector('meta[property="product:id"]');
+        const productTitleMeta = document.querySelector('meta[property="product:title"]');
+        const productPriceMeta = document.querySelector('meta[property="product:price:amount"]');
+        
+        if (productIdMeta) {
+          productData = {
+            product: {
+              id: productIdMeta.content,
+              title: productTitleMeta?.content || 'Product',
+              price: productPriceMeta ? parseInt(productPriceMeta.content) * 100 : 0
+            }
+          };
+          console.log('Found product data in meta tags:', productData);
+        }
+      }
+      
+      // Method 4: Try to extract from form data
+      if (!productData) {
+        const addToCartForm = document.querySelector('form[action*="/cart/add"]');
+        if (addToCartForm) {
+          const variantInput = addToCartForm.querySelector('input[name="id"]');
+          const quantityInput = addToCartForm.querySelector('input[name="quantity"]');
+          
+          if (variantInput) {
+            productData = {
+              product: {
+                variant_id: variantInput.value,
+                quantity: quantityInput ? parseInt(quantityInput.value) || 1 : 1
+              }
+            };
+            console.log('Found product data in form:', productData);
+          }
+        }
+      }
+      
+      // Method 5: Check for product data in window object
+      if (!productData) {
+        const windowKeys = Object.keys(window);
+        for (const key of windowKeys) {
+          if (key.toLowerCase().includes('product') && typeof window[key] === 'object') {
+            const obj = window[key];
+            if (obj && (obj.id || obj.variant_id)) {
+              productData = { product: obj };
+              console.log(`Found product data in window.${key}:`, productData);
+              break;
+            }
+          }
+        }
+      }
+      
+      if (productData) {
+        // Normalize the product data structure
+        const product = productData.product;
+        if (product) {
+          // Ensure we have required fields
+          if (!product.variant_id && product.id) {
+            product.variant_id = product.id;
+          }
+          if (!product.quantity) {
+            product.quantity = 1;
+          }
+          if (!product.price) {
+            product.price = 0;
+          }
+        }
+      }
+      
+      return productData;
     } catch (e) {
       console.error('Error extracting product from page:', e);
       return null;
@@ -1532,18 +1072,243 @@
     startObserving();
   }
 
+  // Test function to analyze button HTML
+  function testButtonDetection(buttonHtml) {
+    console.log('🧪 Testing button detection for:', buttonHtml);
+    
+    // Create a temporary element to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = buttonHtml;
+    const button = tempDiv.firstElementChild;
+    
+    if (!button) {
+      console.log('❌ Invalid button HTML');
+      return;
+    }
+    
+    // Run the detection logic
+    const tagName = button.tagName.toLowerCase();
+    const text = button.textContent?.toLowerCase().trim() || '';
+    const className = button.className?.toLowerCase() || '';
+    const id = button.id?.toLowerCase() || '';
+    const type = button.type?.toLowerCase() || '';
+    const name = button.name?.toLowerCase() || '';
+
+    // Smart detection patterns for different Shopify themes
+    const patterns = {
+      // Primary target: All submit buttons (covers most checkout/buy now buttons)
+      submitButtons: [
+        type === 'submit'
+      ],
+      
+      // Buy Now / Quick Buy patterns
+      buyNow: [
+        // Text patterns
+        text.includes('buy now') || text.includes('buy it now') || text.includes('купи сега'),
+        // Class patterns
+        className.includes('buy-now') || className.includes('quick-buy') || className.includes('shopify-payment-button'),
+        // ID patterns
+        id.includes('buy-now') || id.includes('quick-buy'),
+        // Type patterns
+        type === 'button' && (className.includes('payment') || className.includes('checkout')),
+        // Specific Shopify payment button pattern
+        type === 'button' && className.includes('shopify-payment-button__button') && className.includes('shopify-payment-button__button--unbranded')
+      ],
+      
+      // Checkout patterns
+      checkout: [
+        // Text patterns
+        text.includes('checkout') || text.includes('proceed to checkout') || text.includes('go to checkout') || 
+        text.includes('завърши поръчката') || text.includes('продължи към плащане'),
+        // Class patterns
+        className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
+        // Specific cart checkout button pattern
+        className.includes('cart__checkout-button') && className.includes('button'),
+        // ID patterns
+        id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
+        // Form submit patterns
+        (type === 'submit' && (className.includes('checkout') || name.includes('checkout')))
+      ],
+      
+      // Exclude patterns (Add to Cart, etc.)
+      exclude: [
+        // Add to Cart patterns
+        text.includes('add to cart') || text.includes('добави в кошницата') || text.includes('add to bag'),
+        className.includes('add-to-cart') || className.includes('cart-add') || className.includes('product-form__submit'),
+        id.includes('add-to-cart') || id.includes('cart-add') || id.startsWith('productsubmitbutton-'),
+        name.includes('add') && (name.includes('cart') || name.includes('product')),
+        // Other exclusions
+        className.includes('close') || className.includes('remove') || className.includes('delete'),
+        button.getAttribute('aria-label')?.toLowerCase().includes('close') ||
+        button.getAttribute('aria-label')?.toLowerCase().includes('remove')
+      ]
+    };
+
+    // Check if button matches any exclusion patterns
+    const isExcluded = patterns.exclude.some(pattern => pattern);
+    if (isExcluded) {
+      console.log('🚫 EXCLUDED - Matches exclusion pattern');
+      return 'EXCLUDED';
+    }
+
+    // Check if button matches any target patterns
+    const isSubmitButton = patterns.submitButtons.some(pattern => pattern);
+    const isBuyNow = patterns.buyNow.some(pattern => pattern);
+    const isCheckout = patterns.checkout.some(pattern => pattern);
+    const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
+
+    console.log('🔍 Analysis:', {
+      tagName,
+      text: text.substring(0, 50),
+      className,
+      id,
+      type,
+      name,
+      isSubmitButton,
+      isBuyNow,
+      isCheckout,
+      isExcluded,
+      result: isTargetButton
+    });
+
+    if (isSubmitButton) {
+      console.log('✅ DETECTED AS: SUBMIT BUTTON');
+      return 'SUBMIT_BUTTON';
+    } else if (isBuyNow) {
+      console.log('✅ DETECTED AS: BUY NOW BUTTON');
+      return 'BUY_NOW';
+    } else if (isCheckout) {
+      console.log('✅ DETECTED AS: CHECKOUT BUTTON');
+      return 'CHECKOUT';
+    } else {
+      console.log('❌ NOT DETECTED - No matching patterns');
+      return 'NOT_DETECTED';
+    }
+  }
+
+  // Function to scan all buttons on the page and show what we find
+  function scanAllButtons() {
+    console.log('🔍 SCANNING ALL BUTTONS ON PAGE:');
+    const allButtons = document.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]');
+    console.log(`Found ${allButtons.length} total buttons/links`);
+    
+    allButtons.forEach((button, index) => {
+      const isTarget = isCheckoutButton(button);
+      console.log(`Button ${index + 1}:`, {
+        element: button,
+        tagName: button.tagName,
+        text: button.textContent?.trim().substring(0, 40),
+        className: button.className,
+        id: button.id,
+        type: button.type,
+        name: button.name,
+        isTarget: isTarget,
+        hasHandler: button._hasOurHandler
+      });
+    });
+  }
+
+  // Make functions globally available for testing
+  window.testButtonDetection = testButtonDetection;
+  window.scanAllButtons = scanAllButtons;
+
   // When page loads, make cart data globally available
   document.addEventListener('DOMContentLoaded', function() {
     // Get cart data on page load and make it available for the checkout form
     fetch('/cart.js')
       .then(response => response.json())
       .then(cartData => {
-        console.log('Shopify cart data loaded:', cartData);
-        // Store cart data globally
+        console.log('Cart data loaded:', cartData);
         window.shopifyCart = cartData;
         // Store for checkout form
         window.cartData = cartData;
       })
       .catch(error => console.error('Error fetching cart data:', error));
   });
+
+  // Debug function to test button detection
+  window.testButtonDetection = function(selector) {
+    console.log('🔍 Testing button detection for selector:', selector);
+    const buttons = document.querySelectorAll(selector);
+    console.log('Found buttons:', buttons.length);
+    
+    // If using custom selectors, just show the buttons without calling isCheckoutButton
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      buttons.forEach((button, index) => {
+        console.log(`Custom selector button ${index + 1}:`, {
+          element: button,
+          text: button.textContent?.trim(),
+          classes: button.className,
+          hasHandler: button._hasOurHandler
+        });
+      });
+    } else {
+      // Smart detection mode
+      buttons.forEach((button, index) => {
+        const isTarget = isCheckoutButton(button);
+        console.log(`Button ${index + 1}:`, {
+          element: button,
+          text: button.textContent?.trim(),
+          classes: button.className,
+          isTarget: isTarget,
+          hasHandler: button._hasOurHandler
+        });
+      });
+    }
+    
+    return buttons;
+  };
+
+  // Debug function to scan all buttons on page
+  window.scanAllButtons = function() {
+    console.log('🔍 Scanning all buttons on page...');
+    
+    // If using custom selectors, only scan those
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      console.log('🎯 Custom selector mode - only scanning custom selectors');
+      const targetedButtons = [];
+      
+      finalConfig.buttonTargets.customSelectors.forEach(selector => {
+        const buttons = document.querySelectorAll(selector);
+        console.log(`Found ${buttons.length} buttons for selector: ${selector}`);
+        
+        buttons.forEach((button, index) => {
+          targetedButtons.push(button);
+          console.log(`Custom selector button ${index + 1}:`, {
+            element: button,
+            text: button.textContent?.trim(),
+            classes: button.className,
+            id: button.id
+          });
+        });
+      });
+      
+      console.log('Total custom selector buttons:', targetedButtons.length);
+      return targetedButtons;
+    }
+    
+    // Smart detection mode
+    const allButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
+    console.log('Total buttons found:', allButtons.length);
+    
+    const targetedButtons = [];
+    allButtons.forEach((button, index) => {
+      const isTarget = isCheckoutButton(button);
+      if (isTarget) {
+        targetedButtons.push(button);
+        console.log(`Targeted button ${index + 1}:`, {
+          element: button,
+          text: button.textContent?.trim(),
+          classes: button.className,
+          id: button.id
+        });
+      }
+    });
+    
+    console.log('Total targeted buttons:', targetedButtons.length);
+    return targetedButtons;
+  };
+
+  console.log('🏢 Office selector loaded. Use testButtonDetection(".shopify-payment-button__button") to test specific buttons.');
+  console.log('🏢 Use scanAllButtons() to see all targeted buttons on the page.');
 })(); 
