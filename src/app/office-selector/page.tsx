@@ -113,7 +113,6 @@ export default function OfficeSelectorPage() {
   };
 
   return (
-   
       <OfficeSelectorModal
         isOpen={isOpen}
         onClose={handleClose}
@@ -123,6 +122,5 @@ export default function OfficeSelectorPage() {
         quantity={quantity}
         config={config}
       />
-
   );
 }
