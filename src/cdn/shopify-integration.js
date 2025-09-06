@@ -15,7 +15,11 @@
       customSelectors: [], // Custom CSS selectors for buttons
       excludeSelectors: [], // CSS selectors to exclude
       buttonTypes: ['checkout', 'buy-now', 'cart-checkout'], // Types of buttons to target
-      debugMode: false // Show red dots on targeted buttons
+      debugMode: false, // Show red dots on targeted buttons
+      // Enhanced targeting by class and name
+      targetByClass: [], // Array of class names to target
+      targetByName: [], // Array of name attributes to target
+      targetByClassAndName: [] // Array of objects with both class and name: [{class: 'btn', name: 'checkout'}]
     }
   };
   
@@ -34,6 +38,14 @@
   // Log the targeting mode
   if (finalConfig.buttonTargets.customSelectors.length > 0) {
     console.log('🎯 Custom selector mode active:', finalConfig.buttonTargets.customSelectors);
+  } else if (finalConfig.buttonTargets.targetByClass.length > 0 || 
+             finalConfig.buttonTargets.targetByName.length > 0 || 
+             finalConfig.buttonTargets.targetByClassAndName.length > 0) {
+    console.log('🎯 Enhanced targeting mode active:', {
+      targetByClass: finalConfig.buttonTargets.targetByClass,
+      targetByName: finalConfig.buttonTargets.targetByName,
+      targetByClassAndName: finalConfig.buttonTargets.targetByClassAndName
+    });
   } else if (finalConfig.buttonTargets.enableSmartDetection) {
     console.log('🎯 Smart detection mode active');
   } else {
@@ -41,8 +53,14 @@
   }
 
   // Only override onclick if we're using smart detection
-  // For custom selectors, we'll use a different approach
-  if (finalConfig.buttonTargets.enableSmartDetection && finalConfig.buttonTargets.customSelectors.length === 0) {
+  // For custom selectors and enhanced targeting, we'll use a different approach
+  const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
+                              finalConfig.buttonTargets.targetByName.length > 0 ||
+                              finalConfig.buttonTargets.targetByClassAndName.length > 0;
+  
+  if (finalConfig.buttonTargets.enableSmartDetection && 
+      finalConfig.buttonTargets.customSelectors.length === 0 && 
+      !hasEnhancedTargeting) {
   const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
   
   Object.defineProperty(HTMLElement.prototype, 'onclick', {
@@ -58,10 +76,15 @@
     },
     get: originalOnClickDescriptor.get
   });
-  } else {
+  } else if (finalConfig.buttonTargets.customSelectors.length > 0) {
     // For custom selectors, use a more targeted approach
     console.log('🎯 Using targeted approach for custom selectors');
     initializeCustomSelectorTargeting();
+  } else if (hasEnhancedTargeting) {
+    // For enhanced targeting, use the standard approach
+    console.log('🎯 Using enhanced targeting approach');
+    findAndInitializeCheckoutButtons();
+    monitorForCheckoutButtons();
   }
 
   // Office selector iframe container
@@ -433,22 +456,22 @@
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
 
-    // If we have custom selectors, ONLY use those (skip all smart detection)
-    if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      // Check exclude selectors first
-      if (finalConfig.buttonTargets.excludeSelectors.length > 0) {
-        const excludeMatch = finalConfig.buttonTargets.excludeSelectors.some(selector => {
-          try {
-            return element.matches(selector);
-          } catch (e) {
-            return false;
-          }
-        });
-        if (excludeMatch) {
+    // Check exclude selectors first (applies to all targeting methods)
+    if (finalConfig.buttonTargets.excludeSelectors.length > 0) {
+      const excludeMatch = finalConfig.buttonTargets.excludeSelectors.some(selector => {
+        try {
+          return element.matches(selector);
+        } catch (e) {
           return false;
         }
+      });
+      if (excludeMatch) {
+        return false;
       }
-      
+    }
+
+    // If we have custom selectors, ONLY use those (skip all other detection)
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
       // Check custom selectors
       const customMatch = finalConfig.buttonTargets.customSelectors.some(selector => {
         try {
@@ -464,6 +487,51 @@
       // If we have custom selectors but this element doesn't match, return false
       return false;
     }
+
+    // Check enhanced targeting by class and name
+    const className = element.className?.toLowerCase() || '';
+    const name = element.name?.toLowerCase() || '';
+    
+    // Target by class only
+    if (finalConfig.buttonTargets.targetByClass.length > 0) {
+      const classMatch = finalConfig.buttonTargets.targetByClass.some(targetClass => {
+        return className.includes(targetClass.toLowerCase());
+      });
+      if (classMatch) {
+        return true;
+      }
+    }
+    
+    // Target by name only
+    if (finalConfig.buttonTargets.targetByName.length > 0) {
+      const nameMatch = finalConfig.buttonTargets.targetByName.some(targetName => {
+        return name.includes(targetName.toLowerCase());
+      });
+      if (nameMatch) {
+        return true;
+      }
+    }
+    
+    // Target by both class and name (must match both)
+    if (finalConfig.buttonTargets.targetByClassAndName.length > 0) {
+      const classAndNameMatch = finalConfig.buttonTargets.targetByClassAndName.some(target => {
+        const classMatch = className.includes(target.class.toLowerCase());
+        const nameMatch = name.includes(target.name.toLowerCase());
+        return classMatch && nameMatch;
+      });
+      if (classAndNameMatch) {
+        return true;
+      }
+    }
+    
+    // If we have any enhanced targeting configured, don't use smart detection
+    const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
+                                finalConfig.buttonTargets.targetByName.length > 0 ||
+                                finalConfig.buttonTargets.targetByClassAndName.length > 0;
+    
+    if (hasEnhancedTargeting) {
+      return false; // Enhanced targeting was already checked above
+    }
     
     // If smart detection is disabled, return false
     if (!finalConfig.buttonTargets.enableSmartDetection) {
@@ -472,10 +540,8 @@
 
     const tagName = element.tagName.toLowerCase();
     const text = element.textContent?.toLowerCase().trim() || '';
-    const className = element.className?.toLowerCase() || '';
     const id = element.id?.toLowerCase() || '';
     const type = element.type?.toLowerCase() || '';
-    const name = element.name?.toLowerCase() || '';
 
     // Smart detection patterns for different Shopify themes
     const patterns = {
@@ -700,7 +766,7 @@
   
   // Function to continuously monitor for checkout buttons
   function monitorForCheckoutButtons() {
-    // Only run smart detection if not using custom selectors
+    // Only run detection if not using custom selectors
     if (finalConfig.buttonTargets.customSelectors.length === 0) {
       findAndInitializeCheckoutButtons();
     }
