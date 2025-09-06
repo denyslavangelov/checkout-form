@@ -202,8 +202,19 @@
       };
       document.addEventListener('keydown', handleKeyDown);
       
+      // Detect the store's font family
+      const storeFont = window.getComputedStyle(document.body).fontFamily || 
+                       window.getComputedStyle(document.documentElement).fontFamily ||
+                       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      
+      // Add font to config
+      const configWithFont = {
+        ...finalConfig,
+        storeFont: storeFont
+      };
+      
       // Set iframe source with product data and configuration
-      const configParam = encodeURIComponent(JSON.stringify(finalConfig));
+      const configParam = encodeURIComponent(JSON.stringify(configWithFont));
       const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
       iframe.src = officeSelectorUrl;

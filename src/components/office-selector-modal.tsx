@@ -33,6 +33,7 @@ interface OfficeSelectorModalProps {
     availableCouriers: string[];
     defaultCourier: string;
     defaultDeliveryType: string;
+    storeFont?: string;
     shopify?: {
       storeUrl: string;
       accessToken: string;
@@ -729,7 +730,7 @@ export function OfficeSelectorModal({
   if (showLoading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50" onClick={handleClose}>
-        <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ fontFamily: 'inherit' }} onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ fontFamily: config.storeFont || 'inherit' }} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-red-600" />
@@ -743,7 +744,7 @@ export function OfficeSelectorModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50" onClick={handleClose}>
-      <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ background: 'white', fontFamily: 'inherit' }} onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ background: 'white', fontFamily: config.storeFont || 'inherit' }} onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={handleClose}
