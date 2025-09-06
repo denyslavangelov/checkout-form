@@ -14,7 +14,7 @@ export default function OfficeSelectorLayout({
         background: 'transparent', 
         margin: 0, 
         padding: 0,
-        fontFamily: 'system-ui, -apple-system, sans-serif'
+        fontFamily: 'inherit'
       }}>
         {children}
       </body>
