@@ -50,7 +50,7 @@ export default function OfficeSelectorPage() {
       }
     }
     
-    return { product, variant, quantity, parsedConfig };
+    return { product, variant, quantity: quantity || '1', parsedConfig };
   }, []);
 
   useEffect(() => {
