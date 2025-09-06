@@ -317,7 +317,8 @@
               }
             });
         } else if (event.data.type === 'get-store-font') {
-          // Detect and send store font to iframe
+          // Detect and send store font to iframe (async function)
+          (async () => {
           let detectedFont = null;
           let detectedFontWeight = null;
           let detectedFontSize = null;
@@ -330,34 +331,92 @@
           let detectedTextDecoration = null;
           let detectedFontVariant = null;
           
-          // Try to detect actual loaded fonts first
+          // Try to detect actual loaded fonts from the network/fonts API
           let actualLoadedFont = null;
-          const commonFonts = ['Jost', 'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins'];
           
-          for (const fontName of commonFonts) {
+          try {
+            // Use the FontFace API to get all loaded fonts
+            if (document.fonts && document.fonts.ready) {
+              await document.fonts.ready;
+              
+              const loadedFonts = [];
+              for (const font of document.fonts) {
+                loadedFonts.push({
+                  family: font.family,
+                  style: font.style,
+                  weight: font.weight,
+                  status: font.status
+                });
+              }
+              
+              console.log(`🔤 All loaded fonts from FontFace API:`, loadedFonts);
+              
+              // Find the first loaded font that's not a system font
+              const systemFonts = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Verdana', 'Georgia', 'Palatino', 'Garamond', 'Bookman', 'Comic Sans MS', 'Trebuchet MS', 'Arial Black', 'Impact'];
+              
+              for (const font of loadedFonts) {
+                if (font.status === 'loaded' && !systemFonts.includes(font.family)) {
+                  actualLoadedFont = font.family;
+                  console.log(`🔤 Found loaded custom font: ${font.family} (${font.style}, ${font.weight})`);
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            console.log('FontFace API not available or error:', e);
+          }
+          
+          // Fallback: Check network requests for font files
+          if (!actualLoadedFont) {
             try {
-              const testElement = document.createElement('div');
-              testElement.style.fontFamily = fontName;
-              testElement.style.position = 'absolute';
-              testElement.style.top = '-9999px';
-              testElement.style.left = '-9999px';
-              testElement.style.fontSize = '16px';
-              testElement.textContent = 'Test';
-              document.body.appendChild(testElement);
+              // Check if we can access performance entries for font requests
+              const performanceEntries = performance.getEntriesByType('resource');
+              const fontEntries = performanceEntries.filter(entry => 
+                entry.name.includes('.woff') || 
+                entry.name.includes('.woff2') || 
+                entry.name.includes('.ttf') || 
+                entry.name.includes('.otf') ||
+                entry.name.includes('font')
+              );
               
-              const fontWidth = testElement.offsetWidth;
-              testElement.style.fontFamily = 'Arial';
-              const arialWidth = testElement.offsetWidth;
+              console.log(`🔤 Font network requests found:`, fontEntries.map(entry => entry.name));
               
-              document.body.removeChild(testElement);
-              
-              if (fontWidth !== arialWidth) {
-                actualLoadedFont = fontName;
-                console.log(`🔤 Detected ${fontName} font is loaded and working!`);
-                break; // Use the first working font we find
+              // Try to extract font names from the URLs
+              for (const entry of fontEntries) {
+                const url = entry.name;
+                // Common patterns: /fonts/Jost-Regular.woff2, /assets/jost.woff, etc.
+                const fontMatch = url.match(/\/([^\/]+)\.(woff2?|ttf|otf)/i);
+                if (fontMatch) {
+                  const potentialFontName = fontMatch[1]
+                    .replace(/[-_]/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase())
+                    .trim();
+                  
+                  // Test if this font is actually loaded
+                  const testElement = document.createElement('div');
+                  testElement.style.fontFamily = potentialFontName;
+                  testElement.style.position = 'absolute';
+                  testElement.style.top = '-9999px';
+                  testElement.style.left = '-9999px';
+                  testElement.style.fontSize = '16px';
+                  testElement.textContent = 'Test';
+                  document.body.appendChild(testElement);
+                  
+                  const fontWidth = testElement.offsetWidth;
+                  testElement.style.fontFamily = 'Arial';
+                  const arialWidth = testElement.offsetWidth;
+                  
+                  document.body.removeChild(testElement);
+                  
+                  if (fontWidth !== arialWidth) {
+                    actualLoadedFont = potentialFontName;
+                    console.log(`🔤 Detected loaded font from network: ${potentialFontName}`);
+                    break;
+                  }
+                }
               }
             } catch (e) {
-              console.log(`Could not test ${fontName} font:`, e);
+              console.log('Could not check network entries:', e);
             }
           }
           
@@ -532,24 +591,25 @@
             }
           }
           
-          // Send font back to iframe
-          if (iframe.contentWindow) {
-            iframe.contentWindow.postMessage({
-              type: 'store-font-response',
-              fontFamily: detectedFont,
-              fontWeight: detectedFontWeight,
-              fontSize: detectedFontSize,
-              lineHeight: detectedLineHeight,
-              backgroundColor: detectedBackgroundColor,
-              color: detectedTextColor,
-              // Send additional properties for better matching
-              letterSpacing: detectedLetterSpacing,
-              textTransform: detectedTextTransform,
-              fontStyle: detectedFontStyle,
-              textDecoration: detectedTextDecoration,
-              fontVariant: detectedFontVariant
-            }, 'https://checkout-form-zeta.vercel.app');
-          }
+            // Send font back to iframe
+            if (iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'store-font-response',
+                fontFamily: detectedFont,
+                fontWeight: detectedFontWeight,
+                fontSize: detectedFontSize,
+                lineHeight: detectedLineHeight,
+                backgroundColor: detectedBackgroundColor,
+                color: detectedTextColor,
+                // Send additional properties for better matching
+                letterSpacing: detectedLetterSpacing,
+                textTransform: detectedTextTransform,
+                fontStyle: detectedFontStyle,
+                textDecoration: detectedTextDecoration,
+                fontVariant: detectedFontVariant
+              }, 'https://checkout-form-zeta.vercel.app');
+            }
+          })(); // End async function
         }
       };
       
