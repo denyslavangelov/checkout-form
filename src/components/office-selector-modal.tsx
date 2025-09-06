@@ -706,6 +706,12 @@ export function OfficeSelectorModal({
     setError('');
     setShowCityDropdown(false);
     setShowOfficeDropdown(false);
+    
+    // Notify parent window to close modal and remove blur
+    if (typeof window !== 'undefined' && window.parent) {
+      window.parent.postMessage({ type: 'office-selector-closed' }, '*');
+    }
+    
     onClose();
   };
 
@@ -725,12 +731,25 @@ export function OfficeSelectorModal({
     }
   }, [isOpen]);
 
+  // Apply store font to all text elements in the modal
+  useEffect(() => {
+    if (isOpen && config.storeFont) {
+      const modalContainer = document.querySelector('[data-modal-container="true"]');
+      if (modalContainer) {
+        const textElements = modalContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div, button, label, input, textarea');
+        textElements.forEach((element: Element) => {
+          (element as HTMLElement).style.fontFamily = config.storeFont!;
+        });
+      }
+    }
+  }, [isOpen, config.storeFont]);
+
   if (!isOpen) return null;
 
   if (showLoading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50" onClick={handleClose}>
-        <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ fontFamily: config.storeFont || 'inherit' }} onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 flex items-center justify-center z-50" onClick={handleClose}>
+        <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ fontFamily: config.storeFont || 'inherit', fontWeight: 'inherit' }} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-red-600" />
@@ -743,8 +762,17 @@ export function OfficeSelectorModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50" onClick={handleClose}>
-      <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" style={{ background: 'white', fontFamily: config.storeFont || 'inherit' }} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 flex items-center justify-center z-50" onClick={handleClose}>
+      <div 
+        data-modal-container="true"
+        className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative shadow-lg border border-gray-200" 
+        style={{ 
+          background: 'white', 
+          fontFamily: config.storeFont || 'inherit', 
+          fontWeight: 'inherit' 
+        }} 
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close button */}
         <button
           onClick={handleClose}
