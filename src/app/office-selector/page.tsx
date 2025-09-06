@@ -59,7 +59,7 @@ export default function OfficeSelectorPage() {
     
     setProductId(urlData.product);
     setVariantId(urlData.variant);
-    setQuantity(urlData.quantity);
+    setQuantity(urlData.quantity || '1');
     setConfig(urlData.parsedConfig);
 
     // Listen for messages from parent window
