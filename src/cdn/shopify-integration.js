@@ -388,7 +388,7 @@
             }
           }
           
-          // Check if font is actually loaded
+          // Check if font is actually loaded and try to find the real font
           if (detectedFont) {
             // Test font loading
             const testElement = document.createElement('span');
@@ -406,12 +406,42 @@
             document.body.removeChild(testElement);
             
             const fontLoaded = testWidth !== fallbackWidth;
+            
+            // Try to find the actual font file being used
+            let actualFont = detectedFont;
+            try {
+              // Check if M-Body-Font is actually a CSS variable
+              const bodyElement = document.body;
+              const computedStyle = getComputedStyle(bodyElement);
+              const actualFontFamily = computedStyle.fontFamily;
+              
+              // If it's a CSS variable, try to resolve it
+              if (actualFontFamily.includes('var(')) {
+                console.log(`🔤 Found CSS variable font:`, actualFontFamily);
+                // Try to get the resolved value
+                const tempElement = document.createElement('div');
+                tempElement.style.fontFamily = actualFontFamily;
+                document.body.appendChild(tempElement);
+                const resolvedFont = getComputedStyle(tempElement).fontFamily;
+                document.body.removeChild(tempElement);
+                actualFont = resolvedFont;
+              }
+            } catch (e) {
+              console.log('Could not resolve CSS variable font');
+            }
+            
             console.log(`🔤 Font loading test:`, {
               fontFamily: detectedFont,
+              actualFont,
               fontLoaded,
               testWidth,
               fallbackWidth
             });
+            
+            // Update detectedFont with the actual font if different
+            if (actualFont !== detectedFont) {
+              detectedFont = actualFont;
+            }
           }
           
           // Send font back to iframe

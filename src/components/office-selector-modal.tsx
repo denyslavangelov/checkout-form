@@ -858,7 +858,16 @@ export function OfficeSelectorModal({
         document.head.appendChild(styleTag);
       }
       
-      const fontFamily = fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit');
+      // Try multiple font strategies
+      let fontFamily;
+      if (fontLoaded) {
+        // If font is loaded, try different approaches
+        fontFamily = `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+      } else if (detectedFont) {
+        fontFamily = `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+      } else {
+        fontFamily = config.storeFont || 'inherit';
+      }
       
       styleTag.textContent = `
         [data-modal-container="true"], 
@@ -937,6 +946,46 @@ export function OfficeSelectorModal({
       
       // Check computed font after a short delay
       setTimeout(checkComputedFont, 100);
+      
+      // Additional font debugging - check if font is actually rendering
+      const debugFontRendering = () => {
+        const testElement = document.createElement('div');
+        testElement.style.position = 'absolute';
+        testElement.style.top = '-9999px';
+        testElement.style.left = '-9999px';
+        testElement.style.fontSize = '16px';
+        testElement.textContent = 'Test Text';
+        
+        // Test with M-Body-Font
+        testElement.style.fontFamily = 'M-Body-Font';
+        document.body.appendChild(testElement);
+        const mBodyFontWidth = testElement.offsetWidth;
+        
+        // Test with Times New Roman
+        testElement.style.fontFamily = 'Times New Roman';
+        const timesNewRomanWidth = testElement.offsetWidth;
+        
+        // Test with Arial
+        testElement.style.fontFamily = 'Arial';
+        const arialWidth = testElement.offsetWidth;
+        
+        document.body.removeChild(testElement);
+        
+        console.log(`🔤 Font rendering comparison:`, {
+          'M-Body-Font': mBodyFontWidth,
+          'Times New Roman': timesNewRomanWidth,
+          'Arial': arialWidth,
+          'M-Body-Font matches Times': mBodyFontWidth === timesNewRomanWidth,
+          'M-Body-Font matches Arial': mBodyFontWidth === arialWidth
+        });
+        
+        // Check if M-Body-Font is actually a fallback to Times New Roman
+        if (mBodyFontWidth === timesNewRomanWidth) {
+          console.warn(`⚠️ M-Body-Font appears to be falling back to Times New Roman!`);
+        }
+      };
+      
+      setTimeout(debugFontRendering, 200);
       
       return () => clearTimeout(timeout);
     }
