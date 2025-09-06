@@ -469,7 +469,10 @@ export function OfficeSelectorModal({
         return;
       }
 
-      // For Buy Now buttons, create draft order
+      // For Buy Now buttons, create draft order with product data
+      console.log('🏢 Buy Now checkout - creating draft order with product data:', { productId, variantId });
+
+      // For Buy Now buttons, create draft order (no cart data needed)
       const response = await fetch(`${baseUrl}/api/create-draft-order`, {
         method: 'POST',
         headers: {
