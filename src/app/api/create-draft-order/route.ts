@@ -156,28 +156,24 @@ export async function POST(request: NextRequest) {
         if (deliveryType === 'office') {
           shippingLine = {
             title: 'Спиди - До офис',
-            price: '0.00',
-            code: 'speedy-office'
+            price: '0.00'
           };
         } else if (deliveryType === 'address') {
           shippingLine = {
             title: 'Спиди - До адрес',
-            price: '0.00',
-            code: 'speedy-address'
+            price: '0.00'
           };
         }
       } else if (courier === 'econt') {
         if (deliveryType === 'office') {
           shippingLine = {
             title: 'Еконт - До офис',
-            price: '0.00',
-            code: 'econt-office'
+            price: '0.00'
           };
         } else if (deliveryType === 'address') {
           shippingLine = {
             title: 'Еконт - До адрес',
-            price: '0.00',
-            code: 'econt-address'
+            price: '0.00'
           };
         }
       }
@@ -220,6 +216,7 @@ export async function POST(request: NextRequest) {
 
     if (data.errors) {
       console.error('🔍 Draft order creation GraphQL errors:', data.errors);
+      console.error('🔍 Full draft order error details:', JSON.stringify(data.errors, null, 2));
       
       // Check if it's a permission error
       const permissionError = data.errors.some((error: any) => 
@@ -240,7 +237,11 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
+      return NextResponse.json({ 
+        error: 'GraphQL errors', 
+        details: data.errors,
+        message: data.errors.map((e: any) => e.message).join(', ')
+      }, { 
         status: 400,
         headers: { 'Access-Control-Allow-Origin': '*' }
       });

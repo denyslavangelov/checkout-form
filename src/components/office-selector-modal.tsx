@@ -113,6 +113,8 @@ export function OfficeSelectorModal({
         console.log('🏢 Available shipping methods:', data.shippingMethods.length);
       } else if (data.error) {
         console.warn('🏢 Shipping methods API error:', data.error);
+        console.warn('🏢 Error details:', data.details);
+        console.warn('🏢 Error message:', data.message);
         console.log('🏢 Will use fallback shipping methods');
         setAvailableShippingMethods([]);
       }
