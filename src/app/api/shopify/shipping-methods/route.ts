@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const STORE_URL = 'testing-client-check.myshopify.com';
-const ACCESS_TOKEN = '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';
-
 // GraphQL query to fetch shipping methods
 const SHIPPING_METHODS_QUERY = `
   query getShippingMethods {
@@ -54,11 +51,51 @@ export async function GET(request: NextRequest) {
   try {
     console.log('Fetching shipping methods via GraphQL...');
 
-    const response = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
+    // Extract Shopify credentials from query parameters
+    const { searchParams } = new URL(request.url);
+    const storeUrl = searchParams.get('storeUrl');
+    const accessToken = searchParams.get('accessToken');
+
+    // Validate required credentials
+    if (!storeUrl) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required parameter: storeUrl'
+      }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        }
+      });
+    }
+
+    if (!accessToken) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required parameter: accessToken'
+      }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        }
+      });
+    }
+
+    console.log('Using Shopify credentials:', { storeUrl, accessToken: accessToken.substring(0, 10) + '...' });
+
+    const response = await fetch(`https://${storeUrl}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': ACCESS_TOKEN,
+        'X-Shopify-Access-Token': accessToken,
       },
       body: JSON.stringify({
         query: SHIPPING_METHODS_QUERY

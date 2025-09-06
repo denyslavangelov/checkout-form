@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const STORE_URL = 'testing-client-check.myshopify.com';
-const ACCESS_TOKEN = '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';
-
 // GraphQL mutation to create draft order with office address
 const CREATE_DRAFT_ORDER_MUTATION = `
   mutation draftOrderCreate($input: DraftOrderInput!) {
@@ -50,7 +47,28 @@ const CREATE_DRAFT_ORDER_MUTATION = `
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, shopify } = body;
+    
+    // Extract Shopify credentials from request body
+    const STORE_URL = shopify?.storeUrl;
+    const ACCESS_TOKEN = shopify?.accessToken;
+    
+    // Validate required credentials
+    if (!STORE_URL) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required parameter: shopify.storeUrl'
+      }, { status: 400 });
+    }
+
+    if (!ACCESS_TOKEN) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required parameter: shopify.accessToken'
+      }, { status: 400 });
+    }
+    
+    console.log('Using Shopify credentials:', { storeUrl: STORE_URL, accessToken: ACCESS_TOKEN.substring(0, 10) + '...' });
 
     // Simple validation
     if (!variantId && !cartData) {

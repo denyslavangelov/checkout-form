@@ -33,6 +33,10 @@ interface OfficeSelectorModalProps {
     availableCouriers: string[];
     defaultCourier: string;
     defaultDeliveryType: string;
+    shopify?: {
+      storeUrl: string;
+      accessToken: string;
+    };
   };
 }
 
@@ -94,7 +98,19 @@ export function OfficeSelectorModal({
       setLoadingShippingMethods(true);
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
-      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
+      // Validate Shopify credentials
+      if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
+        throw new Error('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
+      }
+
+      // Build URL with Shopify credentials
+      const params = new URLSearchParams({
+        storeUrl: config.shopify.storeUrl,
+        accessToken: config.shopify.accessToken
+      });
+      const apiUrl = `${baseUrl}/api/shopify/shipping-methods?${params.toString()}`;
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -534,6 +550,12 @@ export function OfficeSelectorModal({
           return;
         }
         
+        // Validate Shopify credentials before creating draft order
+        if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
+          setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
+          return;
+        }
+
         // Create draft order with cart items and office address
         const response = await fetch(`${baseUrl}/api/create-draft-order`, {
           method: 'POST',
@@ -547,6 +569,7 @@ export function OfficeSelectorModal({
               deliveryType: deliveryType
             },
             selectedShippingMethodId: selectedShippingMethodId,
+            shopify: config.shopify, // Pass Shopify credentials
             shippingAddress: {
               address1: (() => {
                 if (deliveryType === 'address') {
@@ -598,6 +621,12 @@ export function OfficeSelectorModal({
 
       // For Buy Now buttons, create draft order with product data
       
+      // Validate Shopify credentials before creating draft order
+      if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
+        setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
+        return;
+      }
+
       // For Buy Now buttons, create draft order (no cart data needed)
       const response = await fetch(`${baseUrl}/api/create-draft-order`, {
         method: 'POST',
@@ -613,6 +642,7 @@ export function OfficeSelectorModal({
             deliveryType: deliveryType
           },
           selectedShippingMethodId: selectedShippingMethodId,
+          shopify: config.shopify, // Pass Shopify credentials
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {
