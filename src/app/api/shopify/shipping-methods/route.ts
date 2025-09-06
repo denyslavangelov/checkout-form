@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Fetching shipping methods from Shopify...');
     
-    const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {
+    const response = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

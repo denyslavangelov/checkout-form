@@ -421,7 +421,7 @@ export async function POST(request: NextRequest) {
       draftOrderInput.shippingLine = shippingLine;
     }
 
-    const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {
+    const response = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -435,10 +435,23 @@ export async function POST(request: NextRequest) {
       })
     });
 
+    console.log('🔍 DEBUG: GraphQL response status:', response.status);
+    console.log('🔍 DEBUG: GraphQL response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔍 DEBUG: GraphQL request failed:', response.status, errorText);
+      return NextResponse.json({
+        success: false,
+        error: `GraphQL request failed: ${response.status}`,
+        details: errorText
+      }, { status: response.status });
+    }
+
     const data = await response.json();
     console.log('🔍 DEBUG: Shopify response:', JSON.stringify(data, null, 2));
 
-    if (data.errors) {
+    if (data.errors && Array.isArray(data.errors)) {
       console.error('🔍 Draft order creation GraphQL errors:', data.errors);
       
       // Check if it's a permission error
