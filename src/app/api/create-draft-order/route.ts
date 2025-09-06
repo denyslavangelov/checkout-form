@@ -141,12 +141,58 @@ export async function POST(request: NextRequest) {
     // Create shipping line based on shipping method
     let shippingLine = null;
     
-    // If we have a specific shipping method ID, use that
+    // If we have a specific shipping method ID, fetch its details and use title/price
     if (selectedShippingMethodId) {
-      shippingLine = {
-        shippingMethodId: selectedShippingMethodId
-      };
-      console.log('🔍 DEBUG: Using specific shipping method ID:', selectedShippingMethodId);
+      try {
+        console.log('🔍 DEBUG: Fetching details for shipping method ID:', selectedShippingMethodId);
+        
+        // Fetch shipping methods to get the details for this specific ID
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods`);
+        const shippingMethodsData = await shippingMethodsResponse.json();
+        
+        if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
+          const methodDetails = shippingMethodsData.shippingMethods.find((method: any) => method.id === selectedShippingMethodId);
+          
+          if (methodDetails) {
+            shippingLine = {
+              title: methodDetails.name,
+              priceWithCurrency: {
+                amount: methodDetails.price,
+                currencyCode: methodDetails.currency
+              }
+            };
+            console.log('🔍 DEBUG: Using specific shipping method details:', methodDetails.name, methodDetails.price, methodDetails.currency);
+          } else {
+            console.log('🔍 DEBUG: Shipping method ID not found, using fallback');
+            // Fallback to generic shipping method
+            shippingLine = {
+              title: 'Shipping',
+              priceWithCurrency: {
+                amount: '0.00',
+                currencyCode: 'BGN'
+              }
+            };
+          }
+        } else {
+          console.log('🔍 DEBUG: Failed to fetch shipping methods, using fallback');
+          shippingLine = {
+            title: 'Shipping',
+            priceWithCurrency: {
+              amount: '0.00',
+              currencyCode: 'BGN'
+            }
+          };
+        }
+      } catch (error) {
+        console.error('🔍 DEBUG: Error fetching shipping method details:', error);
+        shippingLine = {
+          title: 'Shipping',
+          priceWithCurrency: {
+            amount: '0.00',
+            currencyCode: 'BGN'
+          }
+        };
+      }
     } else if (shippingMethod) {
       // Fetch actual shipping methods from the store and match with courier/delivery type
       const { courier, deliveryType } = shippingMethod;
