@@ -83,9 +83,8 @@
   } else if (hasEnhancedTargeting) {
     // For enhanced targeting, use the standard approach
     console.log('🎯 Using enhanced targeting approach');
-    // DISABLED: Smart button detection to reduce console spam
-    // findAndInitializeCheckoutButtons();
-    // monitorForCheckoutButtons();
+    findAndInitializeCheckoutButtons();
+    monitorForCheckoutButtons();
   }
 
   // Office selector iframe container
@@ -747,16 +746,16 @@
       elements.forEach(el => buttons.push(el));
     });
     
-    // Log all found buttons for debugging - DISABLED to reduce console spam
-    // if (buttons.length > 0) {
-    //   console.log(`🔍 Scanning ${buttons.length} potential checkout buttons:`, buttons.map(b => ({
-    //     tagName: b.tagName,
-    //     text: b.textContent?.trim().substring(0, 30),
-    //     className: b.className,
-    //     id: b.id,
-    //     type: b.type
-    //   })));
-    // }
+    // Log all found buttons for debugging
+    if (buttons.length > 0) {
+      console.log(`🔍 Scanning ${buttons.length} potential checkout buttons:`, buttons.map(b => ({
+        tagName: b.tagName,
+        text: b.textContent?.trim().substring(0, 30),
+        className: b.className,
+        id: b.id,
+        type: b.type
+      })));
+    }
     
     buttons.forEach(button => {
       if (isCheckoutButton(button)) {
@@ -767,17 +766,16 @@
   
   // Function to continuously monitor for checkout buttons
   function monitorForCheckoutButtons() {
-    // DISABLED: Smart button detection to reduce console spam
     // Only run detection if not using custom selectors
-    // if (finalConfig.buttonTargets.customSelectors.length === 0) {
-    //   findAndInitializeCheckoutButtons();
-    // }
+    if (finalConfig.buttonTargets.customSelectors.length === 0) {
+      findAndInitializeCheckoutButtons();
+    }
   }
   
   // Monitor the DOM for changes to catch when buttons appear
   function startObserving() {
-    // Check for checkout buttons - DISABLED to reduce console spam
-    // setInterval(monitorForCheckoutButtons, 2000);
+    // Check for checkout buttons (reduced frequency to avoid console spam)
+    setInterval(monitorForCheckoutButtons, 2000);
     
     // Also use MutationObserver for more efficient monitoring
     const observer = new MutationObserver((mutations) => {
