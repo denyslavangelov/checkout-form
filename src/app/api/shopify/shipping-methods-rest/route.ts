@@ -86,14 +86,14 @@ export async function GET(request: NextRequest) {
 
     // Alert the shipping methods for debugging
     const alertMessage = `Shipping Methods Found (REST API):
-Total: ${allShippingMethods.length}
-Bulgaria-relevant: ${bulgariaMethods.length}
+      Total: ${allShippingMethods.length}
+      Bulgaria-relevant: ${bulgariaMethods.length}
 
-All Methods:
-${allShippingMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}
+      All Methods:
+      ${allShippingMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}
 
-Bulgaria Methods:
-${bulgariaMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}`;
+      Bulgaria Methods:
+      ${bulgariaMethods.map(method => `- ${method.name} (${method.id}) - ${method.price} ${method.currency} - Zone: ${method.zone}`).join('\n')}`;
 
 
     return NextResponse.json({

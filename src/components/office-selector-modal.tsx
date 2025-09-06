@@ -572,7 +572,7 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
       }
 
       // For Buy Now buttons, create draft order with product data
-
+      
       // For Buy Now buttons, create draft order (no cart data needed)
       const response = await fetch(`${baseUrl}/api/create-draft-order`, {
         method: 'POST',
