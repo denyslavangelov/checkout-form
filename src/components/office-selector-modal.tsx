@@ -94,7 +94,7 @@ export function OfficeSelectorModal({
       setLoadingShippingMethods(true);
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
-      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
+      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods-rest`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -564,10 +564,14 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
         // Debug logging to see what response we got
         console.log('Draft order creation response:', JSON.stringify(data, null, 2));
         
-        if (data.checkoutUrl) {
-          onOrderCreated(data.checkoutUrl);
-        } else if (data.invoiceUrl) {
-          onOrderCreated(data.invoiceUrl);
+        // Handle nested response structure from draft order API
+        const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
+        const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
+        
+        if (checkoutUrl) {
+          onOrderCreated(checkoutUrl);
+        } else if (invoiceUrl) {
+          onOrderCreated(invoiceUrl);
         } else {
           console.error('No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
@@ -622,10 +626,14 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
 
       const data = await response.json();
       
-      if (data.checkoutUrl) {
-        onOrderCreated(data.checkoutUrl);
-      } else if (data.invoiceUrl) {
-        onOrderCreated(data.invoiceUrl);
+      // Handle nested response structure from draft order API
+      const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
+      const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
+      
+      if (checkoutUrl) {
+        onOrderCreated(checkoutUrl);
+      } else if (invoiceUrl) {
+        onOrderCreated(invoiceUrl);
       } else {
         throw new Error('No checkout URL received');
       }
