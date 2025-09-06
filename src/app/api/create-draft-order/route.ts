@@ -193,7 +193,11 @@ export async function POST(request: NextRequest) {
           if (matchingMethod) {
             console.log('🔍 DEBUG: Found matching shipping method:', matchingMethod);
             shippingLine = {
-              shippingMethodId: matchingMethod.id
+              title: matchingMethod.name,
+              priceWithCurrency: {
+                amount: matchingMethod.price,
+                currencyCode: matchingMethod.currency
+              }
             };
           } else {
             console.log('🔍 DEBUG: No matching shipping method found, using fallback');
@@ -202,24 +206,36 @@ export async function POST(request: NextRequest) {
               if (deliveryType === 'office') {
                 shippingLine = {
                   title: 'Спиди - До офис',
-                  price: '0.00'
+                  priceWithCurrency: {
+                    amount: '0.00',
+                    currencyCode: 'BGN'
+                  }
                 };
               } else if (deliveryType === 'address') {
                 shippingLine = {
                   title: 'Спиди - До адрес',
-                  price: '0.00'
+                  priceWithCurrency: {
+                    amount: '0.00',
+                    currencyCode: 'BGN'
+                  }
                 };
               }
             } else if (courier === 'econt') {
               if (deliveryType === 'office') {
                 shippingLine = {
                   title: 'Еконт - До офис',
-                  price: '0.00'
+                  priceWithCurrency: {
+                    amount: '0.00',
+                    currencyCode: 'BGN'
+                  }
                 };
               } else if (deliveryType === 'address') {
                 shippingLine = {
                   title: 'Еконт - До адрес',
-                  price: '0.00'
+                  priceWithCurrency: {
+                    amount: '0.00',
+                    currencyCode: 'BGN'
+                  }
                 };
               }
             }
@@ -231,24 +247,36 @@ export async function POST(request: NextRequest) {
             if (deliveryType === 'office') {
               shippingLine = {
                 title: 'Спиди - До офис',
-                price: '0.00'
+                priceWithCurrency: {
+                  amount: '0.00',
+                  currencyCode: 'BGN'
+                }
               };
             } else if (deliveryType === 'address') {
               shippingLine = {
                 title: 'Спиди - До адрес',
-                price: '0.00'
+                priceWithCurrency: {
+                  amount: '0.00',
+                  currencyCode: 'BGN'
+                }
               };
             }
           } else if (courier === 'econt') {
             if (deliveryType === 'office') {
               shippingLine = {
                 title: 'Еконт - До офис',
-                price: '0.00'
+                priceWithCurrency: {
+                  amount: '0.00',
+                  currencyCode: 'BGN'
+                }
               };
             } else if (deliveryType === 'address') {
               shippingLine = {
                 title: 'Еконт - До адрес',
-                price: '0.00'
+                priceWithCurrency: {
+                  amount: '0.00',
+                  currencyCode: 'BGN'
+                }
               };
             }
           }
@@ -260,24 +288,36 @@ export async function POST(request: NextRequest) {
           if (deliveryType === 'office') {
             shippingLine = {
               title: 'Спиди - До офис',
-              price: '0.00'
+              priceWithCurrency: {
+                amount: '0.00',
+                currencyCode: 'BGN'
+              }
             };
           } else if (deliveryType === 'address') {
             shippingLine = {
               title: 'Спиди - До адрес',
-              price: '0.00'
+              priceWithCurrency: {
+                amount: '0.00',
+                currencyCode: 'BGN'
+              }
             };
           }
         } else if (courier === 'econt') {
           if (deliveryType === 'office') {
             shippingLine = {
               title: 'Еконт - До офис',
-              price: '0.00'
+              priceWithCurrency: {
+                amount: '0.00',
+                currencyCode: 'BGN'
+              }
             };
           } else if (deliveryType === 'address') {
             shippingLine = {
               title: 'Еконт - До адрес',
-              price: '0.00'
+              priceWithCurrency: {
+                amount: '0.00',
+                currencyCode: 'BGN'
+              }
             };
           }
         }
