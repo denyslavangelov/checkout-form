@@ -48,6 +48,20 @@ const SHIPPING_METHODS_QUERY = `
   }
 `;
 
+// Handle preflight OPTIONS requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none'
+    }
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Fetching shipping methods from Shopify...');
@@ -83,12 +97,26 @@ export async function GET(request: NextRequest) {
           details: data.errors,
           fallback: true
         }, { 
-          status: 403 
+          status: 403,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
+          }
         });
       }
       
       return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
-        status: 400 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        }
       });
     }
 
@@ -164,6 +192,14 @@ ${bulgariaMethods.map(method => `- ${method.title} (${method.code}) - ${method.p
       bulgariaMethods: bulgariaMethods,
       total: allShippingMethods.length,
       alert: alertMessage // Include alert message in response
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cross-Origin-Embedder-Policy': 'unsafe-none'
+      }
     });
 
   } catch (error) {
@@ -172,7 +208,14 @@ ${bulgariaMethods.map(method => `- ${method.title} (${method.code}) - ${method.p
       error: 'Failed to fetch shipping methods',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { 
-      status: 500 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cross-Origin-Embedder-Policy': 'unsafe-none'
+      }
     });
   }
 }
