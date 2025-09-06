@@ -41,8 +41,6 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       z-index: 9999;
       display: none;
@@ -62,8 +60,7 @@
         min-height: 600px;
         max-height: 90vh;
         border: none;
-        border-radius: 8px;
-        /*box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);*/
+        border-radius: 15px;
         z-index: 10000;
         display: none;
         background: white;
