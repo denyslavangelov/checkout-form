@@ -61,6 +61,7 @@
         height: auto;
         min-height: 600px;
         max-height: 90vh;
+        border-radius: 10px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         z-index: 10000;
         display: none;
@@ -318,6 +319,11 @@
         } else if (event.data.type === 'get-store-font') {
           // Detect and send store font to iframe
           let detectedFont = null;
+          let detectedFontWeight = null;
+          let detectedFontSize = null;
+          let detectedLineHeight = null;
+          let detectedBackgroundColor = null;
+          let detectedTextColor = null;
           
           const selectors = [
             'body',
@@ -344,6 +350,30 @@
                 if (fontFamily && fontFamily !== 'initial' && fontFamily !== 'inherit') {
                   console.log(`🔤 Detected store font from ${selector}:`, fontFamily);
                   detectedFont = fontFamily;
+                  
+                  // Also capture other typography properties
+                  const fontWeight = computedStyle.fontWeight;
+                  const fontSize = computedStyle.fontSize;
+                  const lineHeight = computedStyle.lineHeight;
+                  const backgroundColor = computedStyle.backgroundColor;
+                  const color = computedStyle.color;
+                  
+                  if (fontWeight && fontWeight !== 'initial' && fontWeight !== 'inherit') {
+                    detectedFontWeight = fontWeight;
+                  }
+                  if (fontSize && fontSize !== 'initial' && fontSize !== 'inherit') {
+                    detectedFontSize = fontSize;
+                  }
+                  if (lineHeight && lineHeight !== 'initial' && lineHeight !== 'inherit') {
+                    detectedLineHeight = lineHeight;
+                  }
+                  if (backgroundColor && backgroundColor !== 'initial' && backgroundColor !== 'inherit' && backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                    detectedBackgroundColor = backgroundColor;
+                  }
+                  if (color && color !== 'initial' && color !== 'inherit') {
+                    detectedTextColor = color;
+                  }
+                  
                   break;
                 }
               }
@@ -356,7 +386,12 @@
           if (iframe.contentWindow) {
             iframe.contentWindow.postMessage({
               type: 'store-font-response',
-              fontFamily: detectedFont
+              fontFamily: detectedFont,
+              fontWeight: detectedFontWeight,
+              fontSize: detectedFontSize,
+              lineHeight: detectedLineHeight,
+              backgroundColor: detectedBackgroundColor,
+              color: detectedTextColor
             }, 'https://checkout-form-zeta.vercel.app');
           }
         }

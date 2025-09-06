@@ -70,6 +70,11 @@ export function OfficeSelectorModal({
   
   // Font detection state
   const [detectedFont, setDetectedFont] = useState<string>('');
+  const [detectedFontWeight, setDetectedFontWeight] = useState<string>('');
+  const [detectedFontSize, setDetectedFontSize] = useState<string>('');
+  const [detectedLineHeight, setDetectedLineHeight] = useState<string>('');
+  const [detectedBackgroundColor, setDetectedBackgroundColor] = useState<string>('');
+  const [detectedTextColor, setDetectedTextColor] = useState<string>('');
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -764,6 +769,30 @@ export function OfficeSelectorModal({
                 if (fontFamily && fontFamily !== 'initial' && fontFamily !== 'inherit') {
                   console.log(`Detected font from ${selector}:`, fontFamily);
                   setDetectedFont(fontFamily);
+                  
+                  // Also capture other typography properties
+                  const fontWeight = computedStyle.fontWeight;
+                  const fontSize = computedStyle.fontSize;
+                  const lineHeight = computedStyle.lineHeight;
+                  const backgroundColor = computedStyle.backgroundColor;
+                  const color = computedStyle.color;
+                  
+                  if (fontWeight && fontWeight !== 'initial' && fontWeight !== 'inherit') {
+                    setDetectedFontWeight(fontWeight);
+                  }
+                  if (fontSize && fontSize !== 'initial' && fontSize !== 'inherit') {
+                    setDetectedFontSize(fontSize);
+                  }
+                  if (lineHeight && lineHeight !== 'initial' && lineHeight !== 'inherit') {
+                    setDetectedLineHeight(lineHeight);
+                  }
+                  if (backgroundColor && backgroundColor !== 'initial' && backgroundColor !== 'inherit' && backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                    setDetectedBackgroundColor(backgroundColor);
+                  }
+                  if (color && color !== 'initial' && color !== 'inherit') {
+                    setDetectedTextColor(color);
+                  }
+                  
                   return;
                 }
               }
@@ -785,6 +814,24 @@ export function OfficeSelectorModal({
           if (event.data?.type === 'store-font-response' && event.data?.fontFamily) {
             console.log('Received font from parent:', event.data.fontFamily);
             setDetectedFont(event.data.fontFamily);
+            
+            // Also set additional typography properties if available
+            if (event.data.fontWeight) {
+              setDetectedFontWeight(event.data.fontWeight);
+            }
+            if (event.data.fontSize) {
+              setDetectedFontSize(event.data.fontSize);
+            }
+            if (event.data.lineHeight) {
+              setDetectedLineHeight(event.data.lineHeight);
+            }
+            if (event.data.backgroundColor) {
+              setDetectedBackgroundColor(event.data.backgroundColor);
+            }
+            if (event.data.color) {
+              setDetectedTextColor(event.data.color);
+            }
+            
             window.removeEventListener('message', handleFontResponse);
           }
         };
@@ -805,7 +852,18 @@ export function OfficeSelectorModal({
     return (
       <div 
         className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
-        style={{ fontFamily: detectedFont || config.storeFont || 'inherit' }}
+        style={{ 
+          fontFamily: detectedFont || config.storeFont || 'inherit',
+          fontWeight: detectedFontWeight || 'inherit',
+          fontSize: detectedFontSize || 'inherit',
+          lineHeight: detectedLineHeight || 'inherit',
+          letterSpacing: 'inherit',
+          textRendering: 'inherit',
+          WebkitFontSmoothing: 'inherit',
+          MozOsxFontSmoothing: 'inherit',
+          backgroundColor: detectedBackgroundColor || 'white',
+          color: detectedTextColor || 'inherit'
+        }}
       >
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-3">
@@ -820,7 +878,18 @@ export function OfficeSelectorModal({
   return (
     <div 
       className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
-      style={{ fontFamily: detectedFont || config.storeFont || 'inherit' }}
+      style={{ 
+        fontFamily: detectedFont || config.storeFont || 'inherit',
+        fontWeight: detectedFontWeight || 'inherit',
+        fontSize: detectedFontSize || 'inherit',
+        lineHeight: detectedLineHeight || 'inherit',
+        letterSpacing: 'inherit',
+        textRendering: 'inherit',
+        WebkitFontSmoothing: 'inherit',
+        MozOsxFontSmoothing: 'inherit',
+        backgroundColor: detectedBackgroundColor || 'white',
+        color: detectedTextColor || 'inherit'
+      }}
     >
         {/* Close button */}
         <button
