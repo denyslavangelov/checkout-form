@@ -183,24 +183,15 @@
     // Production URL for live sites
     const baseUrl = 'https://checkout-form-zeta.vercel.app';
     
-    // Add backdrop and iframe to page if not already there
+    // Add iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
-    // Show the backdrop and iframe
+    // Show the iframe
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (backdrop && iframe) {
-      // Show backdrop first for immediate visual feedback
-      backdrop.style.display = 'block';
-      
-      // Add click handler to backdrop to close modal
-      backdrop.onclick = (e) => {
-        if (e.target === backdrop) {
-          hideOfficeSelector();
-        }
-      };
+    if (iframe) {
       
       // Disable body scrolling
       document.body.style.overflow = 'hidden';
@@ -317,9 +308,6 @@
   function hideOfficeSelector() {
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (backdrop) {
-      backdrop.style.display = 'none';
-    }
     
     if (iframe) {
       iframe.style.display = 'none';
