@@ -176,7 +176,7 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
         
         // Check for delivery type match
         const deliveryMatch = (deliveryType === 'office' && (title.includes('офис') || title.includes('office'))) ||
-                            (deliveryType === 'address' && (title.includes('адрес') || title.includes('address')));
+                            (deliveryType === 'address' && !title.includes('офис') && !title.includes('office'));
         
         return courierMatch && deliveryMatch;
       });
@@ -184,11 +184,12 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
       if (matchingMethod) {
         setSelectedShippingMethodId(matchingMethod.id);
       } else {
-        // Fallback: select first method that matches the courier
+        // Fallback: select first method that matches the courier and delivery type
         const courierMethod = availableShippingMethods.find(method => {
           const title = method.title.toLowerCase();
           const code = method.code?.toLowerCase() || '';
-          return (selectedCourier === 'speedy' && (
+          
+          const courierMatch = (selectedCourier === 'speedy' && (
             title.includes('speedy') || 
             code.includes('speedy') ||
             title.includes('спиди') ||
@@ -199,14 +200,33 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
             title.includes('еконт') ||
             code.includes('еконт')
           ));
+          
+          // For address delivery, exclude methods with "офис" or "office"
+          const deliveryMatch = (deliveryType === 'office' && (title.includes('офис') || title.includes('office'))) ||
+                              (deliveryType === 'address' && !title.includes('офис') && !title.includes('office'));
+          
+          return courierMatch && deliveryMatch;
         });
         
         if (courierMethod) {
           setSelectedShippingMethodId(courierMethod.id);
         } else {
-          // Last resort: select first available method
-          if (availableShippingMethods.length > 0) {
-            setSelectedShippingMethodId(availableShippingMethods[0].id);
+          // Last resort: select first available method that doesn't contain "офис" for address delivery
+          if (deliveryType === 'address') {
+            const nonOfficeMethod = availableShippingMethods.find(method => {
+              const title = method.title.toLowerCase();
+              return !title.includes('офис') && !title.includes('office');
+            });
+            if (nonOfficeMethod) {
+              setSelectedShippingMethodId(nonOfficeMethod.id);
+            } else if (availableShippingMethods.length > 0) {
+              setSelectedShippingMethodId(availableShippingMethods[0].id);
+            }
+          } else {
+            // For office delivery, select first available method
+            if (availableShippingMethods.length > 0) {
+              setSelectedShippingMethodId(availableShippingMethods[0].id);
+            }
           }
         }
       }
