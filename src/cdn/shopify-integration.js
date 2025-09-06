@@ -996,4 +996,51 @@
       })
       .catch(error => console.error('Error fetching cart data:', error));
   });
+
+  // Debug function to test button detection
+  window.testButtonDetection = function(selector) {
+    console.log('🔍 Testing button detection for selector:', selector);
+    const buttons = document.querySelectorAll(selector);
+    console.log('Found buttons:', buttons.length);
+    
+    buttons.forEach((button, index) => {
+      const isTarget = isCheckoutButton(button);
+      console.log(`Button ${index + 1}:`, {
+        element: button,
+        text: button.textContent?.trim(),
+        classes: button.className,
+        isTarget: isTarget,
+        hasHandler: button._hasOurHandler
+      });
+    });
+    
+    return buttons;
+  };
+
+  // Debug function to scan all buttons on page
+  window.scanAllButtons = function() {
+    console.log('🔍 Scanning all buttons on page...');
+    const allButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
+    console.log('Total buttons found:', allButtons.length);
+    
+    const targetedButtons = [];
+    allButtons.forEach((button, index) => {
+      const isTarget = isCheckoutButton(button);
+      if (isTarget) {
+        targetedButtons.push(button);
+        console.log(`Targeted button ${index + 1}:`, {
+          element: button,
+          text: button.textContent?.trim(),
+          classes: button.className,
+          id: button.id
+        });
+      }
+    });
+    
+    console.log('Total targeted buttons:', targetedButtons.length);
+    return targetedButtons;
+  };
+
+  console.log('🏢 Office selector loaded. Use testButtonDetection(".shopify-payment-button__button") to test specific buttons.');
+  console.log('🏢 Use scanAllButtons() to see all targeted buttons on the page.');
 })(); 
