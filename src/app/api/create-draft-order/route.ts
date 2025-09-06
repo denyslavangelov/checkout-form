@@ -148,37 +148,147 @@ export async function POST(request: NextRequest) {
       };
       console.log('🔍 DEBUG: Using specific shipping method ID:', selectedShippingMethodId);
     } else if (shippingMethod) {
-      // Fallback to hardcoded shipping methods based on courier and delivery type
+      // Fetch actual shipping methods from the store and match with courier/delivery type
       const { courier, deliveryType } = shippingMethod;
       
-      // Define shipping methods based on courier and delivery type
-      if (courier === 'speedy') {
-        if (deliveryType === 'office') {
-          shippingLine = {
-            title: 'Спиди - До офис',
-            price: '0.00'
-          };
-        } else if (deliveryType === 'address') {
-          shippingLine = {
-            title: 'Спиди - До адрес',
-            price: '0.00'
-          };
+      try {
+        console.log('🔍 DEBUG: Fetching store shipping methods to match courier:', courier, 'deliveryType:', deliveryType);
+        
+        // Fetch shipping methods from our API
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods`);
+        const shippingMethodsData = await shippingMethodsResponse.json();
+        
+        if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
+          console.log('🔍 DEBUG: Found', shippingMethodsData.shippingMethods.length, 'shipping methods');
+          
+          // Find matching shipping method based on courier and delivery type
+          const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
+            const title = method.title?.toLowerCase() || '';
+            const code = method.code?.toLowerCase() || '';
+            
+            // Match courier
+            const courierMatch = (courier === 'speedy' && (
+              title.includes('speedy') || 
+              code.includes('speedy') ||
+              title.includes('спиди') ||    // Bulgarian name
+              code.includes('спиди')        // Bulgarian name
+            )) || (courier === 'econt' && (
+              title.includes('econt') || 
+              code.includes('econt') ||
+              title.includes('еконт') ||    // Bulgarian name
+              code.includes('еконт')        // Bulgarian name
+            ));
+            
+            // Match delivery type
+            const deliveryMatch = (deliveryType === 'office' && (
+              title.includes('office') || 
+              title.includes('офис') ||     // Bulgarian
+              title.includes('pickup') ||
+              title.includes('вземане')     // Bulgarian
+            )) || (deliveryType === 'address' && (
+              title.includes('address') || 
+              title.includes('адрес') ||    // Bulgarian
+              title.includes('delivery') ||
+              title.includes('доставка')    // Bulgarian
+            ));
+            
+            return courierMatch && deliveryMatch;
+          });
+          
+          if (matchingMethod) {
+            console.log('🔍 DEBUG: Found matching shipping method:', matchingMethod);
+            shippingLine = {
+              shippingMethodId: matchingMethod.id
+            };
+          } else {
+            console.log('🔍 DEBUG: No matching shipping method found, using fallback');
+            // Fallback to hardcoded shipping methods
+            if (courier === 'speedy') {
+              if (deliveryType === 'office') {
+                shippingLine = {
+                  title: 'Спиди - До офис',
+                  price: '0.00'
+                };
+              } else if (deliveryType === 'address') {
+                shippingLine = {
+                  title: 'Спиди - До адрес',
+                  price: '0.00'
+                };
+              }
+            } else if (courier === 'econt') {
+              if (deliveryType === 'office') {
+                shippingLine = {
+                  title: 'Еконт - До офис',
+                  price: '0.00'
+                };
+              } else if (deliveryType === 'address') {
+                shippingLine = {
+                  title: 'Еконт - До адрес',
+                  price: '0.00'
+                };
+              }
+            }
+          }
+        } else {
+          console.log('🔍 DEBUG: Failed to fetch shipping methods, using fallback');
+          // Fallback to hardcoded shipping methods
+          if (courier === 'speedy') {
+            if (deliveryType === 'office') {
+              shippingLine = {
+                title: 'Спиди - До офис',
+                price: '0.00'
+              };
+            } else if (deliveryType === 'address') {
+              shippingLine = {
+                title: 'Спиди - До адрес',
+                price: '0.00'
+              };
+            }
+          } else if (courier === 'econt') {
+            if (deliveryType === 'office') {
+              shippingLine = {
+                title: 'Еконт - До офис',
+                price: '0.00'
+              };
+            } else if (deliveryType === 'address') {
+              shippingLine = {
+                title: 'Еконт - До адрес',
+                price: '0.00'
+              };
+            }
+          }
         }
-      } else if (courier === 'econt') {
-        if (deliveryType === 'office') {
-          shippingLine = {
-            title: 'Еконт - До офис',
-            price: '0.00'
-          };
-        } else if (deliveryType === 'address') {
-          shippingLine = {
-            title: 'Еконт - До адрес',
-            price: '0.00'
-          };
+      } catch (error) {
+        console.error('🔍 DEBUG: Error fetching shipping methods:', error);
+        // Fallback to hardcoded shipping methods
+        if (courier === 'speedy') {
+          if (deliveryType === 'office') {
+            shippingLine = {
+              title: 'Спиди - До офис',
+              price: '0.00'
+            };
+          } else if (deliveryType === 'address') {
+            shippingLine = {
+              title: 'Спиди - До адрес',
+              price: '0.00'
+            };
+          }
+        } else if (courier === 'econt') {
+          if (deliveryType === 'office') {
+            shippingLine = {
+              title: 'Еконт - До офис',
+              price: '0.00'
+            };
+          } else if (deliveryType === 'address') {
+            shippingLine = {
+              title: 'Еконт - До адрес',
+              price: '0.00'
+            };
+          }
         }
       }
       
-      console.log('🔍 DEBUG: Created fallback shipping line:', shippingLine);
+      console.log('🔍 DEBUG: Final shipping line:', shippingLine);
     }
 
     // Create draft order
