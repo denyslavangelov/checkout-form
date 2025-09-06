@@ -14,29 +14,32 @@ const SHIPPING_METHODS_QUERY = `
           profileLocationGroups {
             locationGroup {
               id
-              name
             }
             locationGroupZones {
-              zone {
-                id
-                name
-                countries {
-                  code
-                  name
-                }
-                deliveryMethods {
-                  id
-                  title
-                  code
-                  price {
-                    amount
-                    currencyCode
-                  }
-                  deliveryCategory
-                  carrierService {
+              edges {
+                node {
+                  zone {
                     id
                     name
-                    serviceName
+                    countries {
+                      code
+                      name
+                    }
+                    deliveryMethods {
+                      id
+                      title
+                      code
+                      price {
+                        amount
+                        currencyCode
+                      }
+                      deliveryCategory
+                      carrierService {
+                        id
+                        name
+                        serviceName
+                      }
+                    }
                   }
                 }
               }
@@ -129,8 +132,9 @@ export async function GET(request: NextRequest) {
       console.log(`🔍 Processing delivery profile: ${profileData.name}`);
       
       profileData.profileLocationGroups?.forEach((locationGroup: any) => {
-        locationGroup.locationGroupZones?.forEach((zoneGroup: any) => {
-          const zone = zoneGroup.zone;
+        const locationGroupZones = locationGroup.locationGroupZones?.edges || [];
+        locationGroupZones.forEach((zoneEdge: any) => {
+          const zone = zoneEdge.node.zone;
           console.log(`🔍 Processing zone: ${zone.name}`);
           
           zone.deliveryMethods?.forEach((method: any) => {
