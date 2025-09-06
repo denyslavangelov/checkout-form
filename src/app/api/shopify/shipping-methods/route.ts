@@ -98,6 +98,8 @@ export async function GET(request: NextRequest) {
       method.countries.includes('BG') || 
       method.title.toLowerCase().includes('speedy') ||
       method.title.toLowerCase().includes('econt') ||
+      method.title.toLowerCase().includes('спиди') ||
+      method.title.toLowerCase().includes('еконт') ||
       method.title.toLowerCase().includes('доставка') ||
       method.title.toLowerCase().includes('shipping')
     );

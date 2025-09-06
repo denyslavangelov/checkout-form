@@ -161,9 +161,18 @@ export function OfficeSelectorModal({
         const title = method.title.toLowerCase();
         const code = method.code?.toLowerCase() || '';
         
-        // Check for courier match
-        const courierMatch = (selectedCourier === 'speedy' && (title.includes('speedy') || code.includes('speedy'))) ||
-                           (selectedCourier === 'econt' && (title.includes('econt') || code.includes('econt')));
+        // Check for courier match (both English and Bulgarian names)
+        const courierMatch = (selectedCourier === 'speedy' && (
+          title.includes('speedy') || 
+          code.includes('speedy') ||
+          title.includes('спиди') ||
+          code.includes('спиди')
+        )) || (selectedCourier === 'econt' && (
+          title.includes('econt') || 
+          code.includes('econt') ||
+          title.includes('еконт') ||
+          code.includes('еконт')
+        ));
         
         // Check for delivery type match
         const deliveryMatch = (deliveryType === 'office' && (title.includes('офис') || title.includes('office'))) ||
@@ -180,8 +189,17 @@ export function OfficeSelectorModal({
         const courierMethod = availableShippingMethods.find(method => {
           const title = method.title.toLowerCase();
           const code = method.code?.toLowerCase() || '';
-          return (selectedCourier === 'speedy' && (title.includes('speedy') || code.includes('speedy'))) ||
-                 (selectedCourier === 'econt' && (title.includes('econt') || code.includes('econt')));
+          return (selectedCourier === 'speedy' && (
+            title.includes('speedy') || 
+            code.includes('speedy') ||
+            title.includes('спиди') ||
+            code.includes('спиди')
+          )) || (selectedCourier === 'econt' && (
+            title.includes('econt') || 
+            code.includes('econt') ||
+            title.includes('еконт') ||
+            code.includes('еконт')
+          ));
         });
         
         if (courierMethod) {
