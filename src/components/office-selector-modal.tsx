@@ -607,13 +607,22 @@ export function OfficeSelectorModal({
         const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
         const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
         
+        console.log('🏢 Draft order response received:', {
+          success: data.success,
+          checkoutUrl: checkoutUrl,
+          invoiceUrl: invoiceUrl,
+          fullResponse: data
+        });
+        
         // Prioritize invoiceUrl as it's the customer-facing checkout URL
         if (invoiceUrl) {
+          console.log('🏢 Using invoiceUrl for redirection:', invoiceUrl);
           onOrderCreated(invoiceUrl);
         } else if (checkoutUrl) {
+          console.log('🏢 Using checkoutUrl for redirection:', checkoutUrl);
           onOrderCreated(checkoutUrl);
         } else {
-          console.error('No checkout URL or invoice URL in response:', data);
+          console.error('❌ No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
         }
         return;
@@ -677,12 +686,22 @@ export function OfficeSelectorModal({
       const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
       const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
       
+      console.log('🏢 Buy Now - Draft order response received:', {
+        success: data.success,
+        checkoutUrl: checkoutUrl,
+        invoiceUrl: invoiceUrl,
+        fullResponse: data
+      });
+      
       // Prioritize invoiceUrl as it's the customer-facing checkout URL
       if (invoiceUrl) {
+        console.log('🏢 Buy Now - Using invoiceUrl for redirection:', invoiceUrl);
         onOrderCreated(invoiceUrl);
       } else if (checkoutUrl) {
+        console.log('🏢 Buy Now - Using checkoutUrl for redirection:', checkoutUrl);
         onOrderCreated(checkoutUrl);
       } else {
+        console.error('❌ Buy Now - No checkout URL or invoice URL in response:', data);
         throw new Error('No checkout URL received');
       }
 

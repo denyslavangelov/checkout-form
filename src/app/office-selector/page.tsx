@@ -78,6 +78,9 @@ export default function OfficeSelectorPage() {
     // Only run in browser environment
     if (typeof window === 'undefined') return;
     
+    console.log('🏢 Order created with checkout URL:', checkoutUrl);
+    console.log('🏢 Product ID:', productId, 'Variant ID:', variantId);
+    
     // Notify parent window about order creation
     if (window.parent) {
       window.parent.postMessage({ 
@@ -88,6 +91,7 @@ export default function OfficeSelectorPage() {
     
     // For cart checkout, redirect the parent window to Shopify checkout
     if (productId === 'cart' && variantId === 'cart') {
+      console.log('🏢 Cart checkout - redirecting to /checkout');
       if (window.parent) {
         // Redirect parent to Shopify checkout page
         window.parent.location.href = '/checkout';
@@ -96,6 +100,7 @@ export default function OfficeSelectorPage() {
       }
     } else {
       // For Buy Now, redirect the parent window to the checkout URL
+      console.log('🏢 Buy Now - redirecting to checkout URL:', checkoutUrl);
       if (window.parent) {
         window.parent.location.href = checkoutUrl;
       } else {

@@ -391,18 +391,32 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (data.errors && Array.isArray(data.errors)) {
+      console.log('GraphQL errors received:', JSON.stringify(data.errors, null, 2));
+      
       // Check if it's a permission error
       const permissionError = data.errors.some((error: any) => 
         error.message?.includes('permission') || 
         error.message?.includes('access') ||
-        error.message?.includes('unauthorized')
+        error.message?.includes('unauthorized') ||
+        error.message?.includes('scope') ||
+        error.message?.includes('forbidden')
       );
       
       if (permissionError) {
         return NextResponse.json({
           success: false,
           error: 'Insufficient permissions to create draft order',
-          details: data.errors
+          details: data.errors,
+          troubleshooting: {
+            message: 'This error typically occurs when the app lacks the "write_draft_orders" scope or the staff member lacks draft order permissions.',
+            steps: [
+              '1. Check app scopes in Shopify Admin: Apps and sales channels → Develop apps → [Your App] → Configuration',
+              '2. Ensure "write_draft_orders" scope is enabled',
+              '3. Reinstall the app to apply new permissions',
+              '4. Check staff permissions: Settings → Users and permissions → [Staff Member] → Draft orders',
+              '5. Ensure "Create and edit draft orders" permission is enabled'
+            ]
+          }
         }, { status: 403 });
       }
       
@@ -416,6 +430,18 @@ export async function POST(request: NextRequest) {
     if (data.data?.draftOrderCreate?.draftOrder) {
       const draftOrder = data.data.draftOrderCreate.draftOrder;
       
+      const draftOrderId = draftOrder.id.split('/').pop();
+      const constructedCheckoutUrl = `https://${STORE_URL}/admin/draft_orders/${draftOrderId}/checkout`;
+      
+      console.log('✅ Draft order created successfully:', {
+        id: draftOrder.id,
+        name: draftOrder.name,
+        status: draftOrder.status,
+        totalPrice: draftOrder.totalPrice,
+        invoiceUrl: draftOrder.invoiceUrl,
+        constructedCheckoutUrl: constructedCheckoutUrl
+      });
+      
       return NextResponse.json({
         success: true,
         draftOrder: {
@@ -424,7 +450,7 @@ export async function POST(request: NextRequest) {
           status: draftOrder.status,
           totalPrice: draftOrder.totalPrice,
           invoiceUrl: draftOrder.invoiceUrl,
-          checkoutUrl: `https://${STORE_URL}/admin/draft_orders/${draftOrder.id.split('/').pop()}/checkout`
+          checkoutUrl: constructedCheckoutUrl
         }
       });
     } else {
