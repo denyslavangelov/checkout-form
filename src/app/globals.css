@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Office Selector Modal Font Inheritance */
+.office-selector-modal {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+  font-style: inherit !important;
+  text-decoration: inherit !important;
+  font-variant: inherit !important;
+  color: inherit !important;
+}
+
+.office-selector-modal * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+  font-style: inherit !important;
+  text-decoration: inherit !important;
+  font-variant: inherit !important;
+  color: inherit !important;
+}
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));

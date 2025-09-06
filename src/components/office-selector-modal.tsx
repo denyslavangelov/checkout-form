@@ -33,7 +33,6 @@ interface OfficeSelectorModalProps {
     availableCouriers: string[];
     defaultCourier: string;
     defaultDeliveryType: string;
-    storeFont?: string;
     shopify?: {
       storeUrl: string;
       accessToken: string;
@@ -67,20 +66,6 @@ export function OfficeSelectorModal({
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
-  
-  // Font detection state
-  const [detectedFont, setDetectedFont] = useState<string>('');
-  const [detectedFontWeight, setDetectedFontWeight] = useState<string>('');
-  const [detectedFontSize, setDetectedFontSize] = useState<string>('');
-  const [detectedLineHeight, setDetectedLineHeight] = useState<string>('');
-  const [detectedBackgroundColor, setDetectedBackgroundColor] = useState<string>('');
-  const [detectedTextColor, setDetectedTextColor] = useState<string>('');
-  const [detectedLetterSpacing, setDetectedLetterSpacing] = useState<string>('');
-  const [detectedTextTransform, setDetectedTextTransform] = useState<string>('');
-  const [detectedFontStyle, setDetectedFontStyle] = useState<string>('');
-  const [detectedTextDecoration, setDetectedTextDecoration] = useState<string>('');
-  const [detectedFontVariant, setDetectedFontVariant] = useState<string>('');
-  const [fontLoaded, setFontLoaded] = useState<boolean>(false);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -739,309 +724,23 @@ export function OfficeSelectorModal({
     }
   }, [isOpen]);
 
-  // Detect and apply store font
-  useEffect(() => {
-    if (isOpen) {
-      // First, try to use the font from config
-      if (config.storeFont) {
-        setDetectedFont(config.storeFont);
-        return;
-      }
-
-      // If no font in config, try to detect from parent window
-      try {
-        if (window.parent && window.parent !== window) {
-          // Common selectors for store text elements
-          const selectors = [
-            'body',
-            '.main',
-            '.page-content',
-            '.content',
-            '.product-title',
-            '.product-form',
-            'h1, h2, h3',
-            '.btn, button',
-            '.price',
-            '.product-info'
-          ];
-
-          for (const selector of selectors) {
-            try {
-              const element = window.parent.document.querySelector(selector);
-              if (element) {
-                const computedStyle = window.parent.getComputedStyle(element);
-                const fontFamily = computedStyle.fontFamily;
-                
-                if (fontFamily && fontFamily !== 'initial' && fontFamily !== 'inherit') {
-                  console.log(`Detected font from ${selector}:`, fontFamily);
-                  setDetectedFont(fontFamily);
-                  
-                  // Also capture other typography properties
-                  const fontWeight = computedStyle.fontWeight;
-                  const fontSize = computedStyle.fontSize;
-                  const lineHeight = computedStyle.lineHeight;
-                  const backgroundColor = computedStyle.backgroundColor;
-                  const color = computedStyle.color;
-                  
-                  if (fontWeight && fontWeight !== 'initial' && fontWeight !== 'inherit') {
-                    setDetectedFontWeight(fontWeight);
-                  }
-                  if (fontSize && fontSize !== 'initial' && fontSize !== 'inherit') {
-                    setDetectedFontSize(fontSize);
-                  }
-                  if (lineHeight && lineHeight !== 'initial' && lineHeight !== 'inherit') {
-                    setDetectedLineHeight(lineHeight);
-                  }
-                  if (backgroundColor && backgroundColor !== 'initial' && backgroundColor !== 'inherit' && backgroundColor !== 'rgba(0, 0, 0, 0)') {
-                    setDetectedBackgroundColor(backgroundColor);
-                  }
-                  if (color && color !== 'initial' && color !== 'inherit') {
-                    setDetectedTextColor(color);
-                  }
-                  
-                  return;
-                }
-              }
-            } catch (e) {
-              // Cross-origin restrictions might prevent access
-              continue;
-            }
-          }
-        }
-      } catch (error) {
-        console.log('Could not detect parent font due to cross-origin restrictions');
-      }
-
-      // Fallback: Request font info from parent via message
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'get-store-font' }, '*');
-        
-        const handleFontResponse = (event: MessageEvent) => {
-          if (event.data?.type === 'store-font-response' && event.data?.fontFamily) {
-            console.log('Received font from parent:', event.data.fontFamily);
-            setDetectedFont(event.data.fontFamily);
-            
-            // Also set additional typography properties if available
-            if (event.data.fontWeight) {
-              setDetectedFontWeight(event.data.fontWeight);
-            }
-            if (event.data.fontSize) {
-              setDetectedFontSize(event.data.fontSize);
-            }
-            if (event.data.lineHeight) {
-              setDetectedLineHeight(event.data.lineHeight);
-            }
-            if (event.data.backgroundColor) {
-              setDetectedBackgroundColor(event.data.backgroundColor);
-            }
-            if (event.data.color) {
-              setDetectedTextColor(event.data.color);
-            }
-            if (event.data.letterSpacing) {
-              setDetectedLetterSpacing(event.data.letterSpacing);
-            }
-            if (event.data.textTransform) {
-              setDetectedTextTransform(event.data.textTransform);
-            }
-            if (event.data.fontStyle) {
-              setDetectedFontStyle(event.data.fontStyle);
-            }
-            if (event.data.textDecoration) {
-              setDetectedTextDecoration(event.data.textDecoration);
-            }
-            if (event.data.fontVariant) {
-              setDetectedFontVariant(event.data.fontVariant);
-            }
-            
-            window.removeEventListener('message', handleFontResponse);
-          }
-        };
-        
-        window.addEventListener('message', handleFontResponse);
-        
-        // Cleanup after 1 second
-        setTimeout(() => {
-          window.removeEventListener('message', handleFontResponse);
-        }, 1000);
-      }
-    }
-  }, [isOpen, config.storeFont]);
-
-  // Inject dynamic CSS for font application
-  useEffect(() => {
-    if (detectedFont && isOpen) {
-      // Create or update dynamic style tag
-      let styleTag = document.getElementById('modal-font-override');
-      if (!styleTag) {
-        styleTag = document.createElement('style');
-        styleTag.id = 'modal-font-override';
-        document.head.appendChild(styleTag);
-      }
-      
-      // Try multiple font strategies
-      let fontFamily;
-      if (fontLoaded) {
-        // If font is loaded, try different approaches
-        fontFamily = `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
-      } else if (detectedFont) {
-        fontFamily = `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
-      } else {
-        fontFamily = config.storeFont || 'inherit';
-      }
-      
-      styleTag.textContent = `
-        [data-modal-container="true"], 
-        [data-modal-container="true"] * {
-          font-family: ${fontFamily} !important;
-          ${detectedFontWeight ? `font-weight: ${detectedFontWeight} !important;` : ''}
-          ${detectedFontSize ? `font-size: ${detectedFontSize} !important;` : ''}
-          ${detectedLineHeight ? `line-height: ${detectedLineHeight} !important;` : ''}
-          ${detectedLetterSpacing ? `letter-spacing: ${detectedLetterSpacing} !important;` : ''}
-          ${detectedTextTransform ? `text-transform: ${detectedTextTransform} !important;` : ''}
-          ${detectedFontStyle ? `font-style: ${detectedFontStyle} !important;` : ''}
-          ${detectedTextDecoration ? `text-decoration: ${detectedTextDecoration} !important;` : ''}
-          ${detectedFontVariant ? `font-variant: ${detectedFontVariant} !important;` : ''}
-          ${detectedTextColor ? `color: ${detectedTextColor} !important;` : ''}
-        }
-      `;
-      
-      return () => {
-        // Clean up style tag when component unmounts
-        const existingStyleTag = document.getElementById('modal-font-override');
-        if (existingStyleTag) {
-          existingStyleTag.remove();
-        }
-      };
-    }
-  }, [detectedFont, fontLoaded, isOpen, config.storeFont]);
-
-  // Check if font is actually loaded and available
-  useEffect(() => {
-    if (detectedFont && isOpen) {
-      const checkFontLoaded = () => {
-        // Create a test element to check if font is loaded
-        const testElement = document.createElement('span');
-        testElement.style.fontFamily = detectedFont;
-        testElement.style.fontSize = '16px';
-        testElement.style.visibility = 'hidden';
-        testElement.style.position = 'absolute';
-        testElement.style.top = '-9999px';
-        testElement.textContent = 'Test';
-        document.body.appendChild(testElement);
-        
-        const testWidth = testElement.offsetWidth;
-        testElement.style.fontFamily = 'monospace';
-        const fallbackWidth = testElement.offsetWidth;
-        
-        document.body.removeChild(testElement);
-        
-        const isLoaded = testWidth !== fallbackWidth;
-        console.log(`🔤 Font loading check in modal:`, {
-          fontFamily: detectedFont,
-          fontLoaded: isLoaded,
-          testWidth,
-          fallbackWidth
-        });
-        
-        setFontLoaded(isLoaded);
-        
-        // Also log what's actually being applied
-        console.log(`🔤 Final font application:`, {
-          detectedFont,
-          fontLoaded: isLoaded,
-          finalFontFamily: isLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit')
-        });
-      };
-      
-      // Check immediately
-      checkFontLoaded();
-      
-      // Also check after a delay in case font is still loading
-      const timeout = setTimeout(checkFontLoaded, 1000);
-      
-      // Check what font is actually being computed on modal elements
-      const checkComputedFont = () => {
-        const modalElement = document.querySelector('[data-modal-container="true"]') || 
-                           document.querySelector('.rounded-lg.p-6');
-        if (modalElement) {
-          const computedStyle = getComputedStyle(modalElement);
-          console.log(`🔤 Computed font on modal element:`, {
-            fontFamily: computedStyle.fontFamily,
-            fontWeight: computedStyle.fontWeight,
-            fontSize: computedStyle.fontSize
-          });
-        }
-      };
-      
-      // Check computed font after a short delay
-      setTimeout(checkComputedFont, 100);
-      
-      // Additional font debugging - check if font is actually rendering
-      const debugFontRendering = () => {
-        const testElement = document.createElement('div');
-        testElement.style.position = 'absolute';
-        testElement.style.top = '-9999px';
-        testElement.style.left = '-9999px';
-        testElement.style.fontSize = '16px';
-        testElement.textContent = 'Test Text';
-        
-        // Test with M-Body-Font
-        testElement.style.fontFamily = 'M-Body-Font';
-        document.body.appendChild(testElement);
-        const mBodyFontWidth = testElement.offsetWidth;
-        
-        // Test with Times New Roman
-        testElement.style.fontFamily = 'Times New Roman';
-        const timesNewRomanWidth = testElement.offsetWidth;
-        
-        // Test with Arial
-        testElement.style.fontFamily = 'Arial';
-        const arialWidth = testElement.offsetWidth;
-        
-        document.body.removeChild(testElement);
-        
-        console.log(`🔤 Font rendering comparison:`, {
-          'M-Body-Font': mBodyFontWidth,
-          'Times New Roman': timesNewRomanWidth,
-          'Arial': arialWidth,
-          'M-Body-Font matches Times': mBodyFontWidth === timesNewRomanWidth,
-          'M-Body-Font matches Arial': mBodyFontWidth === arialWidth
-        });
-        
-        // Check if M-Body-Font is actually a fallback to Times New Roman
-        if (mBodyFontWidth === timesNewRomanWidth) {
-          console.warn(`⚠️ M-Body-Font appears to be falling back to Times New Roman!`);
-        }
-      };
-      
-      setTimeout(debugFontRendering, 200);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [detectedFont, isOpen]);
-
   if (!isOpen) return null;
 
   if (showLoading) {
     return (
       <div 
-        data-modal-container="true"
-        className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
-        style={{ 
-          fontFamily: fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit'),
-          fontWeight: detectedFontWeight || 'inherit',
-          fontSize: detectedFontSize || 'inherit',
-          lineHeight: detectedLineHeight || 'inherit',
-          letterSpacing: detectedLetterSpacing || 'inherit',
-          textTransform: (detectedTextTransform as any) || 'inherit',
-          fontStyle: detectedFontStyle || 'inherit',
-          textDecoration: detectedTextDecoration || 'inherit',
-          fontVariant: detectedFontVariant || 'inherit',
-          textRendering: 'inherit',
-          WebkitFontSmoothing: 'inherit',
-          MozOsxFontSmoothing: 'inherit',
-          backgroundColor: detectedBackgroundColor || 'white',
-          color: detectedTextColor || 'inherit'
+        className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+        style={{
+          fontFamily: 'inherit',
+          fontSize: 'inherit',
+          fontWeight: 'inherit',
+          lineHeight: 'inherit',
+          letterSpacing: 'inherit',
+          textTransform: 'inherit',
+          fontStyle: 'inherit',
+          textDecoration: 'inherit',
+          fontVariant: 'inherit',
+          color: 'inherit'
         }}
       >
         <div className="flex items-center justify-center min-h-[400px]">
@@ -1056,23 +755,18 @@ export function OfficeSelectorModal({
 
   return (
     <div 
-      data-modal-container="true"
-      className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
-      style={{ 
-        fontFamily: fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit'),
-        fontWeight: detectedFontWeight || 'inherit',
-        fontSize: detectedFontSize || 'inherit',
-        lineHeight: detectedLineHeight || 'inherit',
-        letterSpacing: detectedLetterSpacing || 'inherit',
-        textTransform: (detectedTextTransform as any) || 'inherit',
-        fontStyle: detectedFontStyle || 'inherit',
-        textDecoration: detectedTextDecoration || 'inherit',
-        fontVariant: detectedFontVariant || 'inherit',
-        textRendering: 'inherit',
-        WebkitFontSmoothing: 'inherit',
-        MozOsxFontSmoothing: 'inherit',
-        backgroundColor: detectedBackgroundColor || 'white',
-        color: detectedTextColor || 'inherit'
+      className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+      style={{
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        fontWeight: 'inherit',
+        lineHeight: 'inherit',
+        letterSpacing: 'inherit',
+        textTransform: 'inherit',
+        fontStyle: 'inherit',
+        textDecoration: 'inherit',
+        fontVariant: 'inherit',
+        color: 'inherit'
       }}
     >
         {/* Close button */}
