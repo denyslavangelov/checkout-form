@@ -324,6 +324,11 @@
     if (!finalConfig.buttonTargets.enableSmartDetection) {
       return false;
     }
+    
+    // If we have custom selectors, only use those (ignore smart detection)
+    if (finalConfig.buttonTargets.customSelectors.length > 0) {
+      return false; // Custom selectors are handled above, don't use smart detection
+    }
 
     const tagName = element.tagName.toLowerCase();
     const text = element.textContent?.toLowerCase().trim() || '';

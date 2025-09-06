@@ -58,6 +58,7 @@ export function OfficeSelectorModal({
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(config.defaultCourier as 'speedy' | 'econt');
@@ -89,6 +90,20 @@ export function OfficeSelectorModal({
       } catch (error) {
         console.error('🏢 Error sending test message:', error);
       }
+    }
+  }, [isOpen]);
+
+  // Initialize component and hide loading state
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to prevent courier selection flash
+      const timer = setTimeout(() => {
+        setIsInitializing(false);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsInitializing(true);
     }
   }, [isOpen]);
 
@@ -529,6 +544,15 @@ export function OfficeSelectorModal({
 
   return (
     <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
+      {/* Loading State */}
+      {isInitializing && (
+        <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 rounded-lg">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+            <span className="text-sm text-gray-600">Зареждане...</span>
+          </div>
+        </div>
+      )}
         {/* Close button */}
         <button
           onClick={handleClose}
