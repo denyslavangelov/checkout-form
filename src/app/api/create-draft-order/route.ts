@@ -25,6 +25,11 @@ const CREATE_DRAFT_ORDER_MUTATION = `
             }
           }
         }
+        shippingLine {
+          title
+          price
+          code
+        }
         shippingAddress {
           address1
           city
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Received request body:', JSON.stringify(body, null, 2));
     
-    const { productId, variantId, quantity, shippingAddress, cartData } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId } = body;
     
     console.log('🔍 DEBUG: Extracted data:', {
       productId,
@@ -133,7 +138,69 @@ export async function POST(request: NextRequest) {
       console.log('🔍 DEBUG: Using single product:', lineItems);
     }
 
+    // Create shipping line based on shipping method
+    let shippingLine = null;
+    
+    // If we have a specific shipping method ID, use that
+    if (selectedShippingMethodId) {
+      shippingLine = {
+        shippingMethodId: selectedShippingMethodId
+      };
+      console.log('🔍 DEBUG: Using specific shipping method ID:', selectedShippingMethodId);
+    } else if (shippingMethod) {
+      // Fallback to hardcoded shipping methods based on courier and delivery type
+      const { courier, deliveryType } = shippingMethod;
+      
+      // Define shipping methods based on courier and delivery type
+      if (courier === 'speedy') {
+        if (deliveryType === 'office') {
+          shippingLine = {
+            title: 'Спиди - До офис',
+            price: '0.00',
+            code: 'speedy-office'
+          };
+        } else if (deliveryType === 'address') {
+          shippingLine = {
+            title: 'Спиди - До адрес',
+            price: '0.00',
+            code: 'speedy-address'
+          };
+        }
+      } else if (courier === 'econt') {
+        if (deliveryType === 'office') {
+          shippingLine = {
+            title: 'Еконт - До офис',
+            price: '0.00',
+            code: 'econt-office'
+          };
+        } else if (deliveryType === 'address') {
+          shippingLine = {
+            title: 'Еконт - До адрес',
+            price: '0.00',
+            code: 'econt-address'
+          };
+        }
+      }
+      
+      console.log('🔍 DEBUG: Created fallback shipping line:', shippingLine);
+    }
+
     // Create draft order
+    const draftOrderInput: any = {
+      lineItems: lineItems,
+      shippingAddress: {
+        address1: addressString,
+        city: shippingAddress.city || 'Sofia',
+        zip: shippingAddress.postalCode || '',
+        country: shippingAddress.country || 'Bulgaria'
+      }
+    };
+
+    // Add shipping line if available
+    if (shippingLine) {
+      draftOrderInput.shippingLine = shippingLine;
+    }
+
     const response = await fetch(`https://${STORE_URL}/admin/api/2025-01/graphql.json`, {
       method: 'POST',
       headers: {
@@ -143,15 +210,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         query: CREATE_DRAFT_ORDER_MUTATION,
         variables: {
-          input: {
-            lineItems: lineItems,
-            shippingAddress: {
-              address1: addressString,
-              city: shippingAddress.city || 'Sofia',
-              zip: shippingAddress.postalCode || '',
-              country: shippingAddress.country || 'Bulgaria'
-            }
-          }
+          input: draftOrderInput
         }
       })
     });
