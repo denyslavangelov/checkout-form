@@ -56,25 +56,6 @@ export async function GET(request: NextRequest) {
 
     if (data.errors) {
       console.error('🔍 GraphQL errors:', data.errors);
-      
-      // Check if it's a permission error
-      const permissionError = data.errors.some((error: any) => 
-        error.message?.includes('permission') || 
-        error.message?.includes('access') ||
-        error.message?.includes('unauthorized')
-      );
-      
-      if (permissionError) {
-        console.log('🔍 Permission error detected - API token may not have shipping permissions');
-        return NextResponse.json({ 
-          error: 'Permission denied - API token needs shipping permissions',
-          details: data.errors,
-          fallback: true
-        }, { 
-          status: 403 
-        });
-      }
-      
       return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
         status: 400 
       });
@@ -117,8 +98,6 @@ export async function GET(request: NextRequest) {
       method.countries.includes('BG') || 
       method.title.toLowerCase().includes('speedy') ||
       method.title.toLowerCase().includes('econt') ||
-      method.title.toLowerCase().includes('спиди') ||
-      method.title.toLowerCase().includes('еконт') ||
       method.title.toLowerCase().includes('доставка') ||
       method.title.toLowerCase().includes('shipping')
     );

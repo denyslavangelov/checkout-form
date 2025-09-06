@@ -219,27 +219,6 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DEBUG: Shopify response:', JSON.stringify(data, null, 2));
 
     if (data.errors) {
-      console.error('🔍 Draft order creation GraphQL errors:', data.errors);
-      
-      // Check if it's a permission error
-      const permissionError = data.errors.some((error: any) => 
-        error.message?.includes('permission') || 
-        error.message?.includes('access') ||
-        error.message?.includes('unauthorized') ||
-        error.message?.includes('forbidden')
-      );
-      
-      if (permissionError) {
-        console.log('🔍 Permission error in draft order creation - API token may not have draft order permissions');
-        return NextResponse.json({ 
-          error: 'Permission denied - API token needs draft order permissions',
-          details: data.errors
-        }, { 
-          status: 403,
-          headers: { 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-      
       return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
         status: 400,
         headers: { 'Access-Control-Allow-Origin': '*' }

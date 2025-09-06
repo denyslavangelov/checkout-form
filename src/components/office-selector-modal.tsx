@@ -102,23 +102,18 @@ export function OfficeSelectorModal({
       const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error('Failed to fetch shipping methods');
       }
       
       const data = await response.json();
-      console.log('🏢 Shipping methods response:', data);
+      console.log('🏢 Shipping methods fetched:', data);
       
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
         console.log('🏢 Available shipping methods:', data.shippingMethods.length);
-      } else if (data.error) {
-        console.warn('🏢 Shipping methods API error:', data.error);
-        console.log('🏢 Will use fallback shipping methods');
-        setAvailableShippingMethods([]);
       }
     } catch (error) {
       console.error('🏢 Error fetching shipping methods:', error);
-      console.log('🏢 Will use fallback shipping methods');
       setAvailableShippingMethods([]);
     } finally {
       setLoadingShippingMethods(false);
@@ -166,18 +161,9 @@ export function OfficeSelectorModal({
         const title = method.title.toLowerCase();
         const code = method.code?.toLowerCase() || '';
         
-        // Check for courier match (both English and Bulgarian names)
-        const courierMatch = (selectedCourier === 'speedy' && (
-          title.includes('speedy') || 
-          code.includes('speedy') ||
-          title.includes('спиди') ||
-          code.includes('спиди')
-        )) || (selectedCourier === 'econt' && (
-          title.includes('econt') || 
-          code.includes('econt') ||
-          title.includes('еконт') ||
-          code.includes('еконт')
-        ));
+        // Check for courier match
+        const courierMatch = (selectedCourier === 'speedy' && (title.includes('speedy') || code.includes('speedy'))) ||
+                           (selectedCourier === 'econt' && (title.includes('econt') || code.includes('econt')));
         
         // Check for delivery type match
         const deliveryMatch = (deliveryType === 'office' && (title.includes('офис') || title.includes('office'))) ||
@@ -194,17 +180,8 @@ export function OfficeSelectorModal({
         const courierMethod = availableShippingMethods.find(method => {
           const title = method.title.toLowerCase();
           const code = method.code?.toLowerCase() || '';
-          return (selectedCourier === 'speedy' && (
-            title.includes('speedy') || 
-            code.includes('speedy') ||
-            title.includes('спиди') ||
-            code.includes('спиди')
-          )) || (selectedCourier === 'econt' && (
-            title.includes('econt') || 
-            code.includes('econt') ||
-            title.includes('еконт') ||
-            code.includes('еконт')
-          ));
+          return (selectedCourier === 'speedy' && (title.includes('speedy') || code.includes('speedy'))) ||
+                 (selectedCourier === 'econt' && (title.includes('econt') || code.includes('econt')));
         });
         
         if (courierMethod) {
