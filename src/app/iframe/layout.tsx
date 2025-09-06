@@ -9,8 +9,8 @@ export default function IframeLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" style={{ background: 'transparent', margin: 0, padding: 0 }}>
+      <body style={{ background: 'transparent', margin: 0, padding: 0 }}>
         {children}
       </body>
     </html>
