@@ -561,11 +561,15 @@ ${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) 
 
         const data = await response.json();   
         
+        // Debug logging to see what response we got
+        console.log('Draft order creation response:', JSON.stringify(data, null, 2));
+        
         if (data.checkoutUrl) {
           onOrderCreated(data.checkoutUrl);
         } else if (data.invoiceUrl) {
           onOrderCreated(data.invoiceUrl);
         } else {
+          console.error('No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
         }
         return;

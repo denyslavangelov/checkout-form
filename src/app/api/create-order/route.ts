@@ -25,6 +25,9 @@ export async function POST(request: Request) {
   try {
     const origin = request.headers.get('origin') || '';
     const body = await request.json();
+    
+    // Debug logging to see what data is being sent
+    console.log('Sending to external API:', JSON.stringify(body, null, 2));
 
     const response = await fetch('https://shipfast-v2.vercel.app/api/create-order', {
       method: 'POST',
@@ -44,8 +47,38 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+    
+    // Debug logging to see what the external API returns
+    console.log('External API response:', JSON.stringify(data, null, 2));
 
-    return NextResponse.json(data, {
+    // Map the external API response to the expected format
+    // The external service might return different field names
+    const mappedResponse = {
+      ...data,
+      // Try to map common field names to checkoutUrl
+      checkoutUrl: data.checkoutUrl || data.checkout_url || data.url || data.orderUrl || data.order_url,
+      // Try to map common field names to orderId
+      orderId: data.orderId || data.order_id || data.id || data.orderNumber || data.order_number
+    };
+
+    console.log('Mapped response:', JSON.stringify(mappedResponse, null, 2));
+
+    // If no checkout URL is found, return an error
+    if (!mappedResponse.checkoutUrl) {
+      console.error('No checkout URL found in external API response:', data);
+      return new NextResponse(
+        JSON.stringify({ 
+          error: 'No checkout URL received from external service',
+          details: 'The external order service did not return a checkout URL'
+        }), 
+        { 
+          status: 500,
+          headers: corsHeaders(origin)
+        }
+      );
+    }
+
+    return NextResponse.json(mappedResponse, {
       headers: corsHeaders(origin)
     });
   } catch (error) {
