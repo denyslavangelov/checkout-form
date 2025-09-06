@@ -1299,6 +1299,70 @@
     return targetedButtons;
   };
 
+  // Function to fetch and log current shipping methods
+  async function fetchAndLogShippingMethods() {
+    try {
+      console.log('🚢 Fetching current shipping methods from store...');
+      
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
+      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('🚢 Shipping methods response:', data);
+      
+      if (data.success && data.shippingMethods) {
+        console.log('🚢 Current Store Shipping Methods:');
+        console.log(`🚢 Total Methods: ${data.shippingMethods.length}`);
+        console.log(`🚢 Bulgaria-relevant: ${data.bulgariaMethods?.length || 0}`);
+        
+        data.shippingMethods.forEach((method, index) => {
+          console.log(`🚢 Method ${index + 1}:`, {
+            title: method.title,
+            code: method.code,
+            price: method.price,
+            currency: method.currency,
+            profile: method.profile,
+            zone: method.zone,
+            countries: method.countries
+          });
+        });
+        
+        if (data.bulgariaMethods && data.bulgariaMethods.length > 0) {
+          console.log('🚢 Bulgaria-relevant Methods:');
+          data.bulgariaMethods.forEach((method, index) => {
+            console.log(`🚢 BG Method ${index + 1}:`, {
+              title: method.title,
+              code: method.code,
+              price: method.price,
+              currency: method.currency
+            });
+          });
+        }
+        
+        // Store shipping methods globally for later use
+        window.storeShippingMethods = data.shippingMethods;
+        window.bulgariaShippingMethods = data.bulgariaMethods;
+        
+        console.log('🚢 Shipping methods stored in window.storeShippingMethods and window.bulgariaShippingMethods');
+        
+      } else if (data.error) {
+        console.warn('🚢 Shipping methods API error:', data.error);
+        console.log('🚢 Will use fallback shipping methods');
+      }
+    } catch (error) {
+      console.error('🚢 Error fetching shipping methods:', error);
+      console.log('🚢 Will use fallback shipping methods');
+    }
+  }
+
+  // Fetch shipping methods when script loads
+  fetchAndLogShippingMethods();
+
   console.log('🏢 Office selector loaded. Use testButtonDetection(".shopify-payment-button__button") to test specific buttons.');
   console.log('🏢 Use scanAllButtons() to see all targeted buttons on the page.');
+  console.log('🚢 Use window.storeShippingMethods to access fetched shipping methods.');
 })(); 
