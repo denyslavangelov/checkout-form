@@ -15,6 +15,19 @@ export default function OfficeSelectorPage() {
 
   // Memoize URL parsing for performance
   const urlData = useMemo(() => {
+    // Check if we're in the browser environment
+    if (typeof window === 'undefined') {
+      return {
+        product: '',
+        variant: '',
+        parsedConfig: {
+          availableCouriers: ['speedy', 'econt'],
+          defaultCourier: 'speedy',
+          defaultDeliveryType: 'office'
+        }
+      };
+    }
+    
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('productId') || '';
     const variant = urlParams.get('variantId') || '';
@@ -39,6 +52,9 @@ export default function OfficeSelectorPage() {
   }, []);
 
   useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === 'undefined') return;
+    
     setProductId(urlData.product);
     setVariantId(urlData.variant);
     setConfig(urlData.parsedConfig);
@@ -54,9 +70,12 @@ export default function OfficeSelectorPage() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [urlData]);
 
   const handleOrderCreated = (checkoutUrl: string) => {
+    // Only run in browser environment
+    if (typeof window === 'undefined') return;
+    
     // Notify parent window about order creation
     if (window.parent) {
       window.parent.postMessage({ 
@@ -86,7 +105,7 @@ export default function OfficeSelectorPage() {
   const handleClose = () => {
     setIsOpen(false);
     // Notify parent window that modal is closed
-    if (window.parent) {
+    if (typeof window !== 'undefined' && window.parent) {
       window.parent.postMessage({ type: 'office-selector-closed' }, '*');
     }
   };
