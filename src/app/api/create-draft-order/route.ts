@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Received request body:', JSON.stringify(body, null, 2));
     
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod } = body;
     
     console.log('🔍 DEBUG: Extracted data:', {
       productId,
@@ -140,15 +140,7 @@ export async function POST(request: NextRequest) {
 
     // Create shipping line based on shipping method
     let shippingLine = null;
-    
-    // If we have a specific shipping method ID, use that
-    if (selectedShippingMethodId) {
-      shippingLine = {
-        shippingMethodId: selectedShippingMethodId
-      };
-      console.log('🔍 DEBUG: Using specific shipping method ID:', selectedShippingMethodId);
-    } else if (shippingMethod) {
-      // Fallback to hardcoded shipping methods based on courier and delivery type
+    if (shippingMethod) {
       const { courier, deliveryType } = shippingMethod;
       
       // Define shipping methods based on courier and delivery type
@@ -182,7 +174,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      console.log('🔍 DEBUG: Created fallback shipping line:', shippingLine);
+      console.log('🔍 DEBUG: Created shipping line:', shippingLine);
     }
 
     // Create draft order
