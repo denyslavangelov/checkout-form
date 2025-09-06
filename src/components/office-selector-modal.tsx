@@ -109,11 +109,6 @@ export function OfficeSelectorModal({
         // Alert the shipping methods for debugging
         if (data.alert) {
           alert(data.alert);
-        } else {
-          const alertMessage = `Shipping Methods Found: ${data.shippingMethods.length}
-          
-${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) - ${method.price} ${method.currency}`).join('\n')}`;
-          alert(alertMessage);
         }
       } else if (data.error) {
         setAvailableShippingMethods([]);
