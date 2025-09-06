@@ -75,6 +75,7 @@ export function OfficeSelectorModal({
   const [detectedLineHeight, setDetectedLineHeight] = useState<string>('');
   const [detectedBackgroundColor, setDetectedBackgroundColor] = useState<string>('');
   const [detectedTextColor, setDetectedTextColor] = useState<string>('');
+  const [fontLoaded, setFontLoaded] = useState<boolean>(false);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -846,6 +847,47 @@ export function OfficeSelectorModal({
     }
   }, [isOpen, config.storeFont]);
 
+  // Check if font is actually loaded and available
+  useEffect(() => {
+    if (detectedFont && isOpen) {
+      const checkFontLoaded = () => {
+        // Create a test element to check if font is loaded
+        const testElement = document.createElement('span');
+        testElement.style.fontFamily = detectedFont;
+        testElement.style.fontSize = '16px';
+        testElement.style.visibility = 'hidden';
+        testElement.style.position = 'absolute';
+        testElement.style.top = '-9999px';
+        testElement.textContent = 'Test';
+        document.body.appendChild(testElement);
+        
+        const testWidth = testElement.offsetWidth;
+        testElement.style.fontFamily = 'monospace';
+        const fallbackWidth = testElement.offsetWidth;
+        
+        document.body.removeChild(testElement);
+        
+        const isLoaded = testWidth !== fallbackWidth;
+        console.log(`🔤 Font loading check in modal:`, {
+          fontFamily: detectedFont,
+          fontLoaded: isLoaded,
+          testWidth,
+          fallbackWidth
+        });
+        
+        setFontLoaded(isLoaded);
+      };
+      
+      // Check immediately
+      checkFontLoaded();
+      
+      // Also check after a delay in case font is still loading
+      const timeout = setTimeout(checkFontLoaded, 1000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [detectedFont, isOpen]);
+
   if (!isOpen) return null;
 
   if (showLoading) {
@@ -853,7 +895,7 @@ export function OfficeSelectorModal({
       <div 
         className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
         style={{ 
-          fontFamily: detectedFont || config.storeFont || 'inherit',
+          fontFamily: fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit'),
           fontWeight: detectedFontWeight || 'inherit',
           fontSize: detectedFontSize || 'inherit',
           lineHeight: detectedLineHeight || 'inherit',
@@ -879,7 +921,7 @@ export function OfficeSelectorModal({
     <div 
       className="rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
       style={{ 
-        fontFamily: detectedFont || config.storeFont || 'inherit',
+        fontFamily: fontLoaded ? detectedFont : (detectedFont ? `${detectedFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` : config.storeFont || 'inherit'),
         fontWeight: detectedFontWeight || 'inherit',
         fontSize: detectedFontSize || 'inherit',
         lineHeight: detectedLineHeight || 'inherit',

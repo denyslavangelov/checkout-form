@@ -349,6 +349,12 @@
                 
                 if (fontFamily && fontFamily !== 'initial' && fontFamily !== 'inherit') {
                   console.log(`🔤 Detected store font from ${selector}:`, fontFamily);
+                  console.log(`🔤 Font family details:`, {
+                    fontFamily,
+                    fontWeight: computedStyle.fontWeight,
+                    fontSize: computedStyle.fontSize,
+                    fontDisplay: computedStyle.fontDisplay
+                  });
                   detectedFont = fontFamily;
                   
                   // Also capture other typography properties
@@ -380,6 +386,32 @@
             } catch (e) {
               continue;
             }
+          }
+          
+          // Check if font is actually loaded
+          if (detectedFont) {
+            // Test font loading
+            const testElement = document.createElement('span');
+            testElement.style.fontFamily = detectedFont;
+            testElement.style.fontSize = '16px';
+            testElement.style.visibility = 'hidden';
+            testElement.style.position = 'absolute';
+            testElement.textContent = 'Test';
+            document.body.appendChild(testElement);
+            
+            const testWidth = testElement.offsetWidth;
+            testElement.style.fontFamily = 'monospace';
+            const fallbackWidth = testElement.offsetWidth;
+            
+            document.body.removeChild(testElement);
+            
+            const fontLoaded = testWidth !== fallbackWidth;
+            console.log(`🔤 Font loading test:`, {
+              fontFamily: detectedFont,
+              fontLoaded,
+              testWidth,
+              fallbackWidth
+            });
           }
           
           // Send font back to iframe
