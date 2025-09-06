@@ -899,7 +899,7 @@
     try {
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
-      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods-rest`);
+      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods-graphql`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

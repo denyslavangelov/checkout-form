@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     // If we have a specific shipping method ID, fetch its details and use title/price
     if (selectedShippingMethodId) {
       try {
-        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods-rest`);
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods-graphql`);
         const shippingMethodsData = await shippingMethodsResponse.json();
         
         if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       const { courier, deliveryType } = shippingMethod;
       
       try {
-        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods-rest`);
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods-graphql`);
         const shippingMethodsData = await shippingMethodsResponse.json();
         
         if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
