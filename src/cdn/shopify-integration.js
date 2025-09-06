@@ -190,8 +190,10 @@
     
     if (iframe) {
       
-      // Disable body scrolling
+      // Disable body scrolling and blur the store background
       document.body.style.overflow = 'hidden';
+      document.body.style.filter = 'blur(2px)';
+      document.body.style.transition = 'filter 0.3s ease';
       
       // Add keyboard support (ESC key)
       const handleKeyDown = (e) => {
@@ -321,8 +323,10 @@
       iframe.style.display = 'none';
     }
     
-    // Re-enable body scrolling
+    // Re-enable body scrolling and remove blur
     document.body.style.overflow = '';
+    document.body.style.filter = '';
+    document.body.style.transition = '';
   }
 
   // Initialize custom selector targeting (no constant checking)
