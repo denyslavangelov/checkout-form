@@ -111,10 +111,23 @@ export function OfficeSelectorModal({
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
         console.log('🏢 Available shipping methods:', data.shippingMethods.length);
+        
+        // Alert the shipping methods for debugging
+        if (data.alert) {
+          alert(data.alert);
+        } else {
+          const alertMessage = `Shipping Methods Found: ${data.shippingMethods.length}
+          
+${data.shippingMethods.map((method: any) => `- ${method.title} (${method.code}) - ${method.price} ${method.currency}`).join('\n')}`;
+          alert(alertMessage);
+        }
       } else if (data.error) {
         console.warn('🏢 Shipping methods API error:', data.error);
         console.log('🏢 Will use fallback shipping methods');
         setAvailableShippingMethods([]);
+        
+        // Alert the error
+        alert(`Shipping Methods API Error: ${data.error}`);
       }
     } catch (error) {
       console.error('🏢 Error fetching shipping methods:', error);

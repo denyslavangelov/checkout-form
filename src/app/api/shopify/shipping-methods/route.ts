@@ -125,11 +125,25 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 Bulgaria-relevant methods: ${bulgariaMethods.length}`);
 
+    // Alert the shipping methods for debugging
+    const alertMessage = `Shipping Methods Found:
+Total: ${allShippingMethods.length}
+Bulgaria-relevant: ${bulgariaMethods.length}
+
+All Methods:
+${allShippingMethods.map(method => `- ${method.title} (${method.code}) - ${method.price} ${method.currency}`).join('\n')}
+
+Bulgaria Methods:
+${bulgariaMethods.map(method => `- ${method.title} (${method.code}) - ${method.price} ${method.currency}`).join('\n')}`;
+
+    console.log('🚨 ALERT - Shipping Methods:', alertMessage);
+
     return NextResponse.json({
       success: true,
       shippingMethods: allShippingMethods,
       bulgariaMethods: bulgariaMethods,
-      total: allShippingMethods.length
+      total: allShippingMethods.length,
+      alert: alertMessage // Include alert message in response
     });
 
   } catch (error) {
