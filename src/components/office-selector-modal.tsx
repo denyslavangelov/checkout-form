@@ -94,7 +94,7 @@ export function OfficeSelectorModal({
       setLoadingShippingMethods(true);
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
-      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods-graphql`);
+      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -102,6 +102,7 @@ export function OfficeSelectorModal({
       
       const data = await response.json();
       
+      console.log(data.shippingMethods);
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
         
