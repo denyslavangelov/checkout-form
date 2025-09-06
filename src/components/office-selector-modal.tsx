@@ -88,6 +88,17 @@ export function OfficeSelectorModal({
   const isChrome = /Chrome/i.test(navigator.userAgent);
   const isChromeMobile = isMobile && isChrome;
   
+  // Initialize courier on component mount
+  useEffect(() => {
+    console.log('🏢 Component mounted, initializing courier');
+    console.log('🏢 Initial config.defaultCourier:', config.defaultCourier);
+    console.log('🏢 Initial config.availableCouriers:', config.availableCouriers);
+    
+    // Mark courier as initialized immediately after mount
+    setCourierInitialized(true);
+    console.log('🏢 Courier initialization marked as complete on mount');
+  }, []); // Run only on mount
+
   // Update courier selection when config changes
   useEffect(() => {
     console.log('🏢 Config changed, updating courier selection');
@@ -98,10 +109,6 @@ export function OfficeSelectorModal({
       setSelectedCourier(config.defaultCourier as 'speedy' | 'econt');
       console.log('🏢 Updated selectedCourier to:', config.defaultCourier);
     }
-    
-    // Mark courier as initialized
-    setCourierInitialized(true);
-    console.log('🏢 Courier initialization marked as complete');
   }, [config.defaultCourier, config.availableCouriers]);
 
   // Reset office selection when courier or delivery type changes
@@ -603,7 +610,7 @@ export function OfficeSelectorModal({
 
   if (!isOpen) return null;
 
-  if (showLoading) {
+  if (showLoading || isInitializing || !courierInitialized) {
     return (
       <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
         <div className="flex items-center justify-center min-h-[400px]">
