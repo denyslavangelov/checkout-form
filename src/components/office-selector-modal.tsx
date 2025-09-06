@@ -97,18 +97,19 @@ export function OfficeSelectorModal({
   // Initialize component and manage loading state
   useEffect(() => {
     if (isOpen) {
-      // Start loading timer - only show loading if it takes more than 0.5 seconds
-      const loadingTimer = setTimeout(() => {
-        setShowLoading(true);
-      }, 500); // Show loading only after 500ms
+      // Show loading screen for exactly 0.5 seconds every time
+      setShowLoading(true);
       
       // Very brief delay to prevent courier selection flash
       setIsInitializing(true);
       const initTimer = setTimeout(() => {
         setIsInitializing(false);
-        clearTimeout(loadingTimer); // Cancel loading timer if component loads quickly
-        setShowLoading(false); // Hide loading if component loaded in time
       }, 30); // Reduced from 100ms to 30ms for faster loading
+      
+      // Hide loading screen after exactly 0.5 seconds
+      const loadingTimer = setTimeout(() => {
+        setShowLoading(false);
+      }, 500); // Show loading for exactly 500ms
       
       return () => {
         clearTimeout(loadingTimer);
