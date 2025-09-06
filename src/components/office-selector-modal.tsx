@@ -59,6 +59,7 @@ export function OfficeSelectorModal({
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(config.defaultCourier as 'speedy' | 'econt');
@@ -93,18 +94,29 @@ export function OfficeSelectorModal({
     }
   }, [isOpen]);
 
-  // Initialize component and hide loading state
+  // Initialize component and manage loading state
   useEffect(() => {
     if (isOpen) {
+      // Start loading timer - only show loading if it takes more than 0.5 seconds
+      const loadingTimer = setTimeout(() => {
+        setShowLoading(true);
+      }, 500); // Show loading only after 500ms
+      
       // Very brief delay to prevent courier selection flash
       setIsInitializing(true);
-      const timer = setTimeout(() => {
+      const initTimer = setTimeout(() => {
         setIsInitializing(false);
+        clearTimeout(loadingTimer); // Cancel loading timer if component loads quickly
+        setShowLoading(false); // Hide loading if component loaded in time
       }, 30); // Reduced from 100ms to 30ms for faster loading
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(loadingTimer);
+        clearTimeout(initTimer);
+      };
     } else {
       setIsInitializing(false);
+      setShowLoading(false);
     }
   }, [isOpen]);
 
@@ -546,14 +558,14 @@ export function OfficeSelectorModal({
   return (
     <div className="bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200">
       {/* Loading State */}
-      {isInitializing && (
-        <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 rounded-lg">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-            <span className="text-sm text-gray-600">Зареждане...</span>
+        {showLoading && (
+          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 rounded-lg">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+              <span className="text-sm text-gray-600">Зареждане...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
         {/* Close button */}
         <button
           onClick={handleClose}
