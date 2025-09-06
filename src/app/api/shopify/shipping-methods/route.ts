@@ -69,10 +69,32 @@ export async function GET(request: NextRequest) {
       })
     });
 
+    console.log('🔍 DEBUG: GraphQL response status:', response.status);
+    console.log('🔍 DEBUG: GraphQL response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔍 DEBUG: GraphQL request failed:', response.status, errorText);
+      return NextResponse.json({
+        success: false,
+        error: `GraphQL request failed: ${response.status}`,
+        details: errorText
+      }, { 
+        status: response.status,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        }
+      });
+    }
+
     const data = await response.json();
     console.log('🔍 Shopify shipping methods response:', JSON.stringify(data, null, 2));
 
-    if (data.errors) {
+    if (data.errors && Array.isArray(data.errors)) {
       console.error('🔍 GraphQL errors:', data.errors);
       
       // Check if it's a permission error
@@ -101,6 +123,23 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json({ error: 'GraphQL errors', details: data.errors }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+          'Cross-Origin-Embedder-Policy': 'unsafe-none'
+        }
+      });
+    } else if (data.errors) {
+      // Handle non-array errors (like "Not Found" string)
+      console.error('🔍 Non-array GraphQL errors:', data.errors);
+      return NextResponse.json({ 
+        success: false,
+        error: 'GraphQL request failed', 
+        details: data.errors 
+      }, { 
         status: 400,
         headers: {
           'Access-Control-Allow-Origin': '*',
