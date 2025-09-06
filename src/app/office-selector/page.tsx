@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { OfficeSelectorModal } from '@/components/office-selector-modal';
 
 export default function OfficeSelectorPage() {
@@ -13,26 +13,35 @@ export default function OfficeSelectorPage() {
     defaultDeliveryType: 'office'
   });
 
-  useEffect(() => {
-    // Get product, variant IDs and configuration from URL parameters
+  // Memoize URL parsing for performance
+  const urlData = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('productId') || '';
     const variant = urlParams.get('variantId') || '';
     const configParam = urlParams.get('config');
     
-    setProductId(product);
-    setVariantId(variant);
+    let parsedConfig = {
+      availableCouriers: ['speedy', 'econt'],
+      defaultCourier: 'speedy',
+      defaultDeliveryType: 'office'
+    };
     
-    // Parse configuration if provided
     if (configParam) {
       try {
-        const parsedConfig = JSON.parse(decodeURIComponent(configParam));
-        setConfig(parsedConfig);
+        parsedConfig = JSON.parse(decodeURIComponent(configParam));
         console.log('🏢 Office selector config loaded:', parsedConfig);
       } catch (error) {
         console.error('🏢 Error parsing config:', error);
       }
     }
+    
+    return { product, variant, parsedConfig };
+  }, []);
+
+  useEffect(() => {
+    setProductId(urlData.product);
+    setVariantId(urlData.variant);
+    setConfig(urlData.parsedConfig);
 
     // Listen for messages from parent window
     const handleMessage = (event: MessageEvent) => {

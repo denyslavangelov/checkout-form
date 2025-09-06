@@ -58,7 +58,7 @@ export function OfficeSelectorModal({
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(config.defaultCourier as 'speedy' | 'econt');
@@ -96,14 +96,15 @@ export function OfficeSelectorModal({
   // Initialize component and hide loading state
   useEffect(() => {
     if (isOpen) {
-      // Small delay to prevent courier selection flash
+      // Very brief delay to prevent courier selection flash
+      setIsInitializing(true);
       const timer = setTimeout(() => {
         setIsInitializing(false);
-      }, 100);
+      }, 30); // Reduced from 100ms to 30ms for faster loading
       
       return () => clearTimeout(timer);
     } else {
-      setIsInitializing(true);
+      setIsInitializing(false);
     }
   }, [isOpen]);
 

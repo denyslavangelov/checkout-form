@@ -66,26 +66,39 @@
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
+    <div id="office-selector-backdrop" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+    "></div>
     <iframe 
       id="office-selector-iframe"
       src=""
-              style="
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 95%;
-          max-width: 500px;
-          height: auto;
-          min-height: 600px;
-          max-height: 90vh;
-          border: none;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          z-index: 10000;
-          display: none;
-          background: white;
-        "
+      loading="eager"
+      style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 95%;
+        max-width: 500px;
+        height: auto;
+        min-height: 600px;
+        max-height: 90vh;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 10000;
+        display: none;
+        background: white;
+      "
       allow="clipboard-write"
     ></iframe>
   `;
@@ -165,10 +178,33 @@
       document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
     }
     
-    // Show the iframe
+    // Show the backdrop and iframe
+    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (iframe) {
+    if (backdrop && iframe) {
+      // Show backdrop first for immediate visual feedback
+      backdrop.style.display = 'block';
+      
+      // Add click handler to backdrop to close modal
+      backdrop.onclick = (e) => {
+        if (e.target === backdrop) {
+          hideOfficeSelector();
+        }
+      };
+      
+      // Disable body scrolling
+      document.body.style.overflow = 'hidden';
+      
+      // Add keyboard support (ESC key)
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          hideOfficeSelector();
+          document.removeEventListener('keydown', handleKeyDown);
+        }
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      
       // Set iframe source with product data and configuration
       const configParam = encodeURIComponent(JSON.stringify(finalConfig));
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}&config=${configParam}`;
@@ -296,10 +332,19 @@
 
   // Hide office selector
   function hideOfficeSelector() {
+    const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
+    
+    if (backdrop) {
+      backdrop.style.display = 'none';
+    }
+    
     if (iframe) {
       iframe.style.display = 'none';
     }
+    
+    // Re-enable body scrolling
+    document.body.style.overflow = '';
   }
 
   // Initialize custom selector targeting (no constant checking)
