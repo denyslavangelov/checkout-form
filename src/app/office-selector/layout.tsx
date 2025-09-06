@@ -14,7 +14,7 @@ export default function OfficeSelectorLayout({
         background: 'transparent', 
         margin: 0, 
         padding: 0,
-        fontFamily: 'inherit'
+        fontFamily: 'Geologica, system-ui, -apple-system, sans-serif'
       }}>
         {children}
       </body>

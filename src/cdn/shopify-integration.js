@@ -190,10 +190,19 @@
     
     if (iframe) {
       
-      // Disable body scrolling and blur the store background
+      // Disable body scrolling and blur the store background (but not the iframe)
       document.body.style.overflow = 'hidden';
-      document.body.style.filter = 'blur(2px)';
-      document.body.style.transition = 'filter 0.3s ease';
+      
+      // Create a wrapper div for all body content except our iframe
+      const bodyContent = Array.from(document.body.children).filter(child => 
+        child.id !== 'office-selector-iframe'
+      );
+      
+      // Apply blur to all content except our iframe
+      bodyContent.forEach(element => {
+        element.style.filter = 'blur(2px)';
+        element.style.transition = 'filter 0.3s ease';
+      });
       
       // Add keyboard support (ESC key)
       const handleKeyDown = (e) => {
@@ -204,10 +213,39 @@
       };
       document.addEventListener('keydown', handleKeyDown);
       
-      // Detect the store's font family
-      const storeFont = window.getComputedStyle(document.body).fontFamily || 
-                       window.getComputedStyle(document.documentElement).fontFamily ||
-                       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      // Detect the store's font family from actual text elements
+      const detectStoreFont = () => {
+        // Try to find common text elements to get the actual font being used
+        const selectors = [
+          'h1', 'h2', 'h3',  // Headings
+          '.product-title', '.product-name', // Product titles
+          'p', 'span', 'div', // General text
+          'button', 'a',      // Interactive elements
+          '.price', '.btn',   // Common classes
+          '[class*="title"]', '[class*="text"]' // Elements with title/text in class
+        ];
+        
+        for (const selector of selectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const element of elements) {
+            if (element.textContent && element.textContent.trim()) {
+              const computedStyle = window.getComputedStyle(element);
+              const fontFamily = computedStyle.fontFamily;
+              if (fontFamily && fontFamily !== 'Times' && fontFamily !== 'serif' && !fontFamily.includes('Times')) {
+                console.log(`🎨 Detected font from ${selector}:`, fontFamily);
+                return fontFamily;
+              }
+            }
+          }
+        }
+        
+        // Fallback to body/html
+        return window.getComputedStyle(document.body).fontFamily || 
+               window.getComputedStyle(document.documentElement).fontFamily ||
+               'Geologica, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      };
+      
+      const storeFont = detectStoreFont();
       
       // Add font to config
       const configWithFont = {
@@ -323,10 +361,14 @@
       iframe.style.display = 'none';
     }
     
-    // Re-enable body scrolling and remove blur
+    // Re-enable body scrolling and remove blur from all elements
     document.body.style.overflow = '';
-    document.body.style.filter = '';
-    document.body.style.transition = '';
+    
+    // Remove blur from all body children
+    Array.from(document.body.children).forEach(element => {
+      element.style.filter = '';
+      element.style.transition = '';
+    });
   }
 
   // Initialize custom selector targeting (no constant checking)
