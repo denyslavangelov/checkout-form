@@ -64,7 +64,20 @@ export function OfficeSelectorModal({
   const [showLoading, setShowLoading] = useState(false);
   
   // Courier selection states
-  const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(config.defaultCourier as 'speedy' | 'econt');
+  const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
+    const defaultCourier = config.defaultCourier;
+    console.log('🏢 Initializing courier with config.defaultCourier:', defaultCourier);
+    console.log('🏢 Available couriers:', config.availableCouriers);
+    
+    // Validate that the default courier is available
+    if (config.availableCouriers.includes(defaultCourier)) {
+      console.log('🏢 Using configured default courier:', defaultCourier);
+      return defaultCourier as 'speedy' | 'econt';
+    } else {
+      console.log('🏢 Default courier not available, falling back to speedy');
+      return 'speedy';
+    }
+  });
   const [deliveryType, setDeliveryType] = useState<'office' | 'address'>(config.defaultDeliveryType as 'office' | 'address');
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
   const [addressInput, setAddressInput] = useState('');
@@ -74,6 +87,18 @@ export function OfficeSelectorModal({
   const isChrome = /Chrome/i.test(navigator.userAgent);
   const isChromeMobile = isMobile && isChrome;
   
+  // Update courier selection when config changes
+  useEffect(() => {
+    console.log('🏢 Config changed, updating courier selection');
+    console.log('🏢 New config.defaultCourier:', config.defaultCourier);
+    console.log('🏢 New config.availableCouriers:', config.availableCouriers);
+    
+    if (config.availableCouriers.includes(config.defaultCourier)) {
+      setSelectedCourier(config.defaultCourier as 'speedy' | 'econt');
+      console.log('🏢 Updated selectedCourier to:', config.defaultCourier);
+    }
+  }, [config.defaultCourier, config.availableCouriers]);
+
   // Reset office selection when courier or delivery type changes
   useEffect(() => {
     setSelectedOffice(null);
