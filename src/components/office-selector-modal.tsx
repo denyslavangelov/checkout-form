@@ -62,6 +62,7 @@ export function OfficeSelectorModal({
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
+  const [courierInitialized, setCourierInitialized] = useState(false);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -97,6 +98,10 @@ export function OfficeSelectorModal({
       setSelectedCourier(config.defaultCourier as 'speedy' | 'econt');
       console.log('🏢 Updated selectedCourier to:', config.defaultCourier);
     }
+    
+    // Mark courier as initialized
+    setCourierInitialized(true);
+    console.log('🏢 Courier initialization marked as complete');
   }, [config.defaultCourier, config.availableCouriers]);
 
   // Reset office selection when courier or delivery type changes
@@ -124,29 +129,40 @@ export function OfficeSelectorModal({
   // Initialize component and manage loading state
   useEffect(() => {
     if (isOpen) {
-      // Show loading screen for exactly 0.5 seconds every time
+      // Show loading screen immediately
       setShowLoading(true);
-      
-      // Very brief delay to prevent courier selection flash
       setIsInitializing(true);
+      setCourierInitialized(false);
+      
+      // Wait for courier initialization to complete
       const initTimer = setTimeout(() => {
         setIsInitializing(false);
-      }, 30); // Reduced from 100ms to 30ms for faster loading
-      
-      // Hide loading screen after exactly 0.5 seconds
-      const loadingTimer = setTimeout(() => {
-        setShowLoading(false);
-      }, 500); // Show loading for exactly 500ms
+        console.log('🏢 Courier initialization completed');
+      }, 100); // Give time for courier selection to initialize
       
       return () => {
-        clearTimeout(loadingTimer);
         clearTimeout(initTimer);
       };
     } else {
       setIsInitializing(false);
       setShowLoading(false);
+      setCourierInitialized(false);
     }
   }, [isOpen]);
+
+  // Hide loading screen when courier is initialized and minimum time has passed
+  useEffect(() => {
+    if (isOpen && courierInitialized && !isInitializing) {
+      const loadingTimer = setTimeout(() => {
+        setShowLoading(false);
+        console.log('🏢 Loading screen hidden, office selector ready');
+      }, 500); // Minimum 500ms loading time
+      
+      return () => {
+        clearTimeout(loadingTimer);
+      };
+    }
+  }, [isOpen, courierInitialized, isInitializing]);
 
   // Function to get cart data from parent window with mobile retry
   const getCartDataFromParent = async () => {
