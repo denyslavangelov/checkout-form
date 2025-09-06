@@ -40,14 +40,16 @@
     console.log('🎯 No button targeting enabled');
   }
 
-  // Override onclick property to intercept all button clicks
+  // Only override onclick if we're using smart detection
+  // For custom selectors, we'll use a different approach
+  if (finalConfig.buttonTargets.enableSmartDetection && finalConfig.buttonTargets.customSelectors.length === 0) {
   const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
   
   Object.defineProperty(HTMLElement.prototype, 'onclick', {
-    set: function(value) {
-      const result = originalOnClickDescriptor.set.call(this, value);
-      
-      // Add our handler after a short delay to ensure it runs after the original
+      set: function(value) {
+        const result = originalOnClickDescriptor.set.call(this, value);
+        
+        // Add our handler after a short delay to ensure it runs after the original
         setTimeout(() => {
           addOurCheckoutHandler(this);
         }, 100);
@@ -56,6 +58,11 @@
     },
     get: originalOnClickDescriptor.get
   });
+  } else {
+    // For custom selectors, use a more targeted approach
+    console.log('🎯 Using targeted approach for custom selectors');
+    initializeCustomSelectorTargeting();
+  }
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
@@ -295,6 +302,63 @@
     }
   }
 
+  // Initialize custom selector targeting (no constant checking)
+  function initializeCustomSelectorTargeting() {
+    console.log('🎯 Initializing custom selector targeting...');
+    
+    // Find and attach to existing buttons
+    finalConfig.buttonTargets.customSelectors.forEach(selector => {
+      const buttons = document.querySelectorAll(selector);
+      console.log(`🎯 Found ${buttons.length} buttons for selector: ${selector}`);
+      
+      buttons.forEach(button => {
+        if (!button._hasOurHandler) {
+          addOurCheckoutHandler(button);
+        }
+      });
+    });
+    
+    // Watch for new buttons being added to the DOM
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) { // Element node
+            // Check if the added node matches our selectors
+            finalConfig.buttonTargets.customSelectors.forEach(selector => {
+              if (node.matches && node.matches(selector)) {
+                console.log('🎯 New button added:', node);
+                if (!node._hasOurHandler) {
+                  addOurCheckoutHandler(node);
+                }
+              }
+            });
+            
+            // Check if any child elements match our selectors
+            finalConfig.buttonTargets.customSelectors.forEach(selector => {
+              const newButtons = node.querySelectorAll && node.querySelectorAll(selector);
+              if (newButtons) {
+                newButtons.forEach(button => {
+                  if (!button._hasOurHandler) {
+                    console.log('🎯 New child button found:', button);
+                    addOurCheckoutHandler(button);
+                  }
+                });
+              }
+            });
+          }
+        });
+      });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    console.log('🎯 Custom selector targeting initialized');
+  }
+
   // Function to check if an element is a checkout button
   function isCheckoutButton(element) {
     if (!element || !element.tagName) return false;
@@ -434,23 +498,25 @@
       
       // Set new onclick that calls our function
       button.onclick = function(event) {
-        console.log('🏢 Button clicked:', {
-          tagName: button.tagName,
-          className: button.className,
-          id: button.id,
-          text: button.textContent
-        });
-        
-        if (isCheckoutButton(button)) {
-          console.log('🏢 This is a checkout button, showing office selector');
+        // For custom selectors, we know this is a target button, so no need to check
+        if (finalConfig.buttonTargets.customSelectors.length > 0) {
+          console.log('🎯 Custom selector button clicked:', button);
           event.preventDefault();
           event.stopPropagation();
           showOfficeSelector(event);
-          return false; // Prevent default behavior
+          return false;
         }
         
-        console.log('🏢 Not a checkout button, calling original handler');
-        // If not a checkout button, call original handler
+        // For smart detection, check if this is a target button
+        if (isCheckoutButton(button)) {
+          console.log('🎯 Smart detection target button clicked');
+          event.preventDefault();
+          event.stopPropagation();
+          showOfficeSelector(event);
+          return false;
+        }
+        
+        // If not a target button, call original handler
         if (originalOnclick) {
           return originalOnclick.call(this, event);
         }
