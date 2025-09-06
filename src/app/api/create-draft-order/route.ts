@@ -206,8 +206,6 @@ export async function POST(request: NextRequest) {
         
         if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
           console.log('🔍 DEBUG: Found', shippingMethodsData.shippingMethods.length, 'shipping methods');
-          console.log('🔍 DEBUG: Available shipping methods:', shippingMethodsData.shippingMethods.map((m: any) => m.name));
-          console.log('🔍 DEBUG: Looking for deliveryType:', deliveryType, 'courier:', courier);
           
           // Find matching shipping method based on courier and delivery type
             const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
