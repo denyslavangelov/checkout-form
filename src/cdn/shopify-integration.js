@@ -832,34 +832,4 @@
       })
       .catch(error => console.error('Error fetching cart data:', error));
   });
-
-  // Function to fetch and log current shipping methods
-  async function fetchAndLogShippingMethods() {
-    try {
-      
-      const baseUrl = 'https://checkout-form-zeta.vercel.app';
-      const response = await fetch(`${baseUrl}/api/shopify/shipping-methods`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json(); 
-      
-      debugger;
-
-      if (data.success && data.shippingMethods) {
-        // Store shipping methods globally for later use
-        window.storeShippingMethods = data.shippingMethods;
-        window.bulgariaShippingMethods = data.bulgariaMethods;
-
-        console.log(data.shippingMethods, data.bulgariaMethods);
-      }
-    } catch (error) {
-      console.error('Error fetching shipping methods:', error);
-    }
-  }
-
-  // Fetch shipping methods when script loads
-  fetchAndLogShippingMethods();
 })(); 
