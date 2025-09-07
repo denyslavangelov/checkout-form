@@ -73,6 +73,7 @@ export function OfficeSelectorModal({
   // Customer name fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -105,10 +106,11 @@ export function OfficeSelectorModal({
   // Scroll to continue button when it becomes active (address or office selected)
   useEffect(() => {
     if (isOpen && continueButtonRef.current) {
-      // Check if the button is enabled (name fields filled and address/office selected)
+      // Check if the button is enabled (all required fields filled)
       const isButtonEnabled = !creatingOrder && 
         firstName.trim() && 
         lastName.trim() &&
+        phoneNumber.trim() &&
         ((deliveryType === 'office' && selectedOffice) || 
          (deliveryType === 'address' && addressInput.trim()));
       
@@ -125,7 +127,7 @@ export function OfficeSelectorModal({
         return () => clearTimeout(timer);
       }
     }
-  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder, firstName, lastName]);
+  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder, firstName, lastName, phoneNumber]);
   
   // Fetch shipping methods from Shopify
   const fetchShippingMethods = useCallback(async () => {
@@ -620,7 +622,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             shopify: { storeUrl, accessToken }, // Pass Shopify credentials
             customerInfo: {
               firstName: firstName.trim(),
-              lastName: lastName.trim()
+              lastName: lastName.trim(),
+              phoneNumber: phoneNumber.trim()
             },
             shippingAddress: {
               address1: (() => {
@@ -710,7 +713,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           shopify: { storeUrl, accessToken }, // Pass Shopify credentials
           customerInfo: {
             firstName: firstName.trim(),
-            lastName: lastName.trim()
+            lastName: lastName.trim(),
+            phoneNumber: phoneNumber.trim()
           },
           shippingAddress: {
             address1: (() => {
@@ -922,7 +926,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         </div>
 
         <div className="space-y-6">
-          {/* Customer Name Fields */}
+          {/* Customer Information Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
@@ -948,6 +952,20 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                 className="w-full"
               />
             </div>
+          </div>
+          
+          {/* Phone Number Field */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              Телефонен номер<span className="text-red-500 ml-1">*</span>
+            </Label>
+            <Input
+              type="tel"
+              placeholder="Въведете телефонен номер"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full"
+            />
           </div>
 
           {/* City Selection */}
@@ -1155,6 +1173,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               creatingOrder || 
               !firstName.trim() ||
               !lastName.trim() ||
+              !phoneNumber.trim() ||
               (deliveryType === 'office' && !selectedOffice) ||
               (deliveryType === 'address' && !addressInput.trim())
             }

@@ -94,10 +94,13 @@ export async function POST(request: NextRequest) {
       country: shippingAddress.country || 'Bulgaria'
     };
 
-    // Add customer name to address if provided
+    // Add customer info to address if provided
     if (customerInfo && customerInfo.firstName && customerInfo.lastName) {
       finalAddress.firstName = customerInfo.firstName;
       finalAddress.lastName = customerInfo.lastName;
+      if (customerInfo.phoneNumber) {
+        finalAddress.phone = customerInfo.phoneNumber;
+      }
     }
 
     // Process line items
@@ -167,13 +170,20 @@ export async function POST(request: NextRequest) {
 
     // Add customer info as tags (supported by DraftOrderInput)
     if (customerInfo && customerInfo.firstName && customerInfo.lastName) {
-      draftOrderInput.tags = [
+      const tags = [
         `customer-first-name:${customerInfo.firstName}`,
         `customer-last-name:${customerInfo.lastName}`
       ];
+      
+      if (customerInfo.phoneNumber) {
+        tags.push(`customer-phone:${customerInfo.phoneNumber}`);
+      }
+      
+      draftOrderInput.tags = tags;
       console.log('✅ Customer info added as tags:', {
         firstName: customerInfo.firstName,
-        lastName: customerInfo.lastName
+        lastName: customerInfo.lastName,
+        phoneNumber: customerInfo.phoneNumber
       });
     }
 
