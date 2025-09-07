@@ -87,12 +87,18 @@ export async function POST(request: NextRequest) {
 
     // Process shipping address
     const addressString = shippingAddress.address1 || '';
-    const finalAddress = {
+    const finalAddress: any = {
       address1: addressString,
       city: shippingAddress.city || '',
       zip: shippingAddress.postalCode || '',
       country: shippingAddress.country || 'Bulgaria'
     };
+
+    // Add customer name to address if provided
+    if (customerInfo && customerInfo.firstName && customerInfo.lastName) {
+      finalAddress.firstName = customerInfo.firstName;
+      finalAddress.lastName = customerInfo.lastName;
+    }
 
     // Process line items
     let lineItems: any[] = [];
@@ -159,12 +165,16 @@ export async function POST(request: NextRequest) {
       shippingAddress: finalAddress
     };
 
-    // Add customer info if provided
+    // Add customer info as tags (supported by DraftOrderInput)
     if (customerInfo && customerInfo.firstName && customerInfo.lastName) {
-      draftOrderInput.customer = {
+      draftOrderInput.tags = [
+        `customer-first-name:${customerInfo.firstName}`,
+        `customer-last-name:${customerInfo.lastName}`
+      ];
+      console.log('✅ Customer info added as tags:', {
         firstName: customerInfo.firstName,
         lastName: customerInfo.lastName
-      };
+      });
     }
 
     // Add shipping line if available
