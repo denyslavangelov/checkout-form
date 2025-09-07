@@ -750,9 +750,9 @@ export function OfficeSelectorModal({
     if (typeof window === 'undefined') return null;
     
     return createPortal(
-      <div className="fixed inset-0 bg-black bg-opacity-100 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
         <div 
-          className="office-selector-modal bg-black rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
+          className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
           style={{
             fontFamily: 'inherit',
             fontSize: 'inherit',
@@ -782,7 +782,7 @@ export function OfficeSelectorModal({
   return createPortal(
     <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
-        className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
+        className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
         style={{
           fontFamily: 'inherit',
           fontSize: 'inherit',
