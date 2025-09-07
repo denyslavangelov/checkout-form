@@ -77,10 +77,10 @@ export default function OfficeSelectorPage() {
     parseUrlParams();
   }, []);
 
-  const handleOrderCreated = (checkoutUrl: string) => {
+  const handleOrderCreated = (invoiceUrl: string) => {
     if (typeof window === 'undefined') return;
     
-    console.log('🏢 Order created with checkout URL:', checkoutUrl);
+    console.log('🏢 Order created with invoice URL:', invoiceUrl);
     
     // For cart checkout, redirect to /checkout
     if (productId === 'cart' && variantId === 'cart') {
@@ -91,12 +91,12 @@ export default function OfficeSelectorPage() {
         window.location.href = '/checkout';
       }
     } else {
-      // For Buy Now, redirect to the checkout URL
-      console.log('🏢 Buy Now - redirecting to checkout URL:', checkoutUrl);
+      // For Buy Now, redirect to the invoice URL (customer-facing checkout)
+      console.log('🏢 Buy Now - redirecting to invoice URL:', invoiceUrl);
       if (window.parent) {
-        window.parent.location.href = checkoutUrl;
+        window.parent.location.href = invoiceUrl;
       } else {
-        window.location.href = checkoutUrl;
+        window.location.href = invoiceUrl;
       }
     }
   };
