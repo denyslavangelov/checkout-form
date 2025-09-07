@@ -101,12 +101,7 @@ export function OfficeSelectorModal({
   const fetchShippingMethods = useCallback(async () => {
     try {
       setLoadingShippingMethods(true);
-      
-      debugger;
 
-      // Alert when starting to fetch shipping methods
-      alert('🔄 Starting to fetch available shipping methods...');
-      
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Get Shopify credentials (support both nested and root level)
@@ -167,43 +162,15 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
-        
-        // Alert every time shipping methods are fetched successfully
-        alert(`✅ Shipping Methods Fetched Successfully!\n\nFound ${data.shippingMethods.length} methods:\n${data.shippingMethods.map((method: any) => `• ${method.title || method.name} (${method.price} ${method.currency})`).join('\n')}`);
-        
-        // Also show any additional alert from the API
-        if (data.alert) {
-          alert(data.alert);
-        }
       } else if (data.error) {
         setAvailableShippingMethods([]);
-        
-        // Alert the error
-        alert(`❌ Shipping Methods API Error: ${data.error}`);
       }
     } catch (error) {
       setAvailableShippingMethods([]);
       
       // Alert when fetch fails with an exception
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      if (errorMessage.includes('Shopify credentials are missing')) {
-        alert(`❌ Shopify credentials are missing!
-
-To fix this, provide your Shopify credentials via:
-
-1. URL parameters:
-   ?storeUrl=your-store.myshopify.com&accessToken=shpat_...
-
-2. Config parameter:
-   ?config={"shopify":{"storeUrl":"your-store.myshopify.com","accessToken":"shpat_..."}}
-
-3. Or configure them when calling the component
-
-Check the browser console for more details.`);
-      } else {
-        alert(`❌ Failed to fetch shipping methods: ${errorMessage}`);
-      }
+      console.error('❌ Failed to fetch shipping methods:', errorMessage);
     } finally {
       setLoadingShippingMethods(false);
     }
