@@ -11,7 +11,11 @@ export default function OfficeSelectorPage() {
   const [config, setConfig] = useState({
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
-    defaultDeliveryType: 'office'
+    defaultDeliveryType: 'office',
+    shopify: {
+      storeUrl: '',
+      accessToken: ''
+    }
   });
 
   // Memoize URL parsing for performance
@@ -24,7 +28,11 @@ export default function OfficeSelectorPage() {
         parsedConfig: {
           availableCouriers: ['speedy', 'econt'],
           defaultCourier: 'speedy',
-          defaultDeliveryType: 'office'
+          defaultDeliveryType: 'office',
+          shopify: {
+            storeUrl: '',
+            accessToken: ''
+          }
         }
       };
     }
@@ -34,19 +42,41 @@ export default function OfficeSelectorPage() {
     const variant = urlParams.get('variantId') || '';
     const quantity = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
+    const storeUrl = urlParams.get('storeUrl') || '';
+    const accessToken = urlParams.get('accessToken') || '';
     
     let parsedConfig = {
       availableCouriers: ['speedy', 'econt'],
       defaultCourier: 'speedy',
-      defaultDeliveryType: 'office'
+      defaultDeliveryType: 'office',
+      shopify: {
+        storeUrl: '',
+        accessToken: ''
+      }
     };
     
     if (configParam) {
       try {
-        parsedConfig = JSON.parse(decodeURIComponent(configParam));
+        const parsed = JSON.parse(decodeURIComponent(configParam));
+        parsedConfig = {
+          ...parsedConfig,
+          ...parsed,
+          shopify: {
+            storeUrl: parsed.shopify?.storeUrl || '',
+            accessToken: parsed.shopify?.accessToken || ''
+          }
+        };
       } catch (error) {
         console.error('🏢 Error parsing config:', error);
       }
+    }
+    
+    // Add Shopify credentials from URL parameters if available
+    if (storeUrl || accessToken) {
+      parsedConfig.shopify = {
+        storeUrl: storeUrl,
+        accessToken: accessToken
+      };
     }
     
     return { product, variant, quantity: quantity || '1', parsedConfig };

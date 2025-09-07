@@ -51,7 +51,11 @@ export function OfficeSelectorModal({
   config = {
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
-    defaultDeliveryType: 'office'
+    defaultDeliveryType: 'office',
+    shopify: {
+      storeUrl: '',
+      accessToken: ''
+    }
   }
 }: OfficeSelectorModalProps) {
   const [cities, setCities] = useState<City[]>([]);
@@ -104,12 +108,34 @@ export function OfficeSelectorModal({
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Get Shopify credentials (support both nested and root level)
-      const storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
-      const accessToken = config.shopify?.accessToken || (config as any).accessToken;
+      let storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
+      let accessToken = config.shopify?.accessToken || (config as any).accessToken;
+      
+      // If credentials are not in config, try to get them from URL parameters
+      if (!storeUrl || !accessToken) {
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          storeUrl = storeUrl || urlParams.get('storeUrl') || '';
+          accessToken = accessToken || urlParams.get('accessToken') || '';
+        }
+      }
+      
+      // Debug logging for credentials
+      console.log('🔑 Shopify credentials check:', {
+        hasConfigShopify: !!config.shopify,
+        configStoreUrl: config.shopify?.storeUrl,
+        configAccessToken: config.shopify?.accessToken ? '***' + config.shopify.accessToken.slice(-4) : 'none',
+        finalStoreUrl: storeUrl,
+        finalAccessToken: accessToken ? '***' + accessToken.slice(-4) : 'none',
+        hasStoreUrl: !!storeUrl,
+        hasAccessToken: !!accessToken
+      });
       
       // Validate Shopify credentials
       if (!storeUrl || !accessToken) {
-        throw new Error('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
+        const errorMsg = 'Shopify credentials are missing. Please configure storeUrl and accessToken in the config or URL parameters.';
+        console.error('❌', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Build URL with Shopify credentials
