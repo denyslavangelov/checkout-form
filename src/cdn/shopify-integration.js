@@ -63,7 +63,7 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         z-index: 10000;
         display: none;
-        background: transparent;
+        background: white;
       "
       allow="clipboard-write"
     ></iframe>
@@ -815,18 +815,9 @@
     }
   }
 
-  // Function to scan all buttons on the page and show what we find
-  function scanAllButtons() {
-    const allButtons = document.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]');
-    allButtons.forEach((button, index) => {
-      const isTarget = isCheckoutButton(button);
-     
-    });
-  }
 
   // Make functions globally available for testing
   window.testButtonDetection = testButtonDetection;
-  window.scanAllButtons = scanAllButtons;
 
   // When page loads, make cart data globally available
   document.addEventListener('DOMContentLoaded', function() {
@@ -840,56 +831,6 @@
       })
       .catch(error => console.error('Error fetching cart data:', error));
   });
-
-  // Debug function to test button detection
-  window.testButtonDetection = function(selector) { 
-    const buttons = document.querySelectorAll(selector);
-    
-    // If using custom selectors, just show the buttons without calling isCheckoutButton
-    if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      buttons.forEach((button, index) => {
-      });
-    } else {
-      // Smart detection mode
-      buttons.forEach((button, index) => {
-        const isTarget = isCheckoutButton(button);
-      });
-    }
-    
-    return buttons;
-  };
-
-  // Debug function to scan all buttons on page
-  window.scanAllButtons = function() {
-    
-    // If using custom selectors, only scan those
-    if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      const targetedButtons = [];
-      
-      finalConfig.buttonTargets.customSelectors.forEach(selector => {
-        const buttons = document.querySelectorAll(selector);
-        
-        buttons.forEach((button, index) => {
-          targetedButtons.push(button);
-        });
-      });
-      
-      return targetedButtons;
-    }
-    
-    // Smart detection mode
-    const allButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
-    
-    const targetedButtons = [];
-    allButtons.forEach((button, index) => {
-      const isTarget = isCheckoutButton(button);
-      if (isTarget) {
-        targetedButtons.push(button);
-      }
-    });
-    
-    return targetedButtons;
-  };
 
   // Function to fetch and log current shipping methods
   async function fetchAndLogShippingMethods() {
