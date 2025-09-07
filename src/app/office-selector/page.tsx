@@ -81,23 +81,16 @@ export default function OfficeSelectorPage() {
     if (typeof window === 'undefined') return;
     
     console.log('🏢 Order created with invoice URL:', invoiceUrl);
+    console.log('🏢 Current productId:', productId);
+    console.log('🏢 Current variantId:', variantId);
+    console.log('🏢 Is cart checkout?', productId === 'cart' && variantId === 'cart');
     
-    // For cart checkout, redirect to /checkout
-    if (productId === 'cart' && variantId === 'cart') {
-      console.log('🏢 Cart checkout - redirecting to /checkout');
-      if (window.parent) {
-        window.parent.location.href = '/checkout';
-      } else {
-        window.location.href = '/checkout';
-      }
+    // Always redirect to the invoice URL from the draft order (both cart and buy now)
+    console.log('🏢 Redirecting to invoice URL:', invoiceUrl);
+    if (window.parent) {
+      window.parent.location.href = invoiceUrl;
     } else {
-      // For Buy Now, redirect to the invoice URL (customer-facing checkout)
-      console.log('🏢 Buy Now - redirecting to invoice URL:', invoiceUrl);
-      if (window.parent) {
-        window.parent.location.href = invoiceUrl;
-      } else {
-        window.location.href = invoiceUrl;
-      }
+      window.location.href = invoiceUrl;
     }
   };
 
