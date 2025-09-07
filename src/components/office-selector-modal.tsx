@@ -70,7 +70,6 @@ export function OfficeSelectorModal({
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [showLoading, setShowLoading] = useState(false);
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -321,30 +320,20 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   }, [isOpen]);
 
-  // Initialize component and manage loading state
+  // Initialize component
   useEffect(() => {
     if (isOpen) {
-      // Show loading screen for exactly 0.5 seconds every time
-      setShowLoading(true);
-      
       // Very brief delay to prevent courier selection flash
       setIsInitializing(true);
       const initTimer = setTimeout(() => {
         setIsInitializing(false);
       }, 30); // Reduced from 100ms to 30ms for faster loading
       
-      // Hide loading screen after exactly 0.5 seconds
-      const loadingTimer = setTimeout(() => {
-        setShowLoading(false);
-      }, 500); // Show loading for exactly 500ms
-      
       return () => {
-        clearTimeout(loadingTimer);
         clearTimeout(initTimer);
       };
     } else {
       setIsInitializing(false);
-      setShowLoading(false);
     }
   }, [isOpen]);
 
@@ -819,36 +808,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
   if (!isOpen) return null;
 
-  if (showLoading) {
-    if (typeof window === 'undefined') return null;
-    
-    return createPortal(
-      <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
-        <div 
-          className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
-          style={{
-            fontFamily: 'inherit',
-            fontSize: 'inherit',
-            fontWeight: 'inherit',
-            lineHeight: 'inherit',
-            letterSpacing: 'inherit',
-            textTransform: 'inherit',
-            fontStyle: 'inherit',
-            textDecoration: 'inherit',
-            fontVariant: 'inherit'
-          }}
-        >
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-            <span className="text-sm text-gray-600">Зареждане...</span>
-          </div>
-        </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
 
   if (typeof window === 'undefined') return null;
   
