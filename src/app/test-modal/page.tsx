@@ -19,6 +19,27 @@ export default function TestModalPage() {
     }
   });
 
+  // CDN Integration Simulation
+  const [cdnConfig, setCdnConfig] = useState({
+    shopify: {
+      storeUrl: 'testing-client-check.myshopify.com',
+      accessToken: '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'
+    },
+    availableCouriers: ['speedy', 'econt'],
+    defaultCourier: 'speedy',
+    defaultDeliveryType: 'office',
+    buttonTargets: {
+      enableSmartDetection: true,
+      customSelectors: [],
+      excludeSelectors: [],
+      buttonTypes: ['checkout', 'buy-now', 'cart-checkout'],
+      debugMode: true,
+      targetByClass: ['shopify-payment-button__button'],
+      targetByName: ['checkout'],
+      targetByClassAndName: []
+    }
+  });
+
   // Example of how to use the office selector with credentials:
   // 1. Via URL parameters: /office-selector?storeUrl=your-store.myshopify.com&accessToken=shpat_...
   // 2. Via config parameter: /office-selector?config={"shopify":{"storeUrl":"...","accessToken":"..."}}
@@ -129,6 +150,174 @@ export default function TestModalPage() {
     }
   };
 
+  // Simulate CDN Integration Functions - EXACTLY like live server
+  const simulateCdnIntegration = () => {
+    const result = '🔄 Simulating CDN Integration (Live Server Mode)...';
+    setTestResults(prev => [...prev, result]);
+    
+    // Use the SAME baseUrl as the live server CDN script
+    const baseUrl = 'https://checkout-form-zeta.vercel.app';
+    const configParam = encodeURIComponent(JSON.stringify(cdnConfig));
+    const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productId)}&variantId=${encodeURIComponent(variantId)}&quantity=${encodeURIComponent(quantity)}&config=${configParam}`;
+    
+    const result2 = `📡 Live Server CDN would create iframe with URL: ${officeSelectorUrl}`;
+    setTestResults(prev => [...prev, result2]);
+    
+    console.log('🔄 Live Server CDN Integration Simulation:', {
+      baseUrl,
+      configParam,
+      officeSelectorUrl,
+      cdnConfig
+    });
+    
+    // Actually open the iframe URL in a new window to test it
+    const result3 = `🌐 Opening iframe URL in new window for testing...`;
+    setTestResults(prev => [...prev, result3]);
+    window.open(officeSelectorUrl, '_blank');
+  };
+
+  const testWithCartCheckout = () => {
+    setProductId('cart');
+    setVariantId('cart');
+    setQuantity('1');
+    setTestResults(prev => [...prev, '🛒 Switched to Cart Checkout mode']);
+  };
+
+  const testWithBuyNow = () => {
+    setProductId('test-product-123');
+    setVariantId('test-variant-456');
+    setQuantity('1');
+    setTestResults(prev => [...prev, '🛍️ Switched to Buy Now mode']);
+  };
+
+  // Create iframe exactly like the CDN script does
+  const createCdnIframe = () => {
+    const result = '🔄 Creating iframe exactly like CDN script...';
+    setTestResults(prev => [...prev, result]);
+    
+    // Remove existing iframe if any
+    const existingIframe = document.getElementById('office-selector-iframe');
+    if (existingIframe) {
+      existingIframe.remove();
+    }
+    
+    // Use localhost for testing (but simulate the exact CDN behavior)
+    const baseUrl = window.location.origin; // Use localhost instead of live server
+    const configParam = encodeURIComponent(JSON.stringify(cdnConfig));
+    const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productId)}&variantId=${encodeURIComponent(variantId)}&quantity=${encodeURIComponent(quantity)}&config=${configParam}`;
+    
+    console.log('🏢 Creating iframe with URL:', officeSelectorUrl);
+    console.log('🏢 Config being passed:', cdnConfig);
+    console.log('🏢 Encoded config param:', configParam);
+    
+    // Create iframe exactly like CDN script
+    const iframe = document.createElement('iframe');
+    iframe.id = 'office-selector-iframe';
+    iframe.src = officeSelectorUrl;
+    iframe.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      z-index: 999999;
+      background: rgba(0, 0, 0, 0.5);
+    `;
+    
+    // Add backdrop
+    const backdrop = document.createElement('div');
+    backdrop.id = 'office-selector-backdrop';
+    backdrop.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999998;
+    `;
+    
+    document.body.appendChild(backdrop);
+    document.body.appendChild(iframe);
+    
+    const result2 = `📡 Created iframe with URL: ${officeSelectorUrl}`;
+    setTestResults(prev => [...prev, result2]);
+    
+    // Listen for messages from iframe (like CDN script does)
+    const messageHandler = (event: MessageEvent) => {
+      const allowedOrigins = [
+        'https://checkout-form-zeta.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        baseUrl
+      ];
+      
+      if (!allowedOrigins.includes(event.origin)) {
+        return;
+      }
+      
+      if (event.data.type === 'office-selector-closed') {
+        const result3 = '📤 Received office-selector-closed message from iframe';
+        setTestResults(prev => [...prev, result3]);
+        
+        // Remove iframe and backdrop
+        iframe.remove();
+        backdrop.remove();
+        window.removeEventListener('message', messageHandler);
+      }
+    };
+    
+    window.addEventListener('message', messageHandler);
+    
+    console.log('🔄 Created CDN-style iframe:', {
+      baseUrl,
+      officeSelectorUrl,
+      iframe: iframe
+    });
+  };
+
+  const updateCdnConfig = (field: string, value: any) => {
+    setCdnConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Close any existing iframe
+  const closeCdnIframe = () => {
+    const existingIframe = document.getElementById('office-selector-iframe');
+    const existingBackdrop = document.getElementById('office-selector-backdrop');
+    
+    if (existingIframe) {
+      existingIframe.remove();
+    }
+    if (existingBackdrop) {
+      existingBackdrop.remove();
+    }
+    
+    setTestResults(prev => [...prev, '🗑️ Closed CDN iframe']);
+  };
+
+  // Test the iframe URL directly in a new window
+  const testIframeUrl = () => {
+    const baseUrl = window.location.origin;
+    const configParam = encodeURIComponent(JSON.stringify(cdnConfig));
+    const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productId)}&variantId=${encodeURIComponent(variantId)}&quantity=${encodeURIComponent(quantity)}&config=${configParam}`;
+    
+    console.log('🏢 Testing iframe URL in new window:', officeSelectorUrl);
+    setTestResults(prev => [...prev, `🌐 Testing iframe URL: ${officeSelectorUrl}`]);
+    window.open(officeSelectorUrl, '_blank');
+  };
+
+  // Update the main config when CDN config changes
+  useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      ...cdnConfig
+    }));
+  }, [cdnConfig]);
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -139,12 +328,54 @@ export default function TestModalPage() {
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Test Controls</h2>
           
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-wrap gap-4 mb-6">
             <button
               onClick={() => setIsOpen(true)}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Open Modal
+            </button>
+            
+            <button
+              onClick={simulateCdnIntegration}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Simulate CDN Integration
+            </button>
+            
+            <button
+              onClick={createCdnIframe}
+              className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Create CDN Iframe
+            </button>
+            
+            <button
+              onClick={closeCdnIframe}
+              className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Close CDN Iframe
+            </button>
+            
+            <button
+              onClick={testIframeUrl}
+              className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+            >
+              Test Iframe URL
+            </button>
+            
+            <button
+              onClick={testWithCartCheckout}
+              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Test Cart Checkout
+            </button>
+            
+            <button
+              onClick={testWithBuyNow}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Test Buy Now
             </button>
             
             <button
@@ -155,12 +386,49 @@ export default function TestModalPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div>
-              <h3 className="font-semibold mb-2">Test Configuration:</h3>
-              <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto">
+              <h3 className="font-semibold mb-2">Current Configuration:</h3>
+              <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto max-h-64">
                 {JSON.stringify(config, null, 2)}
               </pre>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">CDN Configuration:</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Store URL:</label>
+                  <input
+                    type="text"
+                    value={cdnConfig.shopify.storeUrl}
+                    onChange={(e) => updateCdnConfig('shopify', { ...cdnConfig.shopify, storeUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="your-store.myshopify.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Access Token:</label>
+                  <input
+                    type="text"
+                    value={cdnConfig.shopify.accessToken}
+                    onChange={(e) => updateCdnConfig('shopify', { ...cdnConfig.shopify, accessToken: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="shpat_..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Default Courier:</label>
+                  <select
+                    value={cdnConfig.defaultCourier}
+                    onChange={(e) => updateCdnConfig('defaultCourier', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="speedy">Speedy</option>
+                    <option value="econt">Econt</option>
+                  </select>
+                </div>
+              </div>
             </div>
             
             <div>
@@ -186,16 +454,45 @@ export default function TestModalPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Test Instructions</h2>
-          <ol className="list-decimal list-inside space-y-2 text-gray-700">
-            <li>Click "Open Modal" to test the office selector</li>
-            <li>Try selecting different couriers (Speedy/Econt)</li>
-            <li>Test delivery types (Office/Address)</li>
-            <li>Search for cities and select offices</li>
-            <li>Click "Continue" to test order creation</li>
-            <li>Check the results panel for any errors or success messages</li>
-            <li>Check browser console for detailed logs</li>
-          </ol>
+          <h2 className="text-xl font-semibold mb-4">CDN Integration Test Instructions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold mb-2">Basic Testing:</h3>
+              <ol className="list-decimal list-inside space-y-2 text-gray-700 text-sm">
+                <li>Click "Open Modal" to test the office selector</li>
+                <li>Try selecting different couriers (Speedy/Econt)</li>
+                <li>Test delivery types (Office/Address)</li>
+                <li>Search for cities and select offices</li>
+                <li>Click "Continue" to test order creation</li>
+                <li>Check the results panel for any errors or success messages</li>
+                <li>Check browser console for detailed logs</li>
+              </ol>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-2">CDN Simulation (Live Server Mode):</h3>
+              <ol className="list-decimal list-inside space-y-2 text-gray-700 text-sm">
+                <li>Edit the CDN Configuration (Store URL, Access Token)</li>
+                <li>Click "Simulate CDN Integration" to see the live server URL and open it in new window</li>
+                <li>Click "Create CDN Iframe" to create an iframe on localhost (but with CDN behavior)</li>
+                <li>Click "Close CDN Iframe" to remove any existing iframe</li>
+                <li>Click "Test Cart Checkout" to simulate cart checkout flow</li>
+                <li>Click "Test Buy Now" to simulate buy now flow</li>
+                <li>Check the console for detailed CDN simulation logs</li>
+                <li>Test with different configurations to see how the iframe URL changes</li>
+              </ol>
+            </div>
+          </div>
+          
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">💡 Live Server CDN Simulation</h4>
+            <p className="text-blue-800 text-sm">
+              This page simulates EXACTLY how the CDN script works on the live server. 
+              "Simulate CDN Integration" opens the live server URL in a new window. 
+              "Create CDN Iframe" creates an iframe on localhost but with the same CDN behavior. 
+              Use this to debug issues that only happen on the live server.
+            </p>
+          </div>
         </div>
       </div>
 

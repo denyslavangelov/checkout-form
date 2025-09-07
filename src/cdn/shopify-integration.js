@@ -216,8 +216,8 @@
       };
     }
     
-    // Production URL for live sites
-    const baseUrl = 'https://checkout-form-zeta.vercel.app';
+    // Production URL for live sites - can be overridden by config
+    const baseUrl = config.baseUrl || 'https://checkout-form-zeta.vercel.app';
     
     // Add backdrop and iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
@@ -273,7 +273,8 @@
         
         // Allow messages from our iframe domain
         const allowedOrigins = [
-          'https://checkout-form-zeta.vercel.app'
+          'https://checkout-form-zeta.vercel.app',
+          baseUrl
         ];
         
         
@@ -319,7 +320,7 @@
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: freshCartData
-                  }, 'https://checkout-form-zeta.vercel.app');
+                  }, baseUrl);
                 } catch (error) {
                   console.error('🏢 Error sending message to iframe:', error);
                 }
@@ -338,13 +339,13 @@
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: fallbackCart
-                  }, 'https://checkout-form-zeta.vercel.app');
+                  }, baseUrl);
                 } else {
                   console.error('🏢 No fallback cart data available');
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: null
-                  }, 'https://checkout-form-zeta.vercel.app');
+                  }, baseUrl);
                 }
               } else {
                 console.error('🏢 No iframe contentWindow found for fallback');

@@ -132,7 +132,8 @@ export function OfficeSelectorModal({
         finalStoreUrl: storeUrl,
         finalAccessToken: accessToken ? '***' + accessToken.slice(-4) : 'none',
         hasStoreUrl: !!storeUrl,
-        hasAccessToken: !!accessToken
+        hasAccessToken: !!accessToken,
+        fullConfig: config
       });
       
       // Validate Shopify credentials
@@ -206,14 +207,15 @@ Check the browser console for more details.`);
     } finally {
       setLoadingShippingMethods(false);
     }
-  }, []);
+  }, [config]);
 
-  // Load shipping methods when component mounts
+  // Load shipping methods when component mounts or config changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && config.shopify?.storeUrl && config.shopify?.accessToken) {
+      console.log('🏢 Config is ready, fetching shipping methods');
       fetchShippingMethods();
     }
-  }, [isOpen, fetchShippingMethods]);
+  }, [isOpen, config.shopify?.storeUrl, config.shopify?.accessToken, fetchShippingMethods]);
 
   // Update courier selection when config changes
   useEffect(() => {

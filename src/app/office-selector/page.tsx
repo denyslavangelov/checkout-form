@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { OfficeSelectorModal } from '@/components/office-selector-modal';
 
 export default function OfficeSelectorPage() {
@@ -18,152 +18,80 @@ export default function OfficeSelectorPage() {
     }
   });
 
-  // Memoize URL parsing for performance
-  const urlData = useMemo(() => {
-    // Check if we're in the browser environment
-    if (typeof window === 'undefined') {
-      return {
-        product: '',
-        variant: '',
-        parsedConfig: {
-          availableCouriers: ['speedy', 'econt'],
-          defaultCourier: 'speedy',
-          defaultDeliveryType: 'office',
-          shopify: {
-            storeUrl: '',
-            accessToken: ''
-          }
-        }
-      };
-    }
+
+  // Simple function to parse URL parameters
+  const parseUrlParams = () => {
+    if (typeof window === 'undefined') return;
     
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('productId') || '';
     const variant = urlParams.get('variantId') || '';
-    const quantity = urlParams.get('quantity') || '1';
+    const qty = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
-    const storeUrl = urlParams.get('storeUrl') || '';
-    const accessToken = urlParams.get('accessToken') || '';
-    
-    debugger;
-    
-    // Debug logging for URL parameters
-    console.log('🏢 Office Selector URL Parameters:', {
-      productId: product,
-      variantId: variant,
-      quantity: quantity,
-      configParam: configParam,
-      storeUrl: storeUrl,
-      accessToken: accessToken ? '***' + accessToken.slice(-4) : 'none',
-      allParams: Object.fromEntries(urlParams.entries())
+
+    console.log('🏢 Parsing URL parameters:', {
+      product,
+      variant,
+      qty,
+      hasConfig: !!configParam
     });
     
-    let parsedConfig = {
-      availableCouriers: ['speedy', 'econt'],
-      defaultCourier: 'speedy',
-      defaultDeliveryType: 'office',
-      shopify: {
-        storeUrl: '',
-        accessToken: ''
-      }
-    };
+    // Set basic parameters
+    setProductId(product);
+    setVariantId(variant);
+    setQuantity(qty);
+
+    debugger;
     
+    // Parse config if present
     if (configParam) {
       try {
-        const parsed = JSON.parse(decodeURIComponent(configParam));
-        parsedConfig = {
-          ...parsedConfig,
-          ...parsed,
+
+        debugger;
+        const parsedConfig = JSON.parse(decodeURIComponent(configParam));
+        console.log('🏢 Parsed config:', parsedConfig);
+        
+        // Set the config with Shopify credentials
+        setConfig({
+          availableCouriers: parsedConfig.availableCouriers || ['speedy', 'econt'],
+          defaultCourier: parsedConfig.defaultCourier || 'speedy',
+          defaultDeliveryType: parsedConfig.defaultDeliveryType || 'office',
           shopify: {
-            storeUrl: parsed.shopify?.storeUrl || '',
-            accessToken: parsed.shopify?.accessToken || ''
+            storeUrl: parsedConfig.shopify?.storeUrl || '',
+            accessToken: parsedConfig.shopify?.accessToken || ''
           }
-        };
-        console.log('🏢 Parsed config from URL:', {
-          hasShopify: !!parsed.shopify,
-          storeUrl: parsed.shopify?.storeUrl,
-          accessToken: parsed.shopify?.accessToken ? '***' + parsed.shopify.accessToken.slice(-4) : 'none'
+        });
+        
+        console.log('🏢 Final config set:', {
+          storeUrl: parsedConfig.shopify?.storeUrl,
+          accessToken: parsedConfig.shopify?.accessToken ? '***' + parsedConfig.shopify.accessToken.slice(-4) : 'none'
         });
       } catch (error) {
         console.error('🏢 Error parsing config:', error);
       }
     }
-    
-    // Add Shopify credentials from URL parameters if available (only if not already in config)
-    if ((storeUrl && accessToken) && (!parsedConfig.shopify?.storeUrl || !parsedConfig.shopify?.accessToken)) {
-      parsedConfig.shopify = {
-        storeUrl: storeUrl,
-        accessToken: accessToken
-      };
-      console.log('🏢 Using credentials from URL parameters');
-    } else if (parsedConfig.shopify?.storeUrl && parsedConfig.shopify?.accessToken) {
-      console.log('🏢 Using credentials from config parameter');
-    } else {
-      console.log('🏢 No valid credentials found in URL parameters or config');
-    }
-    
-    return { product, variant, quantity: quantity || '1', parsedConfig };
+  };
+
+  // Run once when component mounts
+  useEffect(() => {
+    parseUrlParams();
   }, []);
 
-  useEffect(() => {
-    // Only run in browser environment
-    if (typeof window === 'undefined') return;
-    
-    // Debug logging for URL data
-    console.log('🏢 Office Selector URL Data:', {
-      product: urlData.product,
-      variant: urlData.variant,
-      quantity: urlData.quantity,
-      parsedConfig: urlData.parsedConfig,
-      hasShopify: !!urlData.parsedConfig.shopify,
-      storeUrl: urlData.parsedConfig.shopify?.storeUrl,
-      accessToken: urlData.parsedConfig.shopify?.accessToken ? '***' + urlData.parsedConfig.shopify.accessToken.slice(-4) : 'none'
-    });
-    
-    setProductId(urlData.product);
-    setVariantId(urlData.variant);
-    setQuantity(urlData.quantity || '1');
-    setConfig(urlData.parsedConfig);
-
-    // Listen for messages from parent window
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'open-office-selector') {
-        setProductId(event.data.productId || '');
-        setVariantId(event.data.variantId || '');
-        setIsOpen(true);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [urlData]);
-
   const handleOrderCreated = (checkoutUrl: string) => {
-    // Only run in browser environment
     if (typeof window === 'undefined') return;
     
     console.log('🏢 Order created with checkout URL:', checkoutUrl);
-    console.log('🏢 Product ID:', productId, 'Variant ID:', variantId);
     
-    // Notify parent window about order creation
-    if (window.parent) {
-      window.parent.postMessage({ 
-        type: 'order-created', 
-        checkoutUrl: checkoutUrl 
-      }, '*');
-    }
-    
-    // For cart checkout, redirect the parent window to Shopify checkout
+    // For cart checkout, redirect to /checkout
     if (productId === 'cart' && variantId === 'cart') {
       console.log('🏢 Cart checkout - redirecting to /checkout');
       if (window.parent) {
-        // Redirect parent to Shopify checkout page
         window.parent.location.href = '/checkout';
       } else {
         window.location.href = '/checkout';
       }
     } else {
-      // For Buy Now, redirect the parent window to the checkout URL
+      // For Buy Now, redirect to the checkout URL
       console.log('🏢 Buy Now - redirecting to checkout URL:', checkoutUrl);
       if (window.parent) {
         window.parent.location.href = checkoutUrl;
@@ -175,6 +103,7 @@ export default function OfficeSelectorPage() {
 
   const handleClose = () => {
     setIsOpen(false);
+    
     // Notify parent window that modal is closed
     if (typeof window !== 'undefined' && window.parent) {
       window.parent.postMessage({ type: 'office-selector-closed' }, '*');
@@ -182,6 +111,7 @@ export default function OfficeSelectorPage() {
   };
 
   return (
+    <div className="min-h-screen bg-gray-100">
       <OfficeSelectorModal
         isOpen={isOpen}
         onClose={handleClose}
@@ -191,5 +121,6 @@ export default function OfficeSelectorPage() {
         quantity={quantity}
         config={config}
       />
+    </div>
   );
 }
