@@ -100,21 +100,28 @@ export function OfficeSelectorModal({
   // Ref for the continue button to enable scrolling
   const continueButtonRef = useRef<HTMLButtonElement>(null);
   
-  // Scroll to continue button when modal opens
+  // Scroll to continue button when it becomes active (address or office selected)
   useEffect(() => {
     if (isOpen && continueButtonRef.current) {
-      // Small delay to ensure modal is fully rendered
-      const timer = setTimeout(() => {
-        continueButtonRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'nearest'
-        });
-      }, 100);
+      // Check if the button is enabled (address entered or office selected)
+      const isButtonEnabled = !creatingOrder && 
+        ((deliveryType === 'office' && selectedOffice) || 
+         (deliveryType === 'address' && addressInput.trim()));
       
-      return () => clearTimeout(timer);
+      if (isButtonEnabled) {
+        // Small delay to ensure modal is fully rendered
+        const timer = setTimeout(() => {
+          continueButtonRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'end',
+            inline: 'nearest'
+          });
+        }, 100);
+        
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder]);
   
   // Fetch shipping methods from Shopify
   const fetchShippingMethods = useCallback(async () => {
