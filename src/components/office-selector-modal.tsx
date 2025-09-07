@@ -99,27 +99,32 @@ export function OfficeSelectorModal({
       setLoadingShippingMethods(true);
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
+
+      // Get Shopify credentials (support both nested and root level)
+      const storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
+      const accessToken = config.shopify?.accessToken || (config as any).accessToken;
+      
       // Validate Shopify credentials
-      if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
+      if (!storeUrl || !accessToken) {
         throw new Error('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
       }
 
       // Build URL with Shopify credentials
       const params = new URLSearchParams({
-        storeUrl: config.shopify.storeUrl,
-        accessToken: config.shopify.accessToken
+        storeUrl: storeUrl,
+        accessToken: accessToken
       });
+
       const apiUrl = `${baseUrl}/api/shopify/shipping-methods?${params.toString()}`;
       
       const response = await fetch(apiUrl);
+
+      const data = await response.json();
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
-      const data = await response.json();
-      
-      console.log(data.shippingMethods);
+
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
         
@@ -167,6 +172,8 @@ export function OfficeSelectorModal({
   // Auto-select shipping method based on courier and delivery type
   useEffect(() => {
     if (availableShippingMethods.length > 0) {
+      
+      debugger;
       
       // Try to find a matching shipping method
       const matchingMethod = availableShippingMethods.find(method => {
@@ -552,7 +559,10 @@ export function OfficeSelectorModal({
         }
         
         // Validate Shopify credentials before creating draft order
-        if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
+        const storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
+        const accessToken = config.shopify?.accessToken || (config as any).accessToken;
+        
+        if (!storeUrl || !accessToken) {
           setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
           return;
         }
@@ -570,7 +580,7 @@ export function OfficeSelectorModal({
               deliveryType: deliveryType
             },
             selectedShippingMethodId: selectedShippingMethodId,
-            shopify: config.shopify, // Pass Shopify credentials
+            shopify: { storeUrl, accessToken }, // Pass Shopify credentials
             shippingAddress: {
               address1: (() => {
                 if (deliveryType === 'address') {
@@ -632,7 +642,10 @@ export function OfficeSelectorModal({
       // For Buy Now buttons, create draft order with product data
       
       // Validate Shopify credentials before creating draft order
-      if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
+      const storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
+      const accessToken = config.shopify?.accessToken || (config as any).accessToken;
+      
+      if (!storeUrl || !accessToken) {
         setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
         return;
       }
@@ -652,7 +665,7 @@ export function OfficeSelectorModal({
             deliveryType: deliveryType
           },
           selectedShippingMethodId: selectedShippingMethodId,
-          shopify: config.shopify, // Pass Shopify credentials
+          shopify: { storeUrl, accessToken }, // Pass Shopify credentials
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {
