@@ -847,13 +847,13 @@
       const data = await response.json(); 
       
       debugger;
-      
+
       if (data.success && data.shippingMethods) {
         // Store shipping methods globally for later use
         window.storeShippingMethods = data.shippingMethods;
         window.bulgariaShippingMethods = data.bulgariaMethods;
-        
-      } else if (data.error) {
+
+        console.log(data.shippingMethods, data.bulgariaMethods);
       }
     } catch (error) {
       console.error('Error fetching shipping methods:', error);
