@@ -45,6 +45,8 @@ export default function OfficeSelectorPage() {
     const storeUrl = urlParams.get('storeUrl') || '';
     const accessToken = urlParams.get('accessToken') || '';
     
+    debugger;
+    
     // Debug logging for URL parameters
     console.log('🏢 Office Selector URL Parameters:', {
       productId: product,

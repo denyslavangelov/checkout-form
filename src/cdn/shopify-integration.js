@@ -1,3 +1,21 @@
+/**
+ * Office Selector CDN Integration Script
+ * 
+ * To configure Shopify credentials, set window.officeSelectorConfig before loading this script:
+ * 
+ * <script>
+ * window.officeSelectorConfig = {
+ *   shopify: {
+ *     storeUrl: 'your-store.myshopify.com',
+ *     accessToken: 'shpat_your_access_token_here'
+ *   },
+ *   availableCouriers: ['speedy', 'econt'],
+ *   defaultCourier: 'speedy',
+ *   defaultDeliveryType: 'office'
+ * };
+ * </script>
+ * <script src="https://checkout-form-zeta.vercel.app/cdn/shopify-integration.js"></script>
+ */
 (function() {
   'use strict';
 
@@ -9,6 +27,10 @@
     availableCouriers: ['speedy', 'econt'], // Default: both couriers available
     defaultCourier: 'speedy', // Default selected courier
     defaultDeliveryType: 'office', // Default delivery type
+    shopify: {
+      storeUrl: '', // Shopify store URL (e.g., 'your-store.myshopify.com')
+      accessToken: '' // Shopify access token (e.g., 'shpat_...')
+    },
     buttonTargets: {
       // Button targeting configuration
       enableSmartDetection: true, // Enable smart button detection
@@ -27,6 +49,10 @@
   const finalConfig = {
     ...defaultConfig,
     ...config,
+    shopify: {
+      ...defaultConfig.shopify,
+      ...(config.shopify || {})
+    },
     buttonTargets: {
       ...defaultConfig.buttonTargets,
       ...(config.buttonTargets || {})
@@ -229,6 +255,15 @@
       const configParam = encodeURIComponent(JSON.stringify(finalConfig));
       const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
+      
+      // Debug logging for config
+      console.log('🏢 CDN: Final config being passed to iframe:', {
+        hasShopify: !!finalConfig.shopify,
+        storeUrl: finalConfig.shopify?.storeUrl,
+        accessToken: finalConfig.shopify?.accessToken ? '***' + finalConfig.shopify.accessToken.slice(-4) : 'none',
+        fullConfig: finalConfig
+      });
+      
       iframe.src = officeSelectorUrl;
       
       iframe.style.display = 'block';

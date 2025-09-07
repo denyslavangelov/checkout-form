@@ -102,13 +102,15 @@ export function OfficeSelectorModal({
     try {
       setLoadingShippingMethods(true);
       
+      debugger;
+
       // Alert when starting to fetch shipping methods
       alert('🔄 Starting to fetch available shipping methods...');
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Get Shopify credentials (support both nested and root level)
-      let storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
+      let storeUrl = config.shopify?.storeUrl;
       let accessToken = config.shopify?.accessToken || (config as any).accessToken;
       
       // If credentials are not in config, try to get them from URL parameters
