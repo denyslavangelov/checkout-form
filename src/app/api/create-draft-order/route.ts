@@ -47,7 +47,7 @@ const CREATE_DRAFT_ORDER_MUTATION = `
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, shopify } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, customerInfo, shopify } = body;
     
     // Extract Shopify credentials from request body
     const STORE_URL = shopify?.storeUrl;
@@ -158,6 +158,14 @@ export async function POST(request: NextRequest) {
       lineItems,
       shippingAddress: finalAddress
     };
+
+    // Add customer info if provided
+    if (customerInfo && customerInfo.firstName && customerInfo.lastName) {
+      draftOrderInput.customer = {
+        firstName: customerInfo.firstName,
+        lastName: customerInfo.lastName
+      };
+    }
 
     // Add shipping line if available
     if (shippingLine) {

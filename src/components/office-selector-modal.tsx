@@ -69,7 +69,10 @@ export function OfficeSelectorModal({
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
+  
+  // Customer name fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -102,8 +105,10 @@ export function OfficeSelectorModal({
   // Scroll to continue button when it becomes active (address or office selected)
   useEffect(() => {
     if (isOpen && continueButtonRef.current) {
-      // Check if the button is enabled (address entered or office selected)
+      // Check if the button is enabled (name fields filled and address/office selected)
       const isButtonEnabled = !creatingOrder && 
+        firstName.trim() && 
+        lastName.trim() &&
         ((deliveryType === 'office' && selectedOffice) || 
          (deliveryType === 'address' && addressInput.trim()));
       
@@ -120,7 +125,7 @@ export function OfficeSelectorModal({
         return () => clearTimeout(timer);
       }
     }
-  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder]);
+  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder, firstName, lastName]);
   
   // Fetch shipping methods from Shopify
   const fetchShippingMethods = useCallback(async () => {
@@ -320,22 +325,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   }, [isOpen]);
 
-  // Initialize component
-  useEffect(() => {
-    if (isOpen) {
-      // Very brief delay to prevent courier selection flash
-      setIsInitializing(true);
-      const initTimer = setTimeout(() => {
-        setIsInitializing(false);
-      }, 30); // Reduced from 100ms to 30ms for faster loading
-      
-      return () => {
-        clearTimeout(initTimer);
-      };
-    } else {
-      setIsInitializing(false);
-    }
-  }, [isOpen]);
 
   // Function to get cart data from parent window with mobile retry
   const getCartDataFromParent = async () => {
@@ -629,6 +618,10 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             selectedShippingMethodId: selectedShippingMethodId,
             selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
             shopify: { storeUrl, accessToken }, // Pass Shopify credentials
+            customerInfo: {
+              firstName: firstName.trim(),
+              lastName: lastName.trim()
+            },
             shippingAddress: {
               address1: (() => {
                 if (deliveryType === 'address') {
@@ -715,6 +708,10 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           selectedShippingMethodId: selectedShippingMethodId,
           selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
           shopify: { storeUrl, accessToken }, // Pass Shopify credentials
+          customerInfo: {
+            firstName: firstName.trim(),
+            lastName: lastName.trim()
+          },
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {
@@ -925,6 +922,34 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         </div>
 
         <div className="space-y-6">
+          {/* Customer Name Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Име<span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Input
+                type="text"
+                placeholder="Въведете име"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Фамилия<span className="text-red-500 ml-1">*</span>
+              </Label>
+              <Input
+                type="text"
+                placeholder="Въведете фамилия"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full"
+              />
+            </div>
+          </div>
+
           {/* City Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
@@ -1128,6 +1153,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             onClick={handleCreateOrder}
             disabled={
               creatingOrder || 
+              !firstName.trim() ||
+              !lastName.trim() ||
               (deliveryType === 'office' && !selectedOffice) ||
               (deliveryType === 'address' && !addressInput.trim())
             }
