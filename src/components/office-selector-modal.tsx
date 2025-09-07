@@ -1136,10 +1136,10 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             {creatingOrder ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span className="text-sm sm:text-base">Създаване на поръчка...</span>
+                <span className="text-sm sm:text-base">Зареждане...</span>
               </>
             ) : (
-              <span className="text-sm sm:text-base">Продължи</span>
+              <span className="text-sm sm:text-base">Продължи към завършване</span>
             )}
           </Button>
         </div>
