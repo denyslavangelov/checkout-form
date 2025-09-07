@@ -99,23 +99,15 @@ export function OfficeSelectorModal({
       setLoadingShippingMethods(true);
       
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
-      
-      // For localhost testing, use hardcoded credentials
-      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-      const shopifyCredentials = isLocalhost ? {
-        storeUrl: 'testing-client-check.myshopify.com',
-        accessToken: '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'
-      } : config.shopify;
-      
       // Validate Shopify credentials
-      if (!shopifyCredentials?.storeUrl || !shopifyCredentials?.accessToken) {
+      if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
         throw new Error('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
       }
 
       // Build URL with Shopify credentials
       const params = new URLSearchParams({
-        storeUrl: shopifyCredentials.storeUrl,
-        accessToken: shopifyCredentials.accessToken
+        storeUrl: config.shopify.storeUrl,
+        accessToken: config.shopify.accessToken
       });
       const apiUrl = `${baseUrl}/api/shopify/shipping-methods?${params.toString()}`;
       
@@ -499,8 +491,6 @@ export function OfficeSelectorModal({
 
   // Create order function
   const handleCreateOrder = async () => {
-
-    debugger;
     // Validate based on delivery type
     if (deliveryType === 'office') {
       if (!selectedOffice || !selectedCity) {
@@ -562,74 +552,10 @@ export function OfficeSelectorModal({
         }
         
         // Validate Shopify credentials before creating draft order
-        // For localhost testing, use hardcoded credentials
-        const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-        const shopifyCredentials = isLocalhost ? {
-          storeUrl: 'testing-client-check.myshopify.com',
-          accessToken: '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'
-        } : config.shopify;
-        
-        if (!shopifyCredentials?.storeUrl || !shopifyCredentials?.accessToken) {
+        if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
           setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
           return;
         }
-        
-        // Prepare shipping method data
-        let shippingMethodData = null;
-        if (selectedShippingMethodId) {
-          const selectedShippingMethod = availableShippingMethods.find(method => method.id === selectedShippingMethodId);
-          if (selectedShippingMethod) {
-            // Use the selected shipping method details
-            shippingMethodData = {
-              title: selectedShippingMethod.name,
-              price: selectedShippingMethod.price,
-              currency: selectedShippingMethod.currency
-            };
-            console.log('🏢 Using selected shipping method:', shippingMethodData);
-          }
-        }
-        
-        if (!shippingMethodData) {
-          // Create a basic shipping method based on courier and delivery type
-          const courierName = selectedCourier === 'speedy' ? 'Спиди' : selectedCourier === 'econt' ? 'Еконт' : 'Доставка';
-          const deliveryTypeName = deliveryType === 'office' ? 'До офис' : 'До адрес';
-          
-          shippingMethodData = {
-            title: `${courierName} - ${deliveryTypeName}`,
-            price: '0.00',
-            currency: 'BGN'
-          };
-          console.log('🏢 Using fallback shipping method:', shippingMethodData);
-        }
-
-        // Prepare request data
-        const requestData = {
-          cartData: { ...cartData, items: items },
-          shippingMethod: shippingMethodData,
-          shopify: shopifyCredentials, // Pass Shopify credentials (hardcoded for localhost)
-          shippingAddress: {
-            address1: (() => {
-              if (deliveryType === 'address') {
-                return addressInput.trim();
-              } else if (deliveryType === 'office' && selectedOffice) {
-                if (typeof selectedOffice.address === 'string') {
-                  return selectedOffice.address;
-                } else if (selectedOffice.fullAddressString) {
-                  return selectedOffice.fullAddressString;
-                } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-                  return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
-                }
-                return 'Address not available';
-              }
-              return 'Address not available';
-            })(),
-            city: selectedCity?.name || '',
-            country: 'Bulgaria',
-            postalCode: selectedCity?.postCode || ''
-          }
-        };
-
-        console.log('🏢 Creating draft order with data:', requestData);
 
         // Create draft order with cart items and office address
         const response = await fetch(`${baseUrl}/api/create-draft-order`, {
@@ -637,20 +563,44 @@ export function OfficeSelectorModal({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(requestData)
+          body: JSON.stringify({
+            cartData: { ...cartData, items: items },
+            shippingMethod: {
+              courier: selectedCourier,
+              deliveryType: deliveryType
+            },
+            selectedShippingMethodId: selectedShippingMethodId,
+            shopify: config.shopify, // Pass Shopify credentials
+            shippingAddress: {
+              address1: (() => {
+                if (deliveryType === 'address') {
+                  return addressInput.trim();
+                } else if (deliveryType === 'office' && selectedOffice) {
+                  if (typeof selectedOffice.address === 'string') {
+                    return selectedOffice.address;
+                  } else if (selectedOffice.fullAddressString) {
+                    return selectedOffice.fullAddressString;
+                  } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
+                    return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
+                  }
+                  return 'Address not available';
+                }
+                return 'Address not available';
+              })(),
+              city: selectedCity?.name || '',
+              country: 'Bulgaria',
+              postalCode: selectedCity?.postCode || ''
+            }
+          })
         });
-        const data = await response.json();  
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('🏢 Draft order creation failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          });
           throw new Error(errorData.error || 'Failed to create draft order');
         }
 
+        const data = await response.json();   
+        
         // Debug logging to see what response we got
         console.log('Draft order creation response:', JSON.stringify(data, null, 2));
         
@@ -682,14 +632,7 @@ export function OfficeSelectorModal({
       // For Buy Now buttons, create draft order with product data
       
       // Validate Shopify credentials before creating draft order
-      // For localhost testing, use hardcoded credentials
-      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-      const shopifyCredentials = isLocalhost ? {
-        storeUrl: 'testing-client-check.myshopify.com',
-        accessToken: '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'
-      } : config.shopify;
-      
-      if (!shopifyCredentials?.storeUrl || !shopifyCredentials?.accessToken) {
+      if (!config.shopify?.storeUrl || !config.shopify?.accessToken) {
         setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
         return;
       }
@@ -709,7 +652,7 @@ export function OfficeSelectorModal({
             deliveryType: deliveryType
           },
           selectedShippingMethodId: selectedShippingMethodId,
-          shopify: shopifyCredentials, // Pass Shopify credentials (hardcoded for localhost)
+          shopify: config.shopify, // Pass Shopify credentials
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {

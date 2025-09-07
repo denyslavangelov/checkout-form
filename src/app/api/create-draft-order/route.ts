@@ -44,35 +44,10 @@ const CREATE_DRAFT_ORDER_MUTATION = `
   }
 `;
 
-// CORS headers helper
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
 export async function POST(request: NextRequest) {
-  // Handle CORS preflight request
-  if (request.method === 'OPTIONS') {
-    return new NextResponse(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
-  }
-
   try {
     const body = await request.json();
-    console.log('🏢 Draft Order API - Request received:', {
-      timestamp: new Date().toISOString(),
-      bodyKeys: Object.keys(body),
-      hasProductId: !!body.productId,
-      hasVariantId: !!body.variantId,
-      hasCartData: !!body.cartData,
-      hasShippingMethod: !!body.shippingMethod,
-      hasShopify: !!body.shopify
-    });
-    
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, shopify } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, shopify } = body;
     
     // Extract Shopify credentials from request body
     const STORE_URL = shopify?.storeUrl;
@@ -83,42 +58,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Missing required parameter: shopify.storeUrl'
-      }, { 
-        status: 400,
-        headers: corsHeaders
-      });
+      }, { status: 400 });
     }
 
     if (!ACCESS_TOKEN) {
       return NextResponse.json({
         success: false,
         error: 'Missing required parameter: shopify.accessToken'
-      }, { 
-        status: 400,
-        headers: corsHeaders
-      });
+      }, { status: 400 });
     }
     
-    console.log('🏢 Draft Order API - Using Shopify credentials:', { 
-      storeUrl: STORE_URL, 
-      accessToken: ACCESS_TOKEN.substring(0, 10) + '...',
-      hasStoreUrl: !!STORE_URL,
-      hasAccessToken: !!ACCESS_TOKEN
-    });
+    console.log('Using Shopify credentials:', { storeUrl: STORE_URL, accessToken: ACCESS_TOKEN.substring(0, 10) + '...' });
 
     // Simple validation
     if (!variantId && !cartData) {
       return NextResponse.json({
         success: false,
         error: 'Either variantId or cartData is required'
-      }, { status: 400, headers: corsHeaders });
+      }, { status: 400 });
     }
 
     if (!shippingAddress) {
       return NextResponse.json({
         success: false,
         error: 'Shipping address is required'
-      }, { status: 400, headers: corsHeaders });
+      }, { status: 400 });
     }
 
     // Process shipping address
@@ -129,11 +93,6 @@ export async function POST(request: NextRequest) {
       zip: shippingAddress.postalCode || '',
       country: shippingAddress.country || 'Bulgaria'
     };
-    
-    console.log('🏢 Draft Order API - Shipping address processed:', {
-      originalAddress: shippingAddress,
-      finalAddress: finalAddress
-    });
 
     // Process line items
     let lineItems: any[] = [];
@@ -144,40 +103,149 @@ export async function POST(request: NextRequest) {
         variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
         quantity: item.quantity
       }));
-      console.log('🏢 Draft Order API - Cart checkout line items:', {
-        cartItemsCount: cartData.items.length,
-        lineItems: lineItems
-      });
     } else if (productId && variantId) {
       // Buy Now - use single product
       lineItems = [{
         variantId: `gid://shopify/ProductVariant/${variantId}`,
         quantity: parseInt(quantity) || 1
       }];
-      console.log('🏢 Draft Order API - Buy Now line items:', {
-        productId: productId,
-        variantId: variantId,
-        quantity: quantity,
-        lineItems: lineItems
-      });
     }
 
-    // Use shipping line if provided
+    // Create shipping line based on shipping method
     let shippingLine = null;
-    if (shippingMethod) {
-      shippingLine = {
-        title: shippingMethod.title || 'Shipping',
-        priceWithCurrency: {
-          amount: shippingMethod.price || '0.00',
-          currencyCode: shippingMethod.currency || 'BGN'
+    
+    // If we have a specific shipping method ID, fetch its details and use title/price
+    if (selectedShippingMethodId) {
+      try {
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods`);
+        const shippingMethodsData = await shippingMethodsResponse.json();
+        
+        if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
+          const methodDetails = shippingMethodsData.shippingMethods.find((method: any) => method.id === selectedShippingMethodId);
+          
+          if (methodDetails) {
+            shippingLine = {
+              title: methodDetails.name,
+              priceWithCurrency: {
+                amount: methodDetails.price,
+                currencyCode: methodDetails.currency
+              }
+            };
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: 'Shipping method not found',
+              details: `Could not find shipping method with ID: ${selectedShippingMethodId}. Please ensure the shipping method exists and is properly configured.`
+            }, { status: 400 });
+          }
+        } else {
+          return NextResponse.json({
+            success: false,
+            error: 'Failed to fetch shipping methods for validation',
+            details: `Could not retrieve shipping methods to validate the selected method ID: ${selectedShippingMethodId}. Please ensure the store has shipping methods configured.`
+          }, { status: 400 });
         }
-      };
-      console.log('🏢 Draft Order API - Shipping method processed:', {
-        originalShippingMethod: shippingMethod,
-        shippingLine: shippingLine
-      });
-    } else {
-      console.log('🏢 Draft Order API - No shipping method provided');
+      } catch (error) {
+        return NextResponse.json({
+          success: false,
+          error: 'Error validating shipping method',
+          details: `Failed to validate shipping method ID ${selectedShippingMethodId}: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your network connection and API credentials.`
+        }, { status: 500 });
+      }
+    } else if (shippingMethod) {
+      // Fetch actual shipping methods from the store and match with courier/delivery type
+      const { courier, deliveryType } = shippingMethod;
+      
+      try {
+        const shippingMethodsResponse = await fetch(`${request.nextUrl.origin}/api/shopify/shipping-methods`);
+        const shippingMethodsData = await shippingMethodsResponse.json();
+        
+        if (shippingMethodsData.success && shippingMethodsData.shippingMethods) {
+          // Find matching shipping method based on courier and delivery type
+          const matchingMethod = shippingMethodsData.shippingMethods.find((method: any) => {
+            const name = method.name?.toLowerCase() || '';
+            
+            // Special case: If "До Адрес" is selected, prioritize "Личен адрес" method
+            if (deliveryType === 'address' && (name.includes('личен адрес') || name.includes('личен') || name.includes('личный адрес'))) {
+              return true;
+            }
+            
+            // First, try to match by courier and delivery type
+            if (courier === 'speedy' || courier === 'econt') {
+              // Match courier
+              const courierMatch = (courier === 'speedy' && (
+                name.includes('speedy') || 
+                name.includes('спиди')
+              )) || (courier === 'econt' && (
+                name.includes('econt') || 
+                name.includes('еконт')
+              ));
+              
+              // Match delivery type
+              const deliveryMatch = (deliveryType === 'office' && (
+                name.includes('office') || 
+                name.includes('офис') ||
+                name.includes('pickup') ||
+                name.includes('вземане')
+              )) || (deliveryType === 'address' && (
+                name.includes('address') || 
+                name.includes('адрес') ||
+                name.includes('delivery') ||
+                name.includes('доставка')
+              ));
+              
+              return courierMatch && deliveryMatch;
+            } else {
+              // For cases where courier is not specified
+              if (deliveryType === 'office') {
+                return name.includes('office') || 
+                       name.includes('офис') || 
+                       name.includes('pickup') ||
+                       name.includes('вземане');
+              } else if (deliveryType === 'address') {
+                return (name.includes('address') || 
+                        name.includes('адрес') || 
+                        name.includes('delivery') ||
+                        name.includes('доставка')) && 
+                       !name.includes('office') && 
+                       !name.includes('офис') && 
+                       !name.includes('pickup') &&
+                       !name.includes('вземане');
+              }
+            }
+            
+            return false;
+          });
+          
+          if (matchingMethod) {
+            shippingLine = {
+              title: matchingMethod.name,
+              priceWithCurrency: {
+                amount: matchingMethod.price,
+                currencyCode: matchingMethod.currency
+              }
+            };
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: `No matching shipping method found for ${courier} ${deliveryType === 'office' ? 'office delivery' : 'address delivery'}`,
+              details: `Could not find a shipping method matching courier: ${courier}, delivery type: ${deliveryType}. Please ensure the store has the appropriate shipping methods configured.`
+            }, { status: 400 });
+          }
+        } else {
+          return NextResponse.json({
+            success: false,
+            error: 'Failed to fetch shipping methods from store',
+            details: `Could not retrieve shipping methods from the store. Please ensure the store has shipping methods configured and the API credentials are correct.`
+          }, { status: 400 });
+        }
+      } catch (error) {
+        return NextResponse.json({
+          success: false,
+          error: 'Error fetching shipping methods',
+          details: `Failed to fetch shipping methods from the store: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your network connection and API credentials.`
+        }, { status: 500 });
+      }
     }
 
     // Create draft order input
@@ -190,20 +258,7 @@ export async function POST(request: NextRequest) {
     if (shippingLine) {
       draftOrderInput.shippingLine = shippingLine;
     }
-    
-    console.log('🏢 Draft Order API - Draft order input prepared:', {
-      lineItemsCount: lineItems.length,
-      hasShippingAddress: !!finalAddress,
-      hasShippingLine: !!shippingLine,
-      draftOrderInput: draftOrderInput
-    });
 
-    console.log('🏢 Draft Order API - Sending GraphQL request to Shopify:', {
-      url: `https://${STORE_URL}/admin/api/2024-01/graphql.json`,
-      mutation: CREATE_DRAFT_ORDER_MUTATION,
-      variables: { input: draftOrderInput }
-    });
-    
     const response = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
@@ -217,12 +272,6 @@ export async function POST(request: NextRequest) {
         }
       })
     });
-    
-    console.log('🏢 Draft Order API - Shopify GraphQL response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -230,20 +279,13 @@ export async function POST(request: NextRequest) {
         success: false,
         error: `GraphQL request failed: ${response.status}`,
         details: errorText
-      }, { status: response.status, headers: corsHeaders });
+      }, { status: response.status });
     }
 
     const data = await response.json();
-    
-    console.log('🏢 Draft Order API - Shopify GraphQL response data:', {
-      hasData: !!data.data,
-      hasErrors: !!data.errors,
-      errorsCount: data.errors ? data.errors.length : 0,
-      fullResponse: data
-    });
 
     if (data.errors && Array.isArray(data.errors)) {
-      console.log('🏢 Draft Order API - GraphQL errors received:', JSON.stringify(data.errors, null, 2));
+      console.log('GraphQL errors received:', JSON.stringify(data.errors, null, 2));
       
       // Check if it's a permission error
       const permissionError = data.errors.some((error: any) => 
@@ -269,14 +311,14 @@ export async function POST(request: NextRequest) {
               '5. Ensure "Create and edit draft orders" permission is enabled'
             ]
           }
-        }, { status: 403, headers: corsHeaders });
+        }, { status: 403 });
       }
       
       return NextResponse.json({
         success: false,
         error: 'Failed to create draft order',
         details: data.errors
-      }, { status: 400, headers: corsHeaders });
+      }, { status: 400 });
     }
 
     if (data.data?.draftOrderCreate?.draftOrder) {
@@ -285,14 +327,13 @@ export async function POST(request: NextRequest) {
       const draftOrderId = draftOrder.id.split('/').pop();
       const constructedCheckoutUrl = `https://${STORE_URL}/admin/draft_orders/${draftOrderId}/checkout`;
       
-      console.log('🏢 Draft Order API - ✅ Draft order created successfully:', {
+      console.log('✅ Draft order created successfully:', {
         id: draftOrder.id,
         name: draftOrder.name,
         status: draftOrder.status,
         totalPrice: draftOrder.totalPrice,
         invoiceUrl: draftOrder.invoiceUrl,
-        constructedCheckoutUrl: constructedCheckoutUrl,
-        fullDraftOrder: draftOrder
+        constructedCheckoutUrl: constructedCheckoutUrl
       });
       
       return NextResponse.json({
@@ -305,26 +346,21 @@ export async function POST(request: NextRequest) {
           invoiceUrl: draftOrder.invoiceUrl,
           checkoutUrl: constructedCheckoutUrl
         }
-      }, { headers: corsHeaders });
+      });
     } else {
       return NextResponse.json({
         success: false,
         error: 'Failed to create draft order',
         details: data.data?.draftOrderCreate?.userErrors || 'Unknown error'
-      }, { status: 400, headers: corsHeaders });
+      }, { status: 400 });
     }
 
   } catch (error) {
-    console.error('🏢 Draft Order API - ❌ Error creating draft order:', {
-      error: error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString()
-    });
+    console.error('Error creating draft order:', error);
     return NextResponse.json({
       success: false,
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500, headers: corsHeaders });
+    }, { status: 500 });
   }
 }

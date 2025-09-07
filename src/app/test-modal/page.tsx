@@ -5,8 +5,8 @@ import { OfficeSelectorModal } from '@/components/office-selector-modal';
 
 export default function TestModalPage() {
   const [isOpen, setIsOpen] = useState(true);
-  const [productId, setProductId] = useState('gid://shopify/Product/44765435625667');
-  const [variantId, setVariantId] = useState('44765435625667');
+  const [productId, setProductId] = useState('test-product-123');
+  const [variantId, setVariantId] = useState('test-variant-456');
   const [quantity, setQuantity] = useState('1');
   const [testResults, setTestResults] = useState<string[]>([]);
   const [config, setConfig] = useState({
@@ -23,8 +23,8 @@ export default function TestModalPage() {
   const urlData = useMemo(() => {
     if (typeof window === 'undefined') {
       return {
-        product: 'gid://shopify/Product/44765435625667',
-        variant: '44765435625667',
+        product: 'test-product-123',
+        variant: 'test-variant-456',
         parsedConfig: {
           availableCouriers: ['speedy', 'econt'],
           defaultCourier: 'speedy',
@@ -38,8 +38,8 @@ export default function TestModalPage() {
     }
     
     const urlParams = new URLSearchParams(window.location.search);
-    const product = urlParams.get('productId') || 'gid://shopify/Product/44765435625667';
-    const variant = urlParams.get('variantId') || '44765435625667';
+    const product = urlParams.get('productId') || 'test-product-123';
+    const variant = urlParams.get('variantId') || 'test-variant-456';
     const quantity = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
     
