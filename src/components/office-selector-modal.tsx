@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, MapPin, Building2, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -96,6 +96,25 @@ export function OfficeSelectorModal({
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isChrome = /Chrome/i.test(navigator.userAgent);
   const isChromeMobile = isMobile && isChrome;
+  
+  // Ref for the continue button to enable scrolling
+  const continueButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Scroll to continue button when modal opens
+  useEffect(() => {
+    if (isOpen && continueButtonRef.current) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        continueButtonRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
   
   // Fetch shipping methods from Shopify
   const fetchShippingMethods = useCallback(async () => {
@@ -1139,6 +1158,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
           {/* Create Order Button */}
           <Button
+            ref={continueButtonRef}
             onClick={handleCreateOrder}
             disabled={
               creatingOrder || 
