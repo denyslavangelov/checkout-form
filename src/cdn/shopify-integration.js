@@ -64,6 +64,7 @@
         z-index: 10000;
         display: none;
         background: white;
+        border-radius: 10px;
       "
       allow="clipboard-write"
     ></iframe>
@@ -844,6 +845,8 @@
       }
       
       const data = await response.json(); 
+      
+      debugger;
       
       if (data.success && data.shippingMethods) {
         // Store shipping methods globally for later use
