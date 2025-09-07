@@ -98,6 +98,9 @@ export function OfficeSelectorModal({
     try {
       setLoadingShippingMethods(true);
       
+      // Alert when starting to fetch shipping methods
+      alert('🔄 Starting to fetch available shipping methods...');
+      
       const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Get Shopify credentials (support both nested and root level)
@@ -128,7 +131,10 @@ export function OfficeSelectorModal({
       if (data.success && data.shippingMethods) {
         setAvailableShippingMethods(data.shippingMethods);
         
-        // Alert the shipping methods for debugging
+        // Alert every time shipping methods are fetched successfully
+        alert(`✅ Shipping Methods Fetched Successfully!\n\nFound ${data.shippingMethods.length} methods:\n${data.shippingMethods.map((method: any) => `• ${method.title || method.name} (${method.price} ${method.currency})`).join('\n')}`);
+        
+        // Also show any additional alert from the API
         if (data.alert) {
           alert(data.alert);
         }
@@ -136,10 +142,13 @@ export function OfficeSelectorModal({
         setAvailableShippingMethods([]);
         
         // Alert the error
-        alert(`Shipping Methods API Error: ${data.error}`);
+        alert(`❌ Shipping Methods API Error: ${data.error}`);
       }
     } catch (error) {
       setAvailableShippingMethods([]);
+      
+      // Alert when fetch fails with an exception
+      alert(`❌ Failed to fetch shipping methods: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoadingShippingMethods(false);
     }
