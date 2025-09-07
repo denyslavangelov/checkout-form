@@ -45,6 +45,17 @@ export default function OfficeSelectorPage() {
     const storeUrl = urlParams.get('storeUrl') || '';
     const accessToken = urlParams.get('accessToken') || '';
     
+    // Debug logging for URL parameters
+    console.log('🏢 Office Selector URL Parameters:', {
+      productId: product,
+      variantId: variant,
+      quantity: quantity,
+      configParam: configParam,
+      storeUrl: storeUrl,
+      accessToken: accessToken ? '***' + accessToken.slice(-4) : 'none',
+      allParams: Object.fromEntries(urlParams.entries())
+    });
+    
     let parsedConfig = {
       availableCouriers: ['speedy', 'econt'],
       defaultCourier: 'speedy',
@@ -72,10 +83,18 @@ export default function OfficeSelectorPage() {
     }
     
     // Add Shopify credentials from URL parameters if available
-    if (storeUrl || accessToken) {
+    if (storeUrl && accessToken) {
       parsedConfig.shopify = {
         storeUrl: storeUrl,
         accessToken: accessToken
+      };
+      console.log('🏢 Using credentials from URL parameters');
+    } else {
+      // Keep empty credentials - will be handled by the modal component
+      console.log('🏢 No valid credentials found in URL parameters');
+      parsedConfig.shopify = {
+        storeUrl: '',
+        accessToken: ''
       };
     }
     
@@ -85,6 +104,17 @@ export default function OfficeSelectorPage() {
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === 'undefined') return;
+    
+    // Debug logging for URL data
+    console.log('🏢 Office Selector URL Data:', {
+      product: urlData.product,
+      variant: urlData.variant,
+      quantity: urlData.quantity,
+      parsedConfig: urlData.parsedConfig,
+      hasShopify: !!urlData.parsedConfig.shopify,
+      storeUrl: urlData.parsedConfig.shopify?.storeUrl,
+      accessToken: urlData.parsedConfig.shopify?.accessToken ? '***' + urlData.parsedConfig.shopify.accessToken.slice(-4) : 'none'
+    });
     
     setProductId(urlData.product);
     setVariantId(urlData.variant);

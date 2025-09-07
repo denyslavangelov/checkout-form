@@ -120,6 +120,8 @@ export function OfficeSelectorModal({
         }
       }
       
+      // No fallback credentials - require proper configuration
+      
       // Debug logging for credentials
       console.log('🔑 Shopify credentials check:', {
         hasConfigShopify: !!config.shopify,
@@ -133,9 +135,15 @@ export function OfficeSelectorModal({
       
       // Validate Shopify credentials
       if (!storeUrl || !accessToken) {
-        const errorMsg = 'Shopify credentials are missing. Please configure storeUrl and accessToken in the config or URL parameters.';
+        const errorMsg = `Shopify credentials are missing. Please provide them via:
+        
+1. URL parameters: ?storeUrl=your-store.myshopify.com&accessToken=shpat_...
+2. Config parameter: ?config={"shopify":{"storeUrl":"...","accessToken":"..."}}
+3. Config object when calling the component
+
+Current config: ${JSON.stringify(config, null, 2)}`;
         console.error('❌', errorMsg);
-        throw new Error(errorMsg);
+        throw new Error('Shopify credentials are missing. Please configure storeUrl and accessToken.');
       }
 
       // Build URL with Shopify credentials
@@ -174,7 +182,25 @@ export function OfficeSelectorModal({
       setAvailableShippingMethods([]);
       
       // Alert when fetch fails with an exception
-      alert(`❌ Failed to fetch shipping methods: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Shopify credentials are missing')) {
+        alert(`❌ Shopify credentials are missing!
+
+To fix this, provide your Shopify credentials via:
+
+1. URL parameters:
+   ?storeUrl=your-store.myshopify.com&accessToken=shpat_...
+
+2. Config parameter:
+   ?config={"shopify":{"storeUrl":"your-store.myshopify.com","accessToken":"shpat_..."}}
+
+3. Or configure them when calling the component
+
+Check the browser console for more details.`);
+      } else {
+        alert(`❌ Failed to fetch shipping methods: ${errorMessage}`);
+      }
     } finally {
       setLoadingShippingMethods(false);
     }

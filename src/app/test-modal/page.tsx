@@ -19,6 +19,11 @@ export default function TestModalPage() {
     }
   });
 
+  // Example of how to use the office selector with credentials:
+  // 1. Via URL parameters: /office-selector?storeUrl=your-store.myshopify.com&accessToken=shpat_...
+  // 2. Via config parameter: /office-selector?config={"shopify":{"storeUrl":"...","accessToken":"..."}}
+  // 3. Via component props (as shown below)
+
   // Memoize URL parsing for performance (same as office-selector page)
   const urlData = useMemo(() => {
     if (typeof window === 'undefined') {
