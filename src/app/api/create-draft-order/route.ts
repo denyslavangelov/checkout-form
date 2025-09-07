@@ -125,28 +125,13 @@ export async function POST(request: NextRequest) {
         }
       };
       console.log('✅ Using pre-validated shipping method:', shippingLine);
-    } else if (shippingMethod) {
-      // Use courier and delivery type to create a generic shipping line
-      // The modal already handles the shipping method selection
-      const { courier, deliveryType } = shippingMethod;
-      
-      let shippingTitle = '';
-      if (courier === 'speedy') {
-        shippingTitle = deliveryType === 'office' ? 'Спиди - До офис' : 'Спиди - До адрес';
-      } else if (courier === 'econt') {
-        shippingTitle = deliveryType === 'office' ? 'Еконт - До офис' : 'Еконт - До адрес';
-      } else {
-        shippingTitle = deliveryType === 'office' ? 'До офис' : 'До адрес';
-      }
-      
-      shippingLine = {
-        title: shippingTitle,
-        priceWithCurrency: {
-          amount: '0.00', // Default price, will be calculated by Shopify
-          currencyCode: 'BGN'
-        }
-      };
-      console.log('✅ Using courier/delivery type shipping method:', shippingLine);
+    } else {
+      // No shipping method selected - log error and proceed without shipping line
+      console.error('❌ No shipping method selected:', {
+        selectedShippingMethodId: selectedShippingMethodId,
+        shippingMethod: shippingMethod,
+        message: 'Proceeding without shipping method - this should be handled by the modal'
+      });
     }
 
     // Create draft order input
