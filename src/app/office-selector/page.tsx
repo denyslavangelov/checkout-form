@@ -28,28 +28,16 @@ export default function OfficeSelectorPage() {
     const variant = urlParams.get('variantId') || '';
     const qty = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
-
-    console.log('🏢 Parsing URL parameters:', {
-      product,
-      variant,
-      qty,
-      hasConfig: !!configParam
-    });
     
     // Set basic parameters
     setProductId(product);
     setVariantId(variant);
     setQuantity(qty);
-
-    debugger;
     
     // Parse config if present
     if (configParam) {
       try {
-
-        debugger;
         const parsedConfig = JSON.parse(decodeURIComponent(configParam));
-        console.log('🏢 Parsed config:', parsedConfig);
         
         // Set the config with Shopify credentials
         setConfig({
@@ -62,10 +50,6 @@ export default function OfficeSelectorPage() {
           }
         });
         
-        console.log('🏢 Final config set:', {
-          storeUrl: parsedConfig.shopify?.storeUrl,
-          accessToken: parsedConfig.shopify?.accessToken ? '***' + parsedConfig.shopify.accessToken.slice(-4) : 'none'
-        });
       } catch (error) {
         console.error('🏢 Error parsing config:', error);
       }
@@ -79,14 +63,7 @@ export default function OfficeSelectorPage() {
 
   const handleOrderCreated = (invoiceUrl: string) => {
     if (typeof window === 'undefined') return;
-    
-    console.log('🏢 Order created with invoice URL:', invoiceUrl);
-    console.log('🏢 Current productId:', productId);
-    console.log('🏢 Current variantId:', variantId);
-    console.log('🏢 Is cart checkout?', productId === 'cart' && variantId === 'cart');
-    
-    // Always redirect to the invoice URL from the draft order (both cart and buy now)
-    console.log('🏢 Redirecting to invoice URL:', invoiceUrl);
+
     if (window.parent) {
       window.parent.location.href = invoiceUrl;
     } else {
@@ -104,7 +81,7 @@ export default function OfficeSelectorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-white-100">
       <OfficeSelectorModal
         isOpen={isOpen}
         onClose={handleClose}
