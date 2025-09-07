@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { debounce } from '@/lib/utils';
+import { createPortal } from 'react-dom';
 
 interface City {
   id: string;
@@ -746,9 +747,38 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   if (showLoading) {
-    return (
+    return createPortal(
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div 
+          className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
+          style={{
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            fontWeight: 'inherit',
+            lineHeight: 'inherit',
+            letterSpacing: 'inherit',
+            textTransform: 'inherit',
+            fontStyle: 'inherit',
+            textDecoration: 'inherit',
+            fontVariant: 'inherit'
+          }}
+        >
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+            <span className="text-sm text-gray-600">Зареждане...</span>
+          </div>
+        </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div 
-        className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200 min-h-fit"
+        className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
         style={{
           fontFamily: 'inherit',
           fontSize: 'inherit',
@@ -761,31 +791,6 @@ export function OfficeSelectorModal({
           fontVariant: 'inherit'
         }}
       >
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-            <span className="text-sm text-gray-600">Зареждане...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200 min-h-fit"
-      style={{
-        fontFamily: 'inherit',
-        fontSize: 'inherit',
-        fontWeight: 'inherit',
-        lineHeight: 'inherit',
-        letterSpacing: 'inherit',
-        textTransform: 'inherit',
-        fontStyle: 'inherit',
-        textDecoration: 'inherit',
-        fontVariant: 'inherit'
-      }}
-    >
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -1097,15 +1102,12 @@ export function OfficeSelectorModal({
                 <span className="text-sm sm:text-base">Създаване на поръчка...</span>
               </>
             ) : (
-              <span className="text-sm sm:text-base">
-                <span className="sm:hidden">Продължи</span>
-                <span className="hidden sm:inline">
-                  {productId === 'cart' ? 'Продължи към завършване на поръчката' : 'Продължи към завършване на поръчката'}
-                </span>
-              </span>
+              <span className="text-sm sm:text-base">Продължи</span>
             )}
           </Button>
         </div>
       </div>
+    </div>,
+    document.body
   );
 }
