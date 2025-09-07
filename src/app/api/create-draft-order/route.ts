@@ -32,6 +32,9 @@ const CREATE_DRAFT_ORDER_MUTATION = `
           city
           zip
           country
+          phone
+          firstName
+          lastName
         }
         tags
         createdAt
@@ -99,7 +102,27 @@ export async function POST(request: NextRequest) {
       finalAddress.firstName = customerInfo.firstName;
       finalAddress.lastName = customerInfo.lastName;
       if (customerInfo.phoneNumber) {
-        finalAddress.phone = customerInfo.phoneNumber;
+        // Format phone number to E.164 standard for Bulgaria
+        let formattedPhone = customerInfo.phoneNumber.trim();
+        
+        // Remove any non-digit characters except +
+        formattedPhone = formattedPhone.replace(/[^\d+]/g, '');
+        
+        // If it doesn't start with +, add Bulgarian country code
+        if (!formattedPhone.startsWith('+')) {
+          // Remove leading 0 if present
+          if (formattedPhone.startsWith('0')) {
+            formattedPhone = formattedPhone.substring(1);
+          }
+          // Add Bulgarian country code
+          formattedPhone = '+359' + formattedPhone;
+        }
+        
+        finalAddress.phone = formattedPhone;
+        console.log('📞 Formatted phone number:', {
+          original: customerInfo.phoneNumber,
+          formatted: formattedPhone
+        });
       }
     }
 
@@ -191,6 +214,9 @@ export async function POST(request: NextRequest) {
     if (shippingLine) {
       draftOrderInput.shippingLine = shippingLine;
     }
+
+    // Log the complete draft order input for debugging
+    console.log('📦 Draft order input being sent to Shopify:', JSON.stringify(draftOrderInput, null, 2));
 
     const response = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
       method: 'POST',
