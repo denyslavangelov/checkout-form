@@ -33,7 +33,6 @@ const CREATE_DRAFT_ORDER_MUTATION = `
           zip
           country
           phone
-          phoneNumber
           firstName
           lastName
         }
@@ -123,8 +122,6 @@ export async function POST(request: NextRequest) {
         }
         
         finalAddress.phone = formattedPhone;
-        // Also try phoneNumber field in case phone doesn't work
-        finalAddress.phoneNumber = formattedPhone;
         console.log('📞 Formatted phone number:', {
           original: customerInfo.phoneNumber,
           formatted: formattedPhone
