@@ -79,25 +79,27 @@ export default function OfficeSelectorPage() {
             accessToken: parsed.shopify?.accessToken || ''
           }
         };
+        console.log('🏢 Parsed config from URL:', {
+          hasShopify: !!parsed.shopify,
+          storeUrl: parsed.shopify?.storeUrl,
+          accessToken: parsed.shopify?.accessToken ? '***' + parsed.shopify.accessToken.slice(-4) : 'none'
+        });
       } catch (error) {
         console.error('🏢 Error parsing config:', error);
       }
     }
     
-    // Add Shopify credentials from URL parameters if available
-    if (storeUrl && accessToken) {
+    // Add Shopify credentials from URL parameters if available (only if not already in config)
+    if ((storeUrl && accessToken) && (!parsedConfig.shopify?.storeUrl || !parsedConfig.shopify?.accessToken)) {
       parsedConfig.shopify = {
         storeUrl: storeUrl,
         accessToken: accessToken
       };
       console.log('🏢 Using credentials from URL parameters');
+    } else if (parsedConfig.shopify?.storeUrl && parsedConfig.shopify?.accessToken) {
+      console.log('🏢 Using credentials from config parameter');
     } else {
-      // Keep empty credentials - will be handled by the modal component
-      console.log('🏢 No valid credentials found in URL parameters');
-      parsedConfig.shopify = {
-        storeUrl: '',
-        accessToken: ''
-      };
+      console.log('🏢 No valid credentials found in URL parameters or config');
     }
     
     return { product, variant, quantity: quantity || '1', parsedConfig };
