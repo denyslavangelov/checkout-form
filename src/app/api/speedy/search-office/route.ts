@@ -60,14 +60,7 @@ export async function POST(request: Request) {
       label: `${office.name}: ${office.address}`
     })) || [];
 
-    // If no offices returned from Speedy API, use mock data for testing
-    if (formattedOffices.length === 0) {
-      formattedOffices = [
-        { id: 1, name: 'Speedy Office Center', address: 'ул. Витоша 1, София', siteId: siteId, siteName: 'Sofia', value: '1|Speedy Office Center|ул. Витоша 1, София', label: 'Speedy Office Center: ул. Витоша 1, София' },
-        { id: 2, name: 'Speedy Office Mall', address: 'бул. Цариградско шосе 125, София', siteId: siteId, siteName: 'Sofia', value: '2|Speedy Office Mall|бул. Цариградско шосе 125, София', label: 'Speedy Office Mall: бул. Цариградско шосе 125, София' },
-        { id: 3, name: 'Speedy Office Plaza', address: 'ул. Граф Игнатиев 15, София', siteId: siteId, siteName: 'Sofia', value: '3|Speedy Office Plaza|ул. Граф Игнатиев 15, София', label: 'Speedy Office Plaza: ул. Граф Игнатиев 15, София' }
-      ];
-    }
+    // Return empty array if no offices found - no mock data
 
     return NextResponse.json({ offices: formattedOffices }, {
       headers: {
