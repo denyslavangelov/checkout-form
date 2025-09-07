@@ -33,6 +33,7 @@ const CREATE_DRAFT_ORDER_MUTATION = `
           zip
           country
           phone
+          phoneNumber
           firstName
           lastName
         }
@@ -97,6 +98,9 @@ export async function POST(request: NextRequest) {
       country: shippingAddress.country || 'Bulgaria'
     };
 
+    // Log customer info for debugging
+    console.log('👤 Customer info received:', customerInfo);
+    
     // Add customer info to address if provided
     if (customerInfo && customerInfo.firstName && customerInfo.lastName) {
       finalAddress.firstName = customerInfo.firstName;
@@ -119,6 +123,8 @@ export async function POST(request: NextRequest) {
         }
         
         finalAddress.phone = formattedPhone;
+        // Also try phoneNumber field in case phone doesn't work
+        finalAddress.phoneNumber = formattedPhone;
         console.log('📞 Formatted phone number:', {
           original: customerInfo.phoneNumber,
           formatted: formattedPhone
@@ -292,7 +298,8 @@ export async function POST(request: NextRequest) {
         status: draftOrder.status,
         totalPrice: draftOrder.totalPrice,
         invoiceUrl: draftOrder.invoiceUrl,
-        constructedCheckoutUrl: constructedCheckoutUrl
+        constructedCheckoutUrl: constructedCheckoutUrl,
+        shippingAddress: draftOrder.shippingAddress
       });
       
       return NextResponse.json({
