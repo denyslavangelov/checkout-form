@@ -780,7 +780,6 @@ export function OfficeSelectorModal({
   if (typeof window === 'undefined') return null;
   
   return createPortal(
-    <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
       <div 
         className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
         style={{
@@ -1110,8 +1109,7 @@ export function OfficeSelectorModal({
             )}
           </Button>
         </div>
-      </div>
-    </div>,
+      </div>,
     document.body
   );
 }
