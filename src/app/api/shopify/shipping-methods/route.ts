@@ -49,12 +49,20 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Fetching shipping methods via GraphQL...');
+    console.log('🚀 Starting shipping methods fetch via GraphQL...');
+    console.log('📡 Request URL:', request.url);
+    console.log('📡 Request headers:', Object.fromEntries(request.headers.entries()));
 
     // Extract Shopify credentials from query parameters
     const { searchParams } = new URL(request.url);
     const storeUrl = searchParams.get('storeUrl');
     const accessToken = searchParams.get('accessToken');
+    
+    console.log('🔑 Extracted credentials:', {
+      storeUrl: storeUrl,
+      hasAccessToken: !!accessToken,
+      accessTokenPreview: accessToken ? accessToken.substring(0, 10) + '...' : 'none'
+    });
 
     // Validate required credentials
     if (!storeUrl) {
@@ -89,9 +97,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log('Using Shopify credentials:', { storeUrl, accessToken: accessToken.substring(0, 10) + '...' });
+    console.log('🔑 Using Shopify credentials:', { storeUrl, accessToken: accessToken.substring(0, 10) + '...' });
 
-    const response = await fetch(`https://${storeUrl}/admin/api/2024-01/graphql.json`, {
+    const graphqlUrl = `https://${storeUrl}/admin/api/2024-01/graphql.json`;
+    console.log('🌐 Making GraphQL request to:', graphqlUrl);
+    console.log('📝 GraphQL query:', SHIPPING_METHODS_QUERY);
+
+    const response = await fetch(graphqlUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,10 +113,21 @@ export async function GET(request: NextRequest) {
         query: SHIPPING_METHODS_QUERY
       })
     });
+    
+    console.log('📡 GraphQL response status:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('GraphQL request failed:', response.status, errorText);
+      console.error('❌ GraphQL request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText,
+        url: graphqlUrl
+      });
       return NextResponse.json({
         success: false,
         error: `GraphQL request failed: ${response.status}`,
@@ -122,9 +145,20 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('📦 GraphQL response data:', {
+      hasData: !!data.data,
+      hasErrors: !!data.errors,
+      errors: data.errors,
+      dataKeys: data.data ? Object.keys(data.data) : [],
+      fullResponse: data
+    });
 
     if (data.errors && Array.isArray(data.errors)) {
-      console.error('GraphQL errors:', data.errors);
+      console.error('❌ GraphQL errors received:', {
+        errorCount: data.errors.length,
+        errors: data.errors,
+        fullResponse: data
+      });
       return NextResponse.json({
         success: false,
         error: 'GraphQL query failed',
@@ -143,12 +177,42 @@ export async function GET(request: NextRequest) {
 
     // Process the GraphQL response
     const deliveryProfiles = data.data?.deliveryProfiles?.nodes || [];
+    console.log('🏪 Processing delivery profiles:', {
+      profileCount: deliveryProfiles.length,
+      profiles: deliveryProfiles.map((p: any) => ({
+        hasLocationGroups: !!p.profileLocationGroups,
+        locationGroupCount: p.profileLocationGroups?.length || 0
+      }))
+    });
+    
     const allShippingMethods: any[] = [];
     
-    deliveryProfiles.forEach((profile: any) => {
-      profile.profileLocationGroups?.forEach((locationGroup: any) => {
-        locationGroup.locationGroupZones?.nodes?.forEach((zone: any) => {
-          zone.methodDefinitions?.nodes?.forEach((method: any) => {
+    deliveryProfiles.forEach((profile: any, profileIndex: number) => {
+      console.log(`📦 Processing profile ${profileIndex + 1}:`, {
+        hasLocationGroups: !!profile.profileLocationGroups,
+        locationGroupCount: profile.profileLocationGroups?.length || 0
+      });
+      
+      profile.profileLocationGroups?.forEach((locationGroup: any, groupIndex: number) => {
+        console.log(`📍 Processing location group ${groupIndex + 1}:`, {
+          hasZones: !!locationGroup.locationGroupZones,
+          zoneCount: locationGroup.locationGroupZones?.nodes?.length || 0
+        });
+        
+        locationGroup.locationGroupZones?.nodes?.forEach((zone: any, zoneIndex: number) => {
+          console.log(`🌍 Processing zone ${zoneIndex + 1}:`, {
+            zoneName: zone.zone?.name,
+            hasMethods: !!zone.methodDefinitions,
+            methodCount: zone.methodDefinitions?.nodes?.length || 0
+          });
+          
+          zone.methodDefinitions?.nodes?.forEach((method: any, methodIndex: number) => {
+            console.log(`🚚 Processing method ${methodIndex + 1}:`, {
+              name: method.name,
+              rateProviderType: method.rateProvider?.__typename,
+              hasPrice: !!method.rateProvider?.price
+            });
+            
             // Extract price information from rateProvider
             let price = '0.00';
             let currency = 'BGN';
@@ -170,6 +234,7 @@ export async function GET(request: NextRequest) {
               rateProviderType: method.rateProvider?.__typename || 'Unknown'
             };
             
+            console.log(`✅ Created shipping method:`, shippingMethod);
             allShippingMethods.push(shippingMethod);
           });
         });
@@ -177,21 +242,40 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter for Bulgaria-specific methods (Domestic zone and Bulgarian shipping methods)
-    const bulgariaMethods = allShippingMethods.filter(method => 
-      method.zone?.toLowerCase().includes('domestic') ||
-      method.name?.toLowerCase().includes('спиди') ||
-      method.name?.toLowerCase().includes('еконт') ||
-      method.name?.toLowerCase().includes('speedy') ||
-      method.name?.toLowerCase().includes('econt') ||
-      method.name?.toLowerCase().includes('офис') ||
-      method.name?.toLowerCase().includes('адрес') ||
-      method.name?.toLowerCase().includes('доставка') ||
-      method.name?.toLowerCase().includes('личен')
-    );
+    console.log('🔍 Filtering for Bulgaria-specific methods...');
+    console.log('📋 All methods before filtering:', allShippingMethods.map(m => ({
+      name: m.name,
+      zone: m.zone,
+      price: m.price,
+      currency: m.currency
+    })));
+    
+    const bulgariaMethods = allShippingMethods.filter(method => {
+      const zoneMatch = method.zone?.toLowerCase().includes('domestic');
+      const nameMatch = method.name?.toLowerCase().includes('спиди') ||
+        method.name?.toLowerCase().includes('еконт') ||
+        method.name?.toLowerCase().includes('speedy') ||
+        method.name?.toLowerCase().includes('econt') ||
+        method.name?.toLowerCase().includes('офис') ||
+        method.name?.toLowerCase().includes('адрес') ||
+        method.name?.toLowerCase().includes('доставка') ||
+        method.name?.toLowerCase().includes('личен');
+      
+      const isMatch = zoneMatch || nameMatch;
+      console.log(`🔍 Method "${method.name}" (${method.zone}): zoneMatch=${zoneMatch}, nameMatch=${nameMatch}, isMatch=${isMatch}`);
+      return isMatch;
+    });
 
-    console.log(`GraphQL Shipping Methods Found:
-      Total: ${allShippingMethods.length}
-      Bulgaria-relevant: ${bulgariaMethods.length}`);
+    console.log('📊 GraphQL Shipping Methods Results:', {
+      total: allShippingMethods.length,
+      bulgariaRelevant: bulgariaMethods.length,
+      bulgariaMethods: bulgariaMethods.map(m => ({
+        name: m.name,
+        zone: m.zone,
+        price: m.price,
+        currency: m.currency
+      }))
+    });
 
     return NextResponse.json({
       success: true,
@@ -210,7 +294,12 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching shipping methods via GraphQL:', error);
+    console.error('❌ Error fetching shipping methods via GraphQL:', {
+      error: error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch shipping methods',
