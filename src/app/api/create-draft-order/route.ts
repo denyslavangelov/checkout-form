@@ -47,7 +47,7 @@ const CREATE_DRAFT_ORDER_MUTATION = `
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, shopify } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, shopify } = body;
     
     // Extract Shopify credentials from request body
     const STORE_URL = shopify?.storeUrl;
@@ -114,17 +114,36 @@ export async function POST(request: NextRequest) {
     // Create shipping line based on shipping method
     let shippingLine = null;
     
-    // If we have a specific shipping method ID, use it directly (no need to fetch again)
-    if (selectedShippingMethodId) {
-      // Use the shipping method ID as the title since we already validated it in the modal
+    // If we have a specific shipping method, use it with the actual price
+    if (selectedShippingMethodId && selectedShippingMethod) {
+      // Use the actual price from the shipping method object
+      const shippingPrice = selectedShippingMethod.price || '0.00';
+      const shippingTitle = selectedShippingMethod.title || selectedShippingMethod.name || selectedShippingMethodId;
+      const shippingCurrency = selectedShippingMethod.currency || 'BGN';
+      
       shippingLine = {
-        title: selectedShippingMethodId, // The ID is actually the method name from GraphQL
+        title: shippingTitle,
         priceWithCurrency: {
-          amount: '0.00', // Default price, will be calculated by Shopify
+          amount: shippingPrice,
+          currencyCode: shippingCurrency
+        }
+      };
+      console.log('✅ Using shipping method with actual price:', {
+        title: shippingTitle,
+        price: shippingPrice,
+        currency: shippingCurrency,
+        fullMethod: selectedShippingMethod
+      });
+    } else if (selectedShippingMethodId) {
+      // Fallback: use just the ID without price (will default to 0.00)
+      shippingLine = {
+        title: selectedShippingMethodId,
+        priceWithCurrency: {
+          amount: '0.00',
           currencyCode: 'BGN'
         }
       };
-      console.log('✅ Using pre-validated shipping method:', shippingLine);
+      console.log('⚠️ Using shipping method without price data:', shippingLine);
     } else {
       // No shipping method selected - log error and proceed without shipping line
       console.error('❌ No shipping method selected:', {

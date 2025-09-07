@@ -645,6 +645,7 @@ Check the browser console for more details.`);
               deliveryType: deliveryType
             },
             selectedShippingMethodId: selectedShippingMethodId,
+            selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
             shopify: { storeUrl, accessToken }, // Pass Shopify credentials
             shippingAddress: {
               address1: (() => {
@@ -730,6 +731,7 @@ Check the browser console for more details.`);
             deliveryType: deliveryType
           },
           selectedShippingMethodId: selectedShippingMethodId,
+          selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
           shopify: { storeUrl, accessToken }, // Pass Shopify credentials
           shippingAddress: {
             address1: (() => {
