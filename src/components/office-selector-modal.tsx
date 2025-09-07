@@ -747,6 +747,8 @@ export function OfficeSelectorModal({
   if (!isOpen) return null;
 
   if (showLoading) {
+    if (typeof window === 'undefined') return null;
+    
     return createPortal(
       <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div 
@@ -775,6 +777,8 @@ export function OfficeSelectorModal({
     );
   }
 
+  if (typeof window === 'undefined') return null;
+  
   return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div 
