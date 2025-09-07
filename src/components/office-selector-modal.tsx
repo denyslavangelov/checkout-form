@@ -748,7 +748,7 @@ export function OfficeSelectorModal({
   if (showLoading) {
     return (
       <div 
-        className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+        className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200 min-h-fit"
         style={{
           fontFamily: 'inherit',
           fontSize: 'inherit',
@@ -761,7 +761,7 @@ export function OfficeSelectorModal({
           fontVariant: 'inherit'
         }}
       >
-        <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-red-600" />
             <span className="text-sm text-gray-600">Зареждане...</span>
@@ -773,7 +773,7 @@ export function OfficeSelectorModal({
 
   return (
     <div 
-      className="office-selector-modal bg-white rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200"
+      className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full mx-2 sm:mx-4 relative shadow-lg border border-gray-200 min-h-fit"
       style={{
         fontFamily: 'inherit',
         fontSize: 'inherit',
@@ -905,7 +905,7 @@ export function OfficeSelectorModal({
               
               {/* City Dropdown */}
               {showCityDropdown && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-64 overflow-y-auto">
                   {loadingCities ? (
                     <div className="p-3 text-center text-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1" />
@@ -977,7 +977,7 @@ export function OfficeSelectorModal({
               
               {/* Office Dropdown */}
               {showOfficeDropdown && selectedCity && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-64 overflow-y-auto">
                   {loadingOffices ? (
                     <div className="p-3 text-center text-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1" />

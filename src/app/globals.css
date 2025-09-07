@@ -27,6 +27,14 @@
   font-variant: inherit !important;
 }
 
+/* Dynamic height for office selector modal */
+.office-selector-modal {
+  height: auto !important;
+  min-height: fit-content !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
