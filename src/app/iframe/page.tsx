@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckoutForm } from "@/components/checkout-form"
 import styles from "./page.module.css"
 
 // Define a type for the cart data
@@ -357,12 +356,10 @@ export default function IframePage() {
     <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
       {isLoading && <LoadingSpinner />}
       
-      <CheckoutForm 
-        open={isOpen} 
-        onOpenChange={handleOpenChange} 
-        cartData={cartData}
-        isMobile={isMobile}
-      />
+      <div className="text-center space-y-4 p-8">
+        <h1 className="text-2xl font-bold">Office Selector Integration</h1>
+        <p className="text-muted-foreground">This iframe is ready for office selector integration.</p>
+      </div>
     </div>
   )
 } 
