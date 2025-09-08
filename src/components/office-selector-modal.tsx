@@ -70,9 +70,6 @@ export function OfficeSelectorModal({
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   
-  // Customer name fields
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   
   // Courier selection states
   const [selectedCourier, setSelectedCourier] = useState<'speedy' | 'econt'>(() => {
@@ -105,10 +102,8 @@ export function OfficeSelectorModal({
   // Scroll to continue button when it becomes active (address or office selected)
   useEffect(() => {
     if (isOpen && continueButtonRef.current) {
-      // Check if the button is enabled (name fields filled and address/office selected)
+      // Check if the button is enabled (address/office selected)
       const isButtonEnabled = !creatingOrder && 
-        firstName.trim() && 
-        lastName.trim() &&
         ((deliveryType === 'office' && selectedOffice) || 
          (deliveryType === 'address' && addressInput.trim()));
       
@@ -125,7 +120,7 @@ export function OfficeSelectorModal({
         return () => clearTimeout(timer);
       }
     }
-  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder, firstName, lastName]);
+  }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder]);
   
   // Fetch shipping methods from Shopify
   const fetchShippingMethods = useCallback(async () => {
@@ -618,10 +613,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             selectedShippingMethodId: selectedShippingMethodId,
             selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
             shopify: { storeUrl, accessToken }, // Pass Shopify credentials
-            customerInfo: {
-              firstName: firstName.trim(),
-              lastName: lastName.trim()
-            },
             shippingAddress: {
               address1: (() => {
                 if (deliveryType === 'address') {
@@ -708,10 +699,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           selectedShippingMethodId: selectedShippingMethodId,
           selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
           shopify: { storeUrl, accessToken }, // Pass Shopify credentials
-          customerInfo: {
-            firstName: firstName.trim(),
-            lastName: lastName.trim()
-          },
           shippingAddress: {
             address1: (() => {
               if (deliveryType === 'address') {
@@ -1125,8 +1112,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             onClick={handleCreateOrder}
             disabled={
               creatingOrder || 
-              !firstName.trim() ||
-              !lastName.trim() ||
               (deliveryType === 'office' && !selectedOffice) ||
               (deliveryType === 'address' && !addressInput.trim())
             }
