@@ -228,22 +228,49 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
   // Helper function to get price for a specific courier and delivery type combination
   const getShippingPrice = (courier: 'speedy' | 'econt', deliveryType: 'office' | 'address') => {
+    // If only one courier is available, assume non-office methods belong to that courier
+    const isSingleCourier = config.availableCouriers.length === 1;
+    const availableCourier = config.availableCouriers[0] as 'speedy' | 'econt';
+    
     const method = availableShippingMethods.find(m => {
       const title = m.title.toLowerCase();
       const code = m.code?.toLowerCase() || '';
       
       // Check for courier match
-      const courierMatch = (courier === 'speedy' && (
-        title.includes('speedy') || 
-        code.includes('speedy') ||
-        title.includes('спиди') ||
-        code.includes('спиди')
-      )) || (courier === 'econt' && (
-        title.includes('econt') || 
-        code.includes('econt') ||
-        title.includes('еконт') ||
-        code.includes('еконт')
-      ));
+      let courierMatch = false;
+      
+      if (isSingleCourier) {
+        // For single courier, check if method matches the available courier
+        courierMatch = (availableCourier === 'speedy' && (
+          title.includes('speedy') || 
+          code.includes('speedy') ||
+          title.includes('спиди') ||
+          code.includes('спиди')
+        )) || (availableCourier === 'econt' && (
+          title.includes('econt') || 
+          code.includes('econt') ||
+          title.includes('еконт') ||
+          code.includes('еконт')
+        ));
+        
+        // For single courier and address delivery, also match non-office methods that don't specify courier
+        if (!courierMatch && deliveryType === 'address' && !title.includes('офис') && !title.includes('office')) {
+          courierMatch = true;
+        }
+      } else {
+        // For multiple couriers, use exact matching
+        courierMatch = (courier === 'speedy' && (
+          title.includes('speedy') || 
+          code.includes('speedy') ||
+          title.includes('спиди') ||
+          code.includes('спиди')
+        )) || (courier === 'econt' && (
+          title.includes('econt') || 
+          code.includes('econt') ||
+          title.includes('еконт') ||
+          code.includes('еконт')
+        ));
+      }
       
       // Check for delivery type match
       const deliveryMatch = (deliveryType === 'office' && (title.includes('офис') || title.includes('office'))) ||
