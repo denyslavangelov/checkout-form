@@ -897,9 +897,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
               Зареждане...
             </h2>
-            <p className="text-sm text-gray-600 text-center">
-              Зареждаме начините на доставка
-            </p>
           </div>
         </div>
       </div>,
@@ -933,7 +930,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
         {/* Header with Courier Selection */}
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             Метод на доставка
           </h2>
           <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">
