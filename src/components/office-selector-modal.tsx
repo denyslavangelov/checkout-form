@@ -292,7 +292,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     });
     
     if (method && method.price && method.price !== '0.00') {
-      return `${method.price} ${method.currency || 'BGN'}`;
+      return `${method.price} лв.`;
     }
     return null;
   };
@@ -863,8 +863,49 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
   if (!isOpen) return null;
 
-
   if (typeof window === 'undefined') return null;
+  
+  // Show loading screen while shipping methods are being fetched
+  if (loadingShippingMethods && availableShippingMethods.length === 0) {
+    return createPortal(
+      <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
+        <div 
+          className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
+          style={{
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            fontWeight: 'inherit',
+            lineHeight: 'inherit',
+            letterSpacing: 'inherit',
+            textTransform: 'inherit',
+            fontStyle: 'inherit',
+            textDecoration: 'inherit',
+            fontVariant: 'inherit'
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
+          >
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
+          </button>
+
+          {/* Loading Content */}
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-600 mb-4" />
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+              Зареждане...
+            </h2>
+            <p className="text-sm text-gray-600 text-center">
+              Зареждаме начините на доставка
+            </p>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
   
   return createPortal(
     <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
