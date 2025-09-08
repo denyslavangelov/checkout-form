@@ -27,12 +27,6 @@ const CREATE_DRAFT_ORDER_MUTATION = `
           price
           code
         }
-        shippingAddress {
-          address1
-          city
-          zip
-          country
-        }
         tags
         createdAt
       }
@@ -216,7 +210,10 @@ export async function POST(request: NextRequest) {
         error.message?.includes('access') ||
         error.message?.includes('unauthorized') ||
         error.message?.includes('scope') ||
-        error.message?.includes('forbidden')
+        error.message?.includes('forbidden') ||
+        error.message?.includes('Customer object') ||
+        error.message?.includes('PII') ||
+        error.message?.includes('personally identifiable')
       );
       
       if (permissionError) {
@@ -225,13 +222,14 @@ export async function POST(request: NextRequest) {
           error: 'Insufficient permissions to create draft order',
           details: data.errors,
           troubleshooting: {
-            message: 'This error typically occurs when the app lacks the "write_draft_orders" scope or the staff member lacks draft order permissions.',
+            message: 'This error typically occurs when the app lacks the "write_draft_orders" scope, the staff member lacks draft order permissions, or the store plan does not support customer PII access.',
             steps: [
               '1. Check app scopes in Shopify Admin: Apps and sales channels → Develop apps → [Your App] → Configuration',
               '2. Ensure "write_draft_orders" scope is enabled',
               '3. Reinstall the app to apply new permissions',
               '4. Check staff permissions: Settings → Users and permissions → [Staff Member] → Draft orders',
-              '5. Ensure "Create and edit draft orders" permission is enabled'
+              '5. Ensure "Create and edit draft orders" permission is enabled',
+              '6. For PII access errors: Upgrade to Shopify Advanced or Plus plan, or use a development store for testing'
             ]
           }
         }, { status: 403 });
