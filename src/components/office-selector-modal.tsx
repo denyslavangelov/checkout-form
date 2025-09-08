@@ -391,48 +391,59 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   }, [isOpen]);
 
-  // Check for thank you page and show popup
+  // Show thank you popup function
+  const showThankYouPopup = () => {
+    const popup = document.createElement('div');
+    popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    popup.innerHTML = `
+      <div class="bg-white rounded-lg p-8 max-w-md w-full text-center shadow-lg">
+        <div class="mb-4">
+          <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Благодарим ви!</h2>
+          <p class="text-gray-600 mb-6">Вашата поръчка е успешно завършена.</p>
+          <button onclick="this.closest('.fixed').remove()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+            Затвори
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.remove();
+      }
+    }, 5000);
+  };
+
+  // Check for thank you page and listen for thank you messages
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const currentUrl = window.location.href;
-      const parentUrl = window.parent?.location?.href || '';
       
-      // Check if current URL or parent URL contains 'thank-you'
-      if (currentUrl.includes('thank-you') || parentUrl.includes('thank-you')) {
+      // Check if current URL contains 'thank-you'
+      if (currentUrl.includes('thank-you')) {
         console.log('🎉 Thank you page detected, showing popup');
-        
-        // Show a thank you popup
-        const showThankYouPopup = () => {
-          const popup = document.createElement('div');
-          popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-          popup.innerHTML = `
-            <div class="bg-white rounded-lg p-8 max-w-md w-full text-center shadow-lg">
-              <div class="mb-4">
-                <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Благодарим ви!</h2>
-                <p class="text-gray-600 mb-6">Вашата поръчка е успешно завършена.</p>
-                <button onclick="this.closest('.fixed').remove()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
-                  Затвори
-                </button>
-              </div>
-            </div>
-          `;
-          
-          document.body.appendChild(popup);
-          
-          // Auto-remove after 5 seconds
-          setTimeout(() => {
-            if (popup.parentNode) {
-              popup.remove();
-            }
-          }, 5000);
-        };
-        
-        // Show popup after a short delay to ensure page is loaded
         setTimeout(showThankYouPopup, 1000);
       }
+
+      // Listen for thank you messages from parent window
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'show-thank-you-popup') {
+          console.log('🎉 Thank you popup requested via message');
+          showThankYouPopup();
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+      
+      return () => {
+        window.removeEventListener('message', handleMessage);
+      };
     }
   }, []);
 
