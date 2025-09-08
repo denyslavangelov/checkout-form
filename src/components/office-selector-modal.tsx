@@ -922,34 +922,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         </div>
 
         <div className="space-y-6">
-          {/* Customer Name Fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">
-                Име<span className="text-red-500 ml-1">*</span>
-              </Label>
-              <Input
-                type="text"
-                placeholder="Въведете име"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">
-                Фамилия<span className="text-red-500 ml-1">*</span>
-              </Label>
-              <Input
-                type="text"
-                placeholder="Въведете фамилия"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full"
-              />
-            </div>
-          </div>
-
           {/* City Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
