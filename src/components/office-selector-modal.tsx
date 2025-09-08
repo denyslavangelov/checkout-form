@@ -34,6 +34,12 @@ interface OfficeSelectorModalProps {
     availableCouriers: string[];
     defaultCourier: string;
     defaultDeliveryType: string;
+    showPrices?: boolean;
+    continueButton?: {
+      text?: string;
+      backgroundColor?: string;
+      hoverColor?: string;
+    };
     shopify?: {
       storeUrl: string;
       accessToken: string;
@@ -52,6 +58,12 @@ export function OfficeSelectorModal({
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
     defaultDeliveryType: 'office',
+    showPrices: true,
+    continueButton: {
+      text: 'Продължи към завършване',
+      backgroundColor: 'bg-red-600',
+      hoverColor: 'hover:bg-red-700'
+    },
     shopify: {
       storeUrl: '',
       accessToken: ''
@@ -951,9 +963,11 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                   До Офис
                 </span>
               </div>
-              <div className="text-xs text-gray-500">
-                {getShippingPrice(selectedCourier, 'office') || 'Цена при избор'}
-              </div>
+              {config.showPrices && (
+                <div className="text-xs text-gray-500">
+                  {getShippingPrice(selectedCourier, 'office') || 'Цена при избор'}
+                </div>
+              )}
             </button>
             
             <button
@@ -970,9 +984,11 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                   До Адрес
                 </span>
               </div>
-              <div className="text-xs text-gray-500">
-                {getShippingPrice(selectedCourier, 'address') || 'Цена при избор'}
-              </div>
+              {config.showPrices && (
+                <div className="text-xs text-gray-500">
+                  {getShippingPrice(selectedCourier, 'address') || 'Цена при избор'}
+                </div>
+              )}
             </button>
           </div>
         </div>
@@ -1184,7 +1200,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               (deliveryType === 'office' && !selectedOffice) ||
               (deliveryType === 'address' && !addressInput.trim())
             }
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-3 sm:py-4 text-sm sm:text-base font-medium"
+            className={`w-full ${config.continueButton?.backgroundColor || 'bg-red-600'} ${config.continueButton?.hoverColor || 'hover:bg-red-700'} text-white py-3 sm:py-4 text-sm sm:text-base font-medium`}
           >
             {creatingOrder ? (
               <>
@@ -1192,7 +1208,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                 <span className="text-sm sm:text-base">Зареждане...</span>
               </>
             ) : (
-              <span className="text-sm sm:text-base">Продължи към завършване</span>
+              <span className="text-sm sm:text-base">{config.continueButton?.text || 'Продължи към завършване'}</span>
             )}
           </Button>
         </div>

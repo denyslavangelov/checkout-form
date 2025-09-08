@@ -12,6 +12,12 @@ export default function OfficeSelectorPage() {
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
     defaultDeliveryType: 'office',
+    showPrices: true,
+    continueButton: {
+      text: 'Продължи към завършване',
+      backgroundColor: 'bg-red-600',
+      hoverColor: 'hover:bg-red-700'
+    },
     shopify: {
       storeUrl: '',
       accessToken: ''
@@ -44,6 +50,12 @@ export default function OfficeSelectorPage() {
           availableCouriers: parsedConfig.availableCouriers || ['speedy', 'econt'],
           defaultCourier: parsedConfig.defaultCourier || 'speedy',
           defaultDeliveryType: parsedConfig.defaultDeliveryType || 'office',
+          showPrices: parsedConfig.showPrices !== undefined ? parsedConfig.showPrices : true,
+          continueButton: {
+            text: parsedConfig.continueButton?.text || 'Продължи към завършване',
+            backgroundColor: parsedConfig.continueButton?.backgroundColor || 'bg-red-600',
+            hoverColor: parsedConfig.continueButton?.hoverColor || 'hover:bg-red-700'
+          },
           shopify: {
             storeUrl: parsedConfig.shopify?.storeUrl || '',
             accessToken: parsedConfig.shopify?.accessToken || ''
