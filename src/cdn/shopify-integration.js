@@ -749,16 +749,71 @@
 
   // Make showOfficeSelector available globally for testing
   window.showOfficeSelector = showOfficeSelector;
+  
+  // Make thank you popup available globally for testing
+  window.showThankYouPopup = function() {
+    console.log('🎉 Manual thank you popup trigger');
+    const popup = document.createElement('div');
+    popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    popup.innerHTML = `
+      <div class="bg-white rounded-lg p-8 max-w-md w-full text-center shadow-lg">
+        <div class="mb-4">
+          <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Благодарим ви!</h2>
+          <p class="text-gray-600 mb-6">Вашата поръчка е успешно завършена.</p>
+          <button onclick="this.closest('.fixed').remove()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+            Затвори
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.remove();
+      }
+    }, 5000);
+  };
 
   // Check for thank you page and show popup
   function checkForThankYouPage() {
     const currentUrl = window.location.href;
     
-    if (currentUrl.includes('thank-you')) {
-      console.log('🎉 Thank you page detected, showing popup');
+    console.log('🔍 CDN Script checking for thank you page:', {
+      currentUrl,
+      hasThankYou: currentUrl.includes('thank-you'),
+      pathname: window.location.pathname,
+      search: window.location.search
+    });
+    
+    // Check for various thank you page patterns
+    const thankYouPatterns = [
+      'thank-you',
+      'thank_you', 
+      'thankyou',
+      'order-complete',
+      'order_complete',
+      'ordercomplete',
+      'checkout/success',
+      'checkout_success',
+      'checkoutsuccess'
+    ];
+    
+    const hasThankYouPage = thankYouPatterns.some(pattern => 
+      currentUrl.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (hasThankYouPage) {
+      console.log('🎉 Thank you page detected in CDN script, showing popup');
       
       // Show a thank you popup
       const showThankYouPopup = () => {
+        console.log('🎉 Creating thank you popup...');
         const popup = document.createElement('div');
         popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
         popup.innerHTML = `
@@ -777,17 +832,21 @@
         `;
         
         document.body.appendChild(popup);
+        console.log('✅ Thank you popup added to DOM');
         
         // Auto-remove after 5 seconds
         setTimeout(() => {
           if (popup.parentNode) {
             popup.remove();
+            console.log('🔄 Thank you popup auto-removed');
           }
         }, 5000);
       };
       
       // Show popup after a short delay to ensure page is loaded
       setTimeout(showThankYouPopup, 1000);
+    } else {
+      console.log('❌ No thank you page detected in CDN script');
     }
   }
 

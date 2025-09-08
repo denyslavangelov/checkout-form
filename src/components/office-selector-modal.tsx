@@ -425,14 +425,37 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     if (typeof window !== 'undefined') {
       const currentUrl = window.location.href;
       
-      // Check if current URL contains 'thank-you'
-      if (currentUrl.includes('thank-you')) {
+      console.log('🔍 Checking for thank you page:', {
+        currentUrl,
+        hasThankYou: currentUrl.includes('thank-you'),
+        isOfficeSelector: currentUrl.includes('office-selector')
+      });
+      
+      // Check for various thank you page patterns
+      const thankYouPatterns = [
+        'thank-you',
+        'thank_you', 
+        'thankyou',
+        'order-complete',
+        'order_complete',
+        'ordercomplete',
+        'checkout/success',
+        'checkout_success',
+        'checkoutsuccess'
+      ];
+      
+      const hasThankYouPage = thankYouPatterns.some(pattern => 
+        currentUrl.toLowerCase().includes(pattern.toLowerCase())
+      );
+      
+      if (hasThankYouPage) {
         console.log('🎉 Thank you page detected, showing popup');
         setTimeout(showThankYouPopup, 1000);
       }
 
       // Listen for thank you messages from parent window
       const handleMessage = (event: MessageEvent) => {
+        console.log('📨 Message received:', event.data);
         if (event.data?.type === 'show-thank-you-popup') {
           console.log('🎉 Thank you popup requested via message');
           showThankYouPopup();
