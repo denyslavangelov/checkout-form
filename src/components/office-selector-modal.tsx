@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { debounce } from '@/lib/utils';
 import { createPortal } from 'react-dom';
-import { loadGoogleFont, extractFontFamily, isGoogleFont } from '@/lib/font-loader';
+import { loadGoogleFont, extractFontFamily, isGoogleFont, parseFontWeight } from '@/lib/font-loader';
 
 interface City {
   id: string;
@@ -43,6 +43,7 @@ interface OfficeSelectorModalProps {
     };
     font?: {
       family?: string;
+      weight?: string | number;
     };
     shopify?: {
       storeUrl: string;
@@ -69,7 +70,8 @@ export function OfficeSelectorModal({
       hoverColor: 'hover:bg-red-700'
     },
     font: {
-      family: 'inherit'
+      family: 'inherit',
+      weight: '400'
     },
     shopify: {
       storeUrl: '',
@@ -99,6 +101,7 @@ export function OfficeSelectorModal({
   useEffect(() => {
     const loadCustomFont = async () => {
       const fontFamily = config.font?.family;
+      const fontWeight = config.font?.weight;
       
       if (!fontFamily || fontFamily === 'inherit') {
         setFontLoaded(true);
@@ -106,24 +109,28 @@ export function OfficeSelectorModal({
       }
       
       const extractedFont = extractFontFamily(fontFamily);
+      const weights = parseFontWeight(fontWeight);
       
       if (isGoogleFont(extractedFont)) {
         try {
-          console.log(`🔄 Loading Google Font: ${extractedFont}`);
-          await loadGoogleFont({ family: extractedFont });
-          console.log(`✅ Google Font loaded: ${extractedFont}`);
+          console.log(`🔄 Loading Google Font: ${extractedFont} (weights: ${weights.join(', ')})`);
+          await loadGoogleFont({ 
+            family: extractedFont,
+            weights: weights
+          });
+          console.log(`✅ Google Font loaded: ${extractedFont} with weights ${weights.join(', ')}`);
         } catch (error) {
           console.warn(`⚠️ Failed to load Google Font ${extractedFont}:`, error);
         }
       } else {
-        console.log(`📝 Using system font: ${fontFamily}`);
+        console.log(`📝 Using system font: ${fontFamily} (weight: ${fontWeight || '400'})`);
       }
       
       setFontLoaded(true);
     };
     
     loadCustomFont();
-  }, [config.font?.family]);
+  }, [config.font?.family, config.font?.weight]);
   
   
   // Courier selection states
@@ -917,6 +924,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
           style={{
             '--custom-font-family': config.font?.family || 'inherit',
+            '--custom-font-weight': config.font?.weight || '400',
             lineHeight: 'inherit',
             letterSpacing: 'inherit',
             textTransform: 'inherit',
@@ -937,7 +945,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gray-600 mb-4" />
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-              {!fontLoaded ? 'Зареждане на шрифт...' : 'Зареждане на методи за доставка...'}
+              ''{!fontLoaded ? 'Зареждане на шрифт...' : 'Зареждане...'}''
             </h2>
           </div>
         </div>
@@ -952,6 +960,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
         style={{
           '--custom-font-family': config.font?.family || 'inherit',
+          '--custom-font-weight': config.font?.weight || '400',
           lineHeight: 'inherit',
           letterSpacing: 'inherit',
           textTransform: 'inherit',

@@ -10,6 +10,11 @@ interface FontLoadOptions {
   display?: 'auto' | 'block' | 'swap' | 'fallback' | 'optional';
 }
 
+interface FontConfig {
+  family?: string;
+  weight?: string | number;
+}
+
 /**
  * Loads a Google Font dynamically
  * @param options Font loading options
@@ -104,6 +109,49 @@ export function extractFontFamily(fontString: string): string {
   const firstFont = cleanFont.split(',')[0].trim();
   
   return firstFont;
+}
+
+/**
+ * Parses font weight from config
+ * Handles both string and number weights
+ */
+export function parseFontWeight(weight: string | number | undefined): string[] {
+  if (!weight) {
+    return ['400']; // Default weight
+  }
+  
+  if (typeof weight === 'number') {
+    return [weight.toString()];
+  }
+  
+  // Handle string weights
+  const weightStr = weight.toString().toLowerCase();
+  
+  // Common weight mappings
+  const weightMap: { [key: string]: string } = {
+    'thin': '100',
+    'extralight': '200',
+    'light': '300',
+    'normal': '400',
+    'regular': '400',
+    'medium': '500',
+    'semibold': '600',
+    'bold': '700',
+    'extrabold': '800',
+    'black': '900'
+  };
+  
+  if (weightMap[weightStr]) {
+    return [weightMap[weightStr]];
+  }
+  
+  // If it's already a number string, use it
+  if (/^\d+$/.test(weightStr)) {
+    return [weightStr];
+  }
+  
+  // Default fallback
+  return ['400'];
 }
 
 /**

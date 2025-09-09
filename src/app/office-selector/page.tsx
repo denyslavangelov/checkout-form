@@ -19,7 +19,8 @@ export default function OfficeSelectorPage() {
       hoverColor: 'hover:bg-red-700'
     },
     font: {
-      family: 'inherit'
+      family: 'inherit',
+      weight: '400'
     },
     shopify: {
       storeUrl: '',
@@ -60,7 +61,8 @@ export default function OfficeSelectorPage() {
             hoverColor: parsedConfig.continueButton?.hoverColor || 'hover:bg-red-700'
           },
           font: {
-            family: parsedConfig.font?.family || 'inherit'
+            family: parsedConfig.font?.family || 'inherit',
+            weight: parsedConfig.font?.weight || '400'
           },
           shopify: {
             storeUrl: parsedConfig.shopify?.storeUrl || '',

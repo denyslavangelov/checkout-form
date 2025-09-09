@@ -28,10 +28,12 @@
 /* Override global font for office selector when custom font is specified */
 .office-selector-modal[style*="font-family"] {
   font-family: var(--custom-font-family) !important;
+  font-weight: var(--custom-font-weight) !important;
 }
 
 .office-selector-modal[style*="font-family"] * {
   font-family: var(--custom-font-family) !important;
+  font-weight: var(--custom-font-weight) !important;
 }
 
 /* Dynamic height for office selector modal */
