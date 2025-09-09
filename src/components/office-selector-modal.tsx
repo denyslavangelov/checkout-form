@@ -385,32 +385,11 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     if (isOpen && window.parent && window.parent !== window) {
       try {
         window.parent.postMessage({ type: 'iframe-ready' }, '*');
-        // Request parent font information
-        window.parent.postMessage({ type: 'request-parent-font' }, '*');
       } catch (error) {
         console.error('Error sending test message:', error);
       }
     }
   }, [isOpen]);
-
-  // Listen for parent font response
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'parent-font-response') {
-        console.log('Received parent font:', event.data.fontFamily);
-        // Apply the parent font to the modal
-        if (event.data.fontFamily) {
-          const modal = document.querySelector('.office-selector-modal');
-          if (modal) {
-            (modal as HTMLElement).style.fontFamily = event.data.fontFamily;
-          }
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
 
   // Function to get cart data from parent window with mobile retry
@@ -948,30 +927,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         >
           <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
-
-        {/* Font Debug Info */}
-        <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-          <div><strong>Font Debug Info:</strong></div>
-          <div>Current Body Font: {typeof window !== 'undefined' ? getComputedStyle(document.body).fontFamily : 'N/A'}</div>
-          <div>Modal Element Font: {typeof window !== 'undefined' ? getComputedStyle(document.querySelector('.office-selector-modal') || document.body).fontFamily : 'N/A'}</div>
-          <div>Parent Window Font: {(() => {
-            try {
-              if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
-                return getComputedStyle(window.parent.document.body).fontFamily;
-              }
-              return 'Same window';
-            } catch (e) {
-              return 'Cross-origin (cannot access)';
-            }
-          })()}</div>
-          <div>CSS Font-Family: {typeof window !== 'undefined' ? getComputedStyle(document.querySelector('.office-selector-modal') || document.body).getPropertyValue('font-family') : 'N/A'}</div>
-          <div className="mt-2 p-2 bg-blue-100 rounded">
-            <div><strong>Analysis:</strong></div>
-            <div>✅ Font inheritance is working - inheriting "Times New Roman"</div>
-            <div>⚠️ Cross-origin iframe cannot access parent font directly</div>
-            <div>💡 If this isn't the expected font, the parent site might be using Times New Roman as default</div>
-          </div>
-        </div>
 
         {/* Header with Courier Selection */}
         <div className="mb-6 sm:mb-8">

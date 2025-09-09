@@ -2,13 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global Font Inheritance for all components */
-.office-selector-modal,
-.office-selector-modal *,
-iframe,
-iframe *,
-body,
-body * {
+/* Office Selector Modal Font Inheritance */
+.office-selector-modal {
   font-family: inherit !important;
   font-size: inherit !important;
   font-weight: inherit !important;
@@ -20,36 +15,16 @@ body * {
   font-variant: inherit !important;
 }
 
-/* Alternative approach: Use CSS custom properties for font inheritance */
-:root {
-  --parent-font-family: inherit;
-  --parent-font-size: inherit;
-  --parent-font-weight: inherit;
-}
-
-.office-selector-modal {
-  font-family: var(--parent-font-family) !important;
-  font-size: var(--parent-font-size) !important;
-  font-weight: var(--parent-font-weight) !important;
-}
-
-/* Font Debug Styles - Remove these after debugging */
-.font-debug {
-  position: relative;
-}
-
-.font-debug::before {
-  content: attr(data-font);
-  position: absolute;
-  top: -20px;
-  left: 0;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  z-index: 1000;
-  white-space: nowrap;
+.office-selector-modal * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+  font-style: inherit !important;
+  text-decoration: inherit !important;
+  font-variant: inherit !important;
 }
 
 /* Dynamic height for office selector modal */

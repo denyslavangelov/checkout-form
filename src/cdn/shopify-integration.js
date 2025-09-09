@@ -283,14 +283,6 @@
         
         
         if (event.data.type === 'iframe-ready') {
-        } else if (event.data.type === 'request-parent-font') {
-          // Send parent font information to iframe
-          const parentFont = getComputedStyle(document.body).fontFamily;
-          console.log('🏢 Sending parent font to iframe:', parentFont);
-          iframe.contentWindow.postMessage({
-            type: 'parent-font-response',
-            fontFamily: parentFont
-          }, '*');
         } else if (event.data.type === 'office-selector-closed') {
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
@@ -358,6 +350,36 @@
                 console.error('🏢 No iframe contentWindow found for fallback');
               }
             });
+        } else if (event.data.type === 'request-font-family') {
+          // Handle font family request from iframe
+          console.log('🎨 Font family requested from iframe');
+          
+          try {
+            // Get computed font family from the body element
+            const bodyElement = document.body;
+            const computedStyle = window.getComputedStyle(bodyElement);
+            const fontFamily = computedStyle.getPropertyValue('font-family');
+            
+            console.log('🎨 Detected font family:', fontFamily);
+            
+            // Send font family back to iframe
+            if (iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'font-family-response',
+                fontFamily: fontFamily
+              }, baseUrl);
+            }
+          } catch (error) {
+            console.error('❌ Error getting font family:', error);
+            
+            // Send fallback font family
+            if (iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'font-family-response',
+                fontFamily: 'Arial, sans-serif'
+              }, baseUrl);
+            }
+          }
         }
       };
       
