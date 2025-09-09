@@ -89,6 +89,7 @@
         z-index: 10000;
         display: none;
         background: transparent;
+        border-radius: 10px;
       "
       allow="clipboard-write"
     ></iframe>
