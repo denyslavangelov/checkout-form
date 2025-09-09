@@ -870,7 +870,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     return createPortal(
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div 
-          className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit"
+          className="office-selector-modal rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit"
           style={{
             fontFamily: 'inherit',
             fontSize: 'inherit',
@@ -907,7 +907,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   return createPortal(
     <div className="fixed inset-0 flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
-        className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit my-4"
+        className="office-selector-modal rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit my-4"
         style={{
           fontFamily: 'inherit',
           fontSize: 'inherit',
@@ -918,7 +918,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           fontStyle: 'inherit',
           textDecoration: 'inherit',
           fontVariant: 'inherit',
-          backgroundColor: 'red'
+          backgroundColor: 'transparent'
         }}
       >
         {/* Close button */}
