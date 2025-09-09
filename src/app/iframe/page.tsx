@@ -353,7 +353,20 @@ export default function IframePage() {
   }
 
   return (
-    <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
+    <div 
+      className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}
+      style={{
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        fontWeight: 'inherit',
+        lineHeight: 'inherit',
+        letterSpacing: 'inherit',
+        textTransform: 'inherit',
+        fontStyle: 'inherit',
+        textDecoration: 'inherit',
+        fontVariant: 'inherit'
+      }}
+    >
       {isLoading && <LoadingSpinner />}
       
       <div className="text-center space-y-4 p-8">

@@ -2,20 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Office Selector Modal Font Inheritance */
-.office-selector-modal {
-  font-family: inherit !important;
-  font-size: inherit !important;
-  font-weight: inherit !important;
-  line-height: inherit !important;
-  letter-spacing: inherit !important;
-  text-transform: inherit !important;
-  font-style: inherit !important;
-  text-decoration: inherit !important;
-  font-variant: inherit !important;
-}
-
-.office-selector-modal * {
+/* Global Font Inheritance for all components */
+.office-selector-modal,
+.office-selector-modal *,
+iframe,
+iframe *,
+body,
+body * {
   font-family: inherit !important;
   font-size: inherit !important;
   font-weight: inherit !important;
