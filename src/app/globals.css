@@ -4,7 +4,6 @@
 
 /* Office Selector Modal Font Inheritance */
 .office-selector-modal {
-  font-family: inherit !important;
   font-size: inherit !important;
   font-weight: inherit !important;
   line-height: inherit !important;
@@ -16,7 +15,6 @@
 }
 
 .office-selector-modal * {
-  font-family: inherit !important;
   font-size: inherit !important;
   font-weight: inherit !important;
   line-height: inherit !important;
