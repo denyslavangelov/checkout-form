@@ -905,7 +905,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   }
   
   return createPortal(
-    <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
         className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit my-4"
         style={{
@@ -917,7 +917,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           textTransform: 'inherit',
           fontStyle: 'inherit',
           textDecoration: 'inherit',
-          fontVariant: 'inherit'
+          fontVariant: 'inherit',
+          backgroundColor: 'red'
         }}
       >
         {/* Close button */}
