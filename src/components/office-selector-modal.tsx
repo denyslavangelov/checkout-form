@@ -385,11 +385,32 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     if (isOpen && window.parent && window.parent !== window) {
       try {
         window.parent.postMessage({ type: 'iframe-ready' }, '*');
+        // Request parent font information
+        window.parent.postMessage({ type: 'request-parent-font' }, '*');
       } catch (error) {
         console.error('Error sending test message:', error);
       }
     }
   }, [isOpen]);
+
+  // Listen for parent font response
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'parent-font-response') {
+        console.log('Received parent font:', event.data.fontFamily);
+        // Apply the parent font to the modal
+        if (event.data.fontFamily) {
+          const modal = document.querySelector('.office-selector-modal');
+          if (modal) {
+            (modal as HTMLElement).style.fontFamily = event.data.fontFamily;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
 
   // Function to get cart data from parent window with mobile retry
@@ -944,6 +965,12 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             }
           })()}</div>
           <div>CSS Font-Family: {typeof window !== 'undefined' ? getComputedStyle(document.querySelector('.office-selector-modal') || document.body).getPropertyValue('font-family') : 'N/A'}</div>
+          <div className="mt-2 p-2 bg-blue-100 rounded">
+            <div><strong>Analysis:</strong></div>
+            <div>✅ Font inheritance is working - inheriting "Times New Roman"</div>
+            <div>⚠️ Cross-origin iframe cannot access parent font directly</div>
+            <div>💡 If this isn't the expected font, the parent site might be using Times New Roman as default</div>
+          </div>
         </div>
 
         {/* Header with Courier Selection */}

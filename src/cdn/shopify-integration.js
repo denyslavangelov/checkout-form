@@ -283,6 +283,14 @@
         
         
         if (event.data.type === 'iframe-ready') {
+        } else if (event.data.type === 'request-parent-font') {
+          // Send parent font information to iframe
+          const parentFont = getComputedStyle(document.body).fontFamily;
+          console.log('🏢 Sending parent font to iframe:', parentFont);
+          iframe.contentWindow.postMessage({
+            type: 'parent-font-response',
+            fontFamily: parentFont
+          }, '*');
         } else if (event.data.type === 'office-selector-closed') {
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
