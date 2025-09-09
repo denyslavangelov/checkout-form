@@ -868,7 +868,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   // Show loading screen while shipping methods are being fetched
   if (loadingShippingMethods && availableShippingMethods.length === 0) {
     return createPortal(
-      <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div 
           className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit"
           style={{
@@ -905,7 +905,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   }
   
   return createPortal(
-    <div className="fixed inset-0 bg-black flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
         className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit my-4"
         style={{
@@ -1253,7 +1253,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             )}
           </Button>
         </div>
-      </div>
+      </div>,
     </div>,
     document.body
   );
