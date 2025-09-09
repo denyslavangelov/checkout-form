@@ -10,6 +10,7 @@ module.exports = {
       fontFamily: {
         sans: ["var(--font-inter)"],
         geologica: ["var(--font-geologica)"],
+        jost: ["var(--font-jost)"],
       },
       colors: {
         border: "var(--border)",

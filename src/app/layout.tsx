@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Geologica } from "next/font/google";
+import { Jost } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,6 +12,11 @@ const inter = Inter({
 const geologica = Geologica({
   subsets: ["latin", "cyrillic"],
   variable: "--font-geologica",
+});
+
+const jost = Jost({
+  subsets: ["latin"],
+  variable: "--font-jost",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${geologica.variable} font-geologica antialiased`}>
+      <body className={`${inter.variable} ${geologica.variable} ${jost.variable} font-geologica antialiased`}>
         {children}
       </body>
     </html>
