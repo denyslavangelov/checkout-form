@@ -56,97 +56,37 @@ export default function IframePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   
-   // Set appropriate viewport meta tags for mobile
-   useEffect(() => {
-     // Check URL parameters for mobile indicators
-     const urlParams = new URLSearchParams(window.location.search);
-     const mobileParam = urlParams.get('isMobile');
-     const viewportWidth = urlParams.get('viewportWidth');
-     const pixelRatio = urlParams.get('pixelRatio');
-     
-     // Set mobile state based on URL parameters or screen size
-     const isMobileDevice = 
-       mobileParam === 'true' || 
-       (typeof window !== 'undefined' && window.innerWidth < 768);
-     
-     setIsMobile(isMobileDevice);
-
-     // Request font family from parent window (Shopify store)
-     const requestFontFamily = () => {
-       try {
-         console.log('🚀 Attempting to request font family from parent window...');
-         console.log('🚀 Parent window:', window.parent);
-         console.log('🚀 Current origin:', window.location.origin);
-         
-         // Request font family from parent window
-         window.parent.postMessage({
-           type: 'request-font-family'
-         }, '*');
-         
-         console.log('📝 Requested font family from parent window');
-       } catch (error) {
-         console.error('❌ Error requesting font family:', error);
-       }
-     };
-
-     // Listen for font family response from parent
-     const handleFontFamilyResponse = (event: MessageEvent) => {
-       console.log('📨 Received message:', event.data, 'from origin:', event.origin);
-       
-       if (event.data && event.data.type === 'font-family-response') {
-         const fontFamily = event.data.fontFamily;
-         console.log('🎨 Received font family from parent:', fontFamily);
-         
-         // Alert the font family
-         alert(`Font Family from Shopify Store: ${fontFamily}`);
-         
-         // Remove the listener after receiving the response
-         window.removeEventListener('message', handleFontFamilyResponse);
-       }
-     };
-
-     // Add listener for font family response
-     window.addEventListener('message', handleFontFamilyResponse);
-     console.log('👂 Added font family response listener');
-
-     // Add general message listener for debugging
-     const handleAllMessages = (event: MessageEvent) => {
-       console.log('📨 ALL MESSAGES - Received:', event.data, 'from origin:', event.origin);
-     };
-     window.addEventListener('message', handleAllMessages);
-
-     // Request font family after a short delay to ensure parent is ready
-     setTimeout(requestFontFamily, 1000);
-     console.log('⏰ Scheduled font family request for 1 second');
-
-     // Also try immediate request for testing
-     setTimeout(requestFontFamily, 100);
-
-     // Cleanup listener on unmount
-     return () => {
-       window.removeEventListener('message', handleFontFamilyResponse);
-       window.removeEventListener('message', handleAllMessages);
-     };
+  // Set appropriate viewport meta tags for mobile
+  useEffect(() => {
+    // Check URL parameters for mobile indicators
+    const urlParams = new URLSearchParams(window.location.search);
+    const mobileParam = urlParams.get('isMobile');
+    const viewportWidth = urlParams.get('viewportWidth');
+    const pixelRatio = urlParams.get('pixelRatio');
     
-     // Set appropriate viewport meta tag for better mobile display
-     if (isMobileDevice) {
-       // Get existing viewport meta tag or create a new one
-       let viewportMeta = document.querySelector('meta[name="viewport"]');
-       if (!viewportMeta) {
-         const newViewportMeta = document.createElement('meta');
-         newViewportMeta.setAttribute('name', 'viewport');
-         document.head.appendChild(newViewportMeta);
-         viewportMeta = newViewportMeta;
-       }
-       
-       // Set content attribute - using width=device-width for most mobile devices
-       // but with a larger initial-scale to prevent zooming too far in
-       if (viewportMeta) {
-         viewportMeta!.setAttribute(
-           'content', 
-           `width=device-width, initial-scale=0.95, maximum-scale=1.2, user-scalable=yes`
-         );
-       }
+    // Set mobile state based on URL parameters or screen size
+    const isMobileDevice = 
+      mobileParam === 'true' || 
+      (typeof window !== 'undefined' && window.innerWidth < 768);
+    
+    setIsMobile(isMobileDevice);
+    
+    // Set appropriate viewport meta tag for better mobile display
+    if (isMobileDevice) {
+      // Get existing viewport meta tag or create a new one
+      let viewportMeta = document.querySelector('meta[name="viewport"]');
+      if (!viewportMeta) {
+        viewportMeta = document.createElement('meta');
+        viewportMeta.setAttribute('name', 'viewport');
+        document.head.appendChild(viewportMeta);
+      }
+      
+      // Set content attribute - using width=device-width for most mobile devices
+      // but with a larger initial-scale to prevent zooming too far in
+      viewportMeta.setAttribute(
+        'content', 
+        `width=device-width, initial-scale=0.95, maximum-scale=1.2, user-scalable=yes`
+      );
       
       // Add some mobile-specific styles
       const mobileStyle = document.createElement('style');
@@ -412,25 +352,14 @@ export default function IframePage() {
     }
   }
 
-   return (
-     <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
-       {isLoading && <LoadingSpinner />}
-       
-       <div className="text-center space-y-4 p-8">
-         <h1 className="text-2xl font-bold">Office Selector Integration</h1>
-         <p className="text-muted-foreground">This iframe is ready for office selector integration.</p>
-         <button 
-           onClick={() => {
-             console.log('🧪 Test button clicked - requesting font family manually');
-             window.parent.postMessage({
-               type: 'request-font-family'
-             }, '*');
-           }}
-           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-         >
-           Test Font Family Request
-         </button>
-       </div>
-     </div>
-   )
+  return (
+    <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
+      {isLoading && <LoadingSpinner />}
+      
+      <div className="text-center space-y-4 p-8">
+        <h1 className="text-2xl font-bold">Office Selector Integration</h1>
+        <p className="text-muted-foreground">This iframe is ready for office selector integration.</p>
+      </div>
+    </div>
+  )
 } 

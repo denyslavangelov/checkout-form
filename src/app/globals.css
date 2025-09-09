@@ -4,7 +4,7 @@
 
 /* Office Selector Modal Font Inheritance */
 .office-selector-modal {
-  font-family: inherit !important;
+  font-family: inherit, var(--font-jost), 'Jost', sans-serif !important;
   font-size: inherit !important;
   font-weight: inherit !important;
   line-height: inherit !important;
@@ -16,7 +16,7 @@
 }
 
 .office-selector-modal * {
-  font-family: inherit !important;
+  font-family: inherit, var(--font-jost), 'Jost', sans-serif !important;
   font-size: inherit !important;
   font-weight: inherit !important;
   line-height: inherit !important;
