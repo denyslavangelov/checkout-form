@@ -20,6 +20,38 @@ body * {
   font-variant: inherit !important;
 }
 
+/* Alternative approach: Use CSS custom properties for font inheritance */
+:root {
+  --parent-font-family: inherit;
+  --parent-font-size: inherit;
+  --parent-font-weight: inherit;
+}
+
+.office-selector-modal {
+  font-family: var(--parent-font-family) !important;
+  font-size: var(--parent-font-size) !important;
+  font-weight: var(--parent-font-weight) !important;
+}
+
+/* Font Debug Styles - Remove these after debugging */
+.font-debug {
+  position: relative;
+}
+
+.font-debug::before {
+  content: attr(data-font);
+  position: absolute;
+  top: -20px;
+  left: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
 /* Dynamic height for office selector modal */
 .office-selector-modal {
   height: auto !important;

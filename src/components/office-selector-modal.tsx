@@ -928,6 +928,24 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
+        {/* Font Debug Info */}
+        <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+          <div><strong>Font Debug Info:</strong></div>
+          <div>Current Body Font: {typeof window !== 'undefined' ? getComputedStyle(document.body).fontFamily : 'N/A'}</div>
+          <div>Modal Element Font: {typeof window !== 'undefined' ? getComputedStyle(document.querySelector('.office-selector-modal') || document.body).fontFamily : 'N/A'}</div>
+          <div>Parent Window Font: {(() => {
+            try {
+              if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+                return getComputedStyle(window.parent.document.body).fontFamily;
+              }
+              return 'Same window';
+            } catch (e) {
+              return 'Cross-origin (cannot access)';
+            }
+          })()}</div>
+          <div>CSS Font-Family: {typeof window !== 'undefined' ? getComputedStyle(document.querySelector('.office-selector-modal') || document.body).getPropertyValue('font-family') : 'N/A'}</div>
+        </div>
+
         {/* Header with Courier Selection */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
