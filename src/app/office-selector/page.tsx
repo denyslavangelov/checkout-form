@@ -18,6 +18,9 @@ export default function OfficeSelectorPage() {
       backgroundColor: 'bg-red-600',
       hoverColor: 'hover:bg-red-700'
     },
+    font: {
+      family: 'inherit'
+    },
     shopify: {
       storeUrl: '',
       accessToken: ''
@@ -55,6 +58,9 @@ export default function OfficeSelectorPage() {
             text: parsedConfig.continueButton?.text || 'Продължи към завършване',
             backgroundColor: parsedConfig.continueButton?.backgroundColor || 'bg-red-600',
             hoverColor: parsedConfig.continueButton?.hoverColor || 'hover:bg-red-700'
+          },
+          font: {
+            family: parsedConfig.font?.family || 'inherit'
           },
           shopify: {
             storeUrl: parsedConfig.shopify?.storeUrl || '',

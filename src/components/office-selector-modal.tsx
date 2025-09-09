@@ -40,6 +40,9 @@ interface OfficeSelectorModalProps {
       backgroundColor?: string;
       hoverColor?: string;
     };
+    font?: {
+      family?: string;
+    };
     shopify?: {
       storeUrl: string;
       accessToken: string;
@@ -63,6 +66,9 @@ export function OfficeSelectorModal({
       text: 'Продължи към завършване',
       backgroundColor: 'bg-red-600',
       hoverColor: 'hover:bg-red-700'
+    },
+    font: {
+      family: 'inherit'
     },
     shopify: {
       storeUrl: '',
@@ -872,9 +878,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         <div 
           className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
           style={{
-            fontFamily: 'inherit',
-            fontSize: 'inherit',
-            fontWeight: 'inherit',
+            fontFamily: config.font?.family || 'inherit',
             lineHeight: 'inherit',
             letterSpacing: 'inherit',
             textTransform: 'inherit',
@@ -909,9 +913,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       <div 
         className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
         style={{
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-          fontWeight: 'inherit',
+          fontFamily: config.font?.family || 'inherit',
           lineHeight: 'inherit',
           letterSpacing: 'inherit',
           textTransform: 'inherit',
