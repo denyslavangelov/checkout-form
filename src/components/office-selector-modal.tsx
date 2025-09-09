@@ -868,9 +868,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   // Show loading screen while shipping methods are being fetched
   if (loadingShippingMethods && availableShippingMethods.length === 0) {
     return createPortal(
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
         <div 
-          className="office-selector-modal rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit"
+          className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
           style={{
             fontFamily: 'inherit',
             fontSize: 'inherit',
@@ -886,9 +886,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           {/* Close button */}
           <button
             onClick={handleClose}
-            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 z-10"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           {/* Loading Content */}
@@ -905,9 +905,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   }
   
   return createPortal(
-    <div className="fixed inset-0 flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
-        className="office-selector-modal rounded-lg p-4 sm:p-6 max-w-md w-full relative min-h-fit my-4"
+        className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
         style={{
           fontFamily: 'inherit',
           fontSize: 'inherit',
@@ -917,16 +917,15 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           textTransform: 'inherit',
           fontStyle: 'inherit',
           textDecoration: 'inherit',
-          fontVariant: 'inherit',
-          backgroundColor: 'transparent'
+          fontVariant: 'inherit'
         }}
       >
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 z-10"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
 
         {/* Header with Courier Selection */}
@@ -1253,7 +1252,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             )}
           </Button>
         </div>
-      </div>,
+      </div>
     </div>,
     document.body
   );
