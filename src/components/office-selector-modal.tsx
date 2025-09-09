@@ -7,6 +7,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { debounce } from '@/lib/utils';
 import { createPortal } from 'react-dom';
+import { loadGoogleFont, extractFontFamily, isGoogleFont } from '@/lib/font-loader';
 
 interface City {
   id: string;
@@ -79,6 +80,9 @@ export function OfficeSelectorModal({
   // Debug logging for font family
   console.log('🏢 Office Selector: Font family config:', config.font?.family);
   
+  // Font loading state
+  const [fontLoaded, setFontLoaded] = useState(false);
+  
   const [cities, setCities] = useState<City[]>([]);
   const [offices, setOffices] = useState<Office[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -90,6 +94,36 @@ export function OfficeSelectorModal({
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  
+  // Load custom font dynamically
+  useEffect(() => {
+    const loadCustomFont = async () => {
+      const fontFamily = config.font?.family;
+      
+      if (!fontFamily || fontFamily === 'inherit') {
+        setFontLoaded(true);
+        return;
+      }
+      
+      const extractedFont = extractFontFamily(fontFamily);
+      
+      if (isGoogleFont(extractedFont)) {
+        try {
+          console.log(`🔄 Loading Google Font: ${extractedFont}`);
+          await loadGoogleFont({ family: extractedFont });
+          console.log(`✅ Google Font loaded: ${extractedFont}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to load Google Font ${extractedFont}:`, error);
+        }
+      } else {
+        console.log(`📝 Using system font: ${fontFamily}`);
+      }
+      
+      setFontLoaded(true);
+    };
+    
+    loadCustomFont();
+  }, [config.font?.family]);
   
   
   // Courier selection states
@@ -875,7 +909,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   if (typeof window === 'undefined') return null;
   
   // Show loading screen while shipping methods are being fetched
-  if (loadingShippingMethods && availableShippingMethods.length === 0) {
+  // Show loading screen while font is loading or shipping methods are loading
+  if (!fontLoaded || (loadingShippingMethods && availableShippingMethods.length === 0)) {
     return createPortal(
       <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
         <div 
@@ -902,7 +937,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gray-600 mb-4" />
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-              Зареждане...
+              {!fontLoaded ? 'Зареждане на шрифт...' : 'Зареждане на методи за доставка...'}
             </h2>
           </div>
         </div>
