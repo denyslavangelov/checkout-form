@@ -76,6 +76,9 @@ export function OfficeSelectorModal({
     }
   }
 }: OfficeSelectorModalProps) {
+  // Debug logging for font family
+  console.log('🏢 Office Selector: Font family config:', config.font?.family);
+  
   const [cities, setCities] = useState<City[]>([]);
   const [offices, setOffices] = useState<Office[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -878,14 +881,14 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         <div 
           className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
           style={{
-            fontFamily: `${config.font?.family || 'inherit'} !important`,
+            '--custom-font-family': config.font?.family || 'inherit',
             lineHeight: 'inherit',
             letterSpacing: 'inherit',
             textTransform: 'inherit',
             fontStyle: 'inherit',
             textDecoration: 'inherit',
             fontVariant: 'inherit'
-          }}
+          } as React.CSSProperties}
         >
           {/* Close button */}
           <button
@@ -913,14 +916,14 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       <div 
         className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
         style={{
-          fontFamily: `${config.font?.family || 'inherit'} !important`,
+          '--custom-font-family': config.font?.family || 'inherit',
           lineHeight: 'inherit',
           letterSpacing: 'inherit',
           textTransform: 'inherit',
           fontStyle: 'inherit',
           textDecoration: 'inherit',
           fontVariant: 'inherit'
-        }}
+        } as React.CSSProperties}
       >
         {/* Close button */}
         <button

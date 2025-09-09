@@ -25,6 +25,15 @@
   font-variant: inherit !important;
 }
 
+/* Override global font for office selector when custom font is specified */
+.office-selector-modal[style*="font-family"] {
+  font-family: var(--custom-font-family) !important;
+}
+
+.office-selector-modal[style*="font-family"] * {
+  font-family: var(--custom-font-family) !important;
+}
+
 /* Dynamic height for office selector modal */
 .office-selector-modal {
   height: auto !important;
