@@ -74,6 +74,10 @@ export default function IframePage() {
      // Request font family from parent window (Shopify store)
      const requestFontFamily = () => {
        try {
+         console.log('🚀 Attempting to request font family from parent window...');
+         console.log('🚀 Parent window:', window.parent);
+         console.log('🚀 Current origin:', window.location.origin);
+         
          // Request font family from parent window
          window.parent.postMessage({
            type: 'request-font-family'
@@ -87,6 +91,8 @@ export default function IframePage() {
 
      // Listen for font family response from parent
      const handleFontFamilyResponse = (event: MessageEvent) => {
+       console.log('📨 Received message:', event.data, 'from origin:', event.origin);
+       
        if (event.data && event.data.type === 'font-family-response') {
          const fontFamily = event.data.fontFamily;
          console.log('🎨 Received font family from parent:', fontFamily);
@@ -101,13 +107,25 @@ export default function IframePage() {
 
      // Add listener for font family response
      window.addEventListener('message', handleFontFamilyResponse);
+     console.log('👂 Added font family response listener');
+
+     // Add general message listener for debugging
+     const handleAllMessages = (event: MessageEvent) => {
+       console.log('📨 ALL MESSAGES - Received:', event.data, 'from origin:', event.origin);
+     };
+     window.addEventListener('message', handleAllMessages);
 
      // Request font family after a short delay to ensure parent is ready
      setTimeout(requestFontFamily, 1000);
+     console.log('⏰ Scheduled font family request for 1 second');
+
+     // Also try immediate request for testing
+     setTimeout(requestFontFamily, 100);
 
      // Cleanup listener on unmount
      return () => {
        window.removeEventListener('message', handleFontFamilyResponse);
+       window.removeEventListener('message', handleAllMessages);
      };
     
      // Set appropriate viewport meta tag for better mobile display
@@ -394,14 +412,25 @@ export default function IframePage() {
     }
   }
 
-  return (
-    <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
-      {isLoading && <LoadingSpinner />}
-      
-      <div className="text-center space-y-4 p-8">
-        <h1 className="text-2xl font-bold">Office Selector Integration</h1>
-        <p className="text-muted-foreground">This iframe is ready for office selector integration.</p>
-      </div>
-    </div>
-  )
+   return (
+     <div className={`${styles.container} ${styles.globalStyles} ${isMobile ? 'mobile-checkout' : ''}`}>
+       {isLoading && <LoadingSpinner />}
+       
+       <div className="text-center space-y-4 p-8">
+         <h1 className="text-2xl font-bold">Office Selector Integration</h1>
+         <p className="text-muted-foreground">This iframe is ready for office selector integration.</p>
+         <button 
+           onClick={() => {
+             console.log('🧪 Test button clicked - requesting font family manually');
+             window.parent.postMessage({
+               type: 'request-font-family'
+             }, '*');
+           }}
+           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+         >
+           Test Font Family Request
+         </button>
+       </div>
+     </div>
+   )
 } 

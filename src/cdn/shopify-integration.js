@@ -353,31 +353,48 @@
         } else if (event.data.type === 'request-font-family') {
           // Handle font family request from iframe
           console.log('🎨 Font family requested from iframe');
+          console.log('🎨 Event data:', event.data);
+          console.log('🎨 Event origin:', event.origin);
+          console.log('🎨 Iframe element:', iframe);
+          console.log('🎨 Iframe contentWindow:', iframe?.contentWindow);
           
           try {
             // Get computed font family from the body element
             const bodyElement = document.body;
+            console.log('🎨 Body element:', bodyElement);
+            
             const computedStyle = window.getComputedStyle(bodyElement);
             const fontFamily = computedStyle.getPropertyValue('font-family');
             
             console.log('🎨 Detected font family:', fontFamily);
+            console.log('🎨 Base URL for response:', baseUrl);
             
             // Send font family back to iframe
-            if (iframe.contentWindow) {
-              iframe.contentWindow.postMessage({
+            if (iframe && iframe.contentWindow) {
+              const responseMessage = {
                 type: 'font-family-response',
                 fontFamily: fontFamily
-              }, baseUrl);
+              };
+              
+              console.log('🎨 Sending response message:', responseMessage);
+              
+              iframe.contentWindow.postMessage(responseMessage, baseUrl);
+              console.log('🎨 Response sent successfully');
+            } else {
+              console.error('🎨 No iframe or contentWindow available for response');
             }
           } catch (error) {
             console.error('❌ Error getting font family:', error);
             
             // Send fallback font family
-            if (iframe.contentWindow) {
-              iframe.contentWindow.postMessage({
+            if (iframe && iframe.contentWindow) {
+              const fallbackMessage = {
                 type: 'font-family-response',
                 fontFamily: 'Arial, sans-serif'
-              }, baseUrl);
+              };
+              
+              console.log('🎨 Sending fallback message:', fallbackMessage);
+              iframe.contentWindow.postMessage(fallbackMessage, baseUrl);
             }
           }
         }
