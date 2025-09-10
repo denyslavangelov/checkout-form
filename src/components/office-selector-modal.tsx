@@ -82,8 +82,7 @@ export function OfficeSelectorModal({
   // Debug logging for font family
   console.log('🏢 Office Selector: Font family config:', config.font?.family);
   
-  // Font loading state
-  const [fontLoaded, setFontLoaded] = useState(false);
+  // Font loading state (removed - fonts load asynchronously without blocking UI)
   
   const [cities, setCities] = useState<City[]>([]);
   const [offices, setOffices] = useState<Office[]>([]);
@@ -97,14 +96,13 @@ export function OfficeSelectorModal({
   const [error, setError] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   
-  // Load custom font dynamically
+  // Load custom font dynamically (non-blocking)
   useEffect(() => {
     const loadCustomFont = async () => {
       const fontFamily = config.font?.family;
       const fontWeight = config.font?.weight;
       
       if (!fontFamily || fontFamily === 'inherit') {
-        setFontLoaded(true);
         return;
       }
       
@@ -125,10 +123,9 @@ export function OfficeSelectorModal({
       } else {
         console.log(`📝 Using system font: ${fontFamily} (weight: ${fontWeight || '400'})`);
       }
-      
-      setFontLoaded(true);
     };
     
+    // Load font asynchronously without blocking UI
     loadCustomFont();
   }, [config.font?.family, config.font?.weight]);
   
@@ -184,7 +181,7 @@ export function OfficeSelectorModal({
     }
   }, [isOpen, deliveryType, selectedOffice, addressInput, creatingOrder]);
   
-  // Fetch shipping methods from Shopify
+  // Fetch shipping methods from Shopify (non-blocking)
   const fetchShippingMethods = useCallback(async () => {
     try {
       setLoadingShippingMethods(true);
@@ -263,10 +260,11 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   }, [config]);
 
-  // Load shipping methods when component mounts or config changes
+  // Load shipping methods when component mounts or config changes (non-blocking)
   useEffect(() => {
     if (isOpen && config.shopify?.storeUrl && config.shopify?.accessToken) {
       console.log('🏢 Config is ready, fetching shipping methods');
+      // Start fetching immediately but don't block UI
       fetchShippingMethods();
     }
   }, [isOpen, config.shopify?.storeUrl, config.shopify?.accessToken, fetchShippingMethods]);
@@ -916,43 +914,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   if (typeof window === 'undefined') return null;
   
   // Show loading screen while shipping methods are being fetched
-  // Show loading screen while font is loading or shipping methods are loading
-  if (!fontLoaded || (loadingShippingMethods && availableShippingMethods.length === 0)) {
-    return createPortal(
-      <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
-        <div 
-          className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit"
-          style={{
-            '--custom-font-family': config.font?.family || 'inherit',
-            '--custom-font-weight': config.font?.weight || '400',
-            lineHeight: 'inherit',
-            letterSpacing: 'inherit',
-            textTransform: 'inherit',
-            fontStyle: 'inherit',
-            textDecoration: 'inherit',
-            fontVariant: 'inherit'
-          } as React.CSSProperties}
-        >
-          {/* Close button */}
-          <button
-            onClick={handleClose}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
-          >
-            <X className="h-4 w-4 sm:h-5 sm:w-5" />
-          </button>
-
-          {/* Loading Content */}
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-600 mb-4" />
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-              {!fontLoaded ? 'Зареждане на шрифт...' : 'Зареждане...'}
-            </h2>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
+  // No loading screen - show form immediately for faster user experience
   
   return createPortal(
     <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
@@ -1053,7 +1015,14 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                 </div>
                 {config.showPrices && (
                   <div className="text-xs text-gray-500 text-center">
-                    {getShippingPrice(selectedCourier, 'office') || 'Цена при избор'}
+                    {loadingShippingMethods ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Зареждане...</span>
+                      </div>
+                    ) : (
+                      getShippingPrice(selectedCourier, 'office') || 'Цена при избор'
+                    )}
                   </div>
                 )}
               </div>
@@ -1076,7 +1045,14 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                 </div>
                 {config.showPrices && (
                   <div className="text-xs text-gray-500 text-center">
-                    {getShippingPrice(selectedCourier, 'address') || 'Цена при избор'}
+                    {loadingShippingMethods ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Зареждане...</span>
+                      </div>
+                    ) : (
+                      getShippingPrice(selectedCourier, 'address') || 'Цена при избор'
+                    )}
                   </div>
                 )}
               </div>
