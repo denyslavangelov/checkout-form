@@ -945,7 +945,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gray-600 mb-4" />
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-              ''{!fontLoaded ? 'Зареждане на шрифт...' : 'Зареждане...'}''
+              {!fontLoaded ? 'Зареждане на шрифт...' : 'Зареждане...'}
             </h2>
           </div>
         </div>
@@ -1044,17 +1044,19 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <Building2 className={`w-4 h-4 sm:w-5 sm:h-5 ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-500'}`} />
-                <span className={`text-xs sm:text-sm font-medium ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-600'}`}>
-                  До Офис
-                </span>
-              </div>
-              {config.showPrices && (
-                <div className="text-xs text-gray-500">
-                  {getShippingPrice(selectedCourier, 'office') || 'Цена при избор'}
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Building2 className={`w-4 h-4 sm:w-5 sm:h-5 ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-500'}`} />
+                  <span className={`text-xs sm:text-sm font-medium ${deliveryType === 'office' ? 'text-green-600' : 'text-gray-600'}`}>
+                    До Офис
+                  </span>
                 </div>
-              )}
+                {config.showPrices && (
+                  <div className="text-xs text-gray-500 text-center">
+                    {getShippingPrice(selectedCourier, 'office') || 'Цена при избор'}
+                  </div>
+                )}
+              </div>
             </button>
             
             <button
@@ -1065,17 +1067,19 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-1 sm:gap-2">
-                <MapPin className={`w-4 h-4 sm:w-5 sm:h-5 ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-500'}`} />
-                <span className={`text-xs sm:text-sm font-medium ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-600'}`}>
-                  До Адрес
-                </span>
-              </div>
-              {config.showPrices && (
-                <div className="text-xs text-gray-500">
-                  {getShippingPrice(selectedCourier, 'address') || 'Цена при избор'}
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <MapPin className={`w-4 h-4 sm:w-5 sm:h-5 ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-500'}`} />
+                  <span className={`text-xs sm:text-sm font-medium ${deliveryType === 'address' ? 'text-green-600' : 'text-gray-600'}`}>
+                    До Адрес
+                  </span>
                 </div>
-              )}
+                {config.showPrices && (
+                  <div className="text-xs text-gray-500 text-center">
+                    {getShippingPrice(selectedCourier, 'address') || 'Цена при избор'}
+                  </div>
+                )}
+              </div>
             </button>
           </div>
         </div>
