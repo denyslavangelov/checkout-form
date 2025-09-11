@@ -66,8 +66,8 @@ export function OfficeSelectorModal({
     showPrices: true,
     continueButton: {
       text: 'Продължи към завършване',
-      backgroundColor: 'bg-red-600',
-      hoverColor: 'hover:bg-red-700'
+      backgroundColor: '#dc2626',
+      hoverColor: '#b91c1c'
     },
     font: {
       family: 'inherit',
@@ -1269,7 +1269,20 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               (deliveryType === 'office' && !selectedOffice) ||
               (deliveryType === 'address' && !addressInput.trim())
             }
-            className={`w-full ${config.continueButton?.backgroundColor || 'bg-red-600'} ${config.continueButton?.hoverColor || 'hover:bg-red-700'} text-white py-3 sm:py-4 text-sm sm:text-base font-medium`}
+            className="w-full text-white py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors duration-200"
+            style={{
+              backgroundColor: config.continueButton?.backgroundColor || '#dc2626'
+            }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = config.continueButton?.hoverColor || '#b91c1c';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = config.continueButton?.backgroundColor || '#dc2626';
+              }
+            }}
           >
             {creatingOrder ? (
               <>
