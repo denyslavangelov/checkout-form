@@ -8,7 +8,6 @@ import { Label } from './ui/label';
 import { debounce } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { loadGoogleFont, extractFontFamily, isGoogleFont, parseFontWeight } from '@/lib/font-loader';
-import { getAppConfig, logConfig } from '@/lib/config';
 
 interface City {
   id: string;
@@ -80,14 +79,6 @@ export function OfficeSelectorModal({
     }
   }
 }: OfficeSelectorModalProps) {
-  // Get environment-aware configuration
-  const appConfig = getAppConfig();
-  
-  // Log configuration for debugging (only in development/staging)
-  useEffect(() => {
-    logConfig();
-  }, []);
-  
   // Debug logging for font family
   console.log('🏢 Office Selector: Font family config:', config.font?.family);
   
@@ -195,7 +186,7 @@ export function OfficeSelectorModal({
     try {
       setLoadingShippingMethods(true);
 
-      const baseUrl = appConfig.apiBaseUrl;
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Get Shopify credentials (support both nested and root level)
       let storeUrl = config.shopify?.storeUrl;
@@ -527,7 +518,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     
     setLoadingCities(true);
     try {
-      const baseUrl = appConfig.apiBaseUrl;
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/speedy/search-site?term=${encodeURIComponent(term)}`);
       
       if (!response.ok) {
@@ -565,7 +556,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
     setLoadingOffices(true);
     try {
-      const baseUrl = appConfig.apiBaseUrl;
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
       const response = await fetch(`${baseUrl}/api/speedy/search-office`, {
         method: 'POST',
         headers: {
@@ -674,7 +665,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       setCreatingOrder(true);
       setError('');
 
-      const baseUrl = appConfig.apiBaseUrl;
+      const baseUrl = 'https://checkout-form-zeta.vercel.app';
 
       // Check if this is a cart checkout
       if (productId === 'cart' && variantId === 'cart') {

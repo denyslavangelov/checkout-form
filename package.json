@@ -6,17 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "build:staging": "cross-env NEXT_PUBLIC_APP_ENV=staging next build",
-    "build:production": "cross-env NEXT_PUBLIC_APP_ENV=production next build",
-    "deploy:staging": "vercel --prod",
-    "deploy:production": "vercel --prod",
-    "deploy:staging:preview": "vercel",
-    "deploy:production:preview": "vercel",
-    "deploy": "node scripts/deploy.js",
-    "env:dev": "node scripts/switch-env.js development",
-    "env:staging": "node scripts/switch-env.js staging",
-    "env:production": "node scripts/switch-env.js production"
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -43,7 +33,6 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
-    "cross-env": "^7.0.3",
     "esbuild": "^0.20.2",
     "eslint": "^8",
     "eslint-config-next": "14.1.3",

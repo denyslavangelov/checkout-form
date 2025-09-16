@@ -1,8 +1,6 @@
 /**
  * Office Selector CDN Integration Script
  * 
- * This script automatically detects the environment (staging/production) and uses the appropriate configuration.
- * 
  * To configure Shopify credentials, set window.officeSelectorConfig before loading this script:
  * 
  * <script>
@@ -17,67 +15,12 @@
  * };
  * </script>
  * <script src="https://checkout-form-zeta.vercel.app/cdn/shopify-integration.js"></script>
- * 
- * For staging testing, you can override the baseUrl:
- * <script>
- * window.officeSelectorConfig = {
- *   baseUrl: 'https://checkout-form-staging.vercel.app',
- *   // ... other config
- * };
- * </script>
  */
 (function() {
   'use strict';
 
   // Configuration object - can be set before script loads
   const config = window.officeSelectorConfig || {};
-  
-  // Environment detection
-  function detectEnvironment() {
-    // Check if baseUrl is explicitly set in config
-    if (config.baseUrl) {
-      if (config.baseUrl.includes('staging')) {
-        return { environment: 'staging', baseUrl: config.baseUrl };
-      } else if (config.baseUrl.includes('localhost')) {
-        return { environment: 'development', baseUrl: config.baseUrl };
-      } else {
-        return { environment: 'production', baseUrl: config.baseUrl };
-      }
-    }
-    
-    // Auto-detect based on current script source
-    const currentScript = document.currentScript;
-    if (currentScript && currentScript.src) {
-      if (currentScript.src.includes('staging')) {
-        return { 
-          environment: 'staging', 
-          baseUrl: 'https://checkout-form-staging.vercel.app' 
-        };
-      } else if (currentScript.src.includes('localhost')) {
-        return { 
-          environment: 'development', 
-          baseUrl: 'http://localhost:3000' 
-        };
-      }
-    }
-    
-    // Default to production
-    return { 
-      environment: 'production', 
-      baseUrl: 'https://checkout-form-zeta.vercel.app' 
-    };
-  }
-  
-  const envInfo = detectEnvironment();
-  const isStaging = envInfo.environment === 'staging';
-  const isDevelopment = envInfo.environment === 'development';
-  const isProduction = envInfo.environment === 'production';
-  
-  // Log environment detection
-  if (isStaging || isDevelopment) {
-    console.log(`🧪 ${envInfo.environment.toUpperCase()}: Office Selector Integration Script Loaded`);
-    console.log(`🔗 Using base URL: ${envInfo.baseUrl}`);
-  }
   
   // Ensure all configuration properties have defaults
   const defaultConfig = {
@@ -94,7 +37,7 @@
       customSelectors: [], // Custom CSS selectors for buttons
       excludeSelectors: [], // CSS selectors to exclude
       buttonTypes: ['checkout', 'buy-now', 'cart-checkout'], // Types of buttons to target
-      debugMode: isStaging || isDevelopment, // Show debug dots in staging/development
+      debugMode: false, // Show red dots on targeted buttons
       // Enhanced targeting by class and name
       targetByClass: [], // Array of class names to target
       targetByName: [], // Array of name attributes to target
@@ -147,25 +90,18 @@
         display: none;
         background: transparent;
         border-radius: 10px;
-        border: ${isStaging ? '2px solid #f59e0b' : 'none'};
       "
       allow="clipboard-write"
     ></iframe>
   `;
   
-  // Log the targeting mode (only in staging/development)
-  if (isStaging || isDevelopment) {
-    if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      console.log(`🎯 ${envInfo.environment.toUpperCase()}: Using custom selectors:`, finalConfig.buttonTargets.customSelectors);
-    } else if (finalConfig.buttonTargets.targetByClass.length > 0 || 
-               finalConfig.buttonTargets.targetByName.length > 0 || 
-               finalConfig.buttonTargets.targetByClassAndName.length > 0) {
-      console.log(`🎯 ${envInfo.environment.toUpperCase()}: Using enhanced targeting`);
-    } else if (finalConfig.buttonTargets.enableSmartDetection) {
-      console.log(`🎯 ${envInfo.environment.toUpperCase()}: Using smart detection`);
-    } else {
-      console.log(`🎯 ${envInfo.environment.toUpperCase()}: No targeting method configured`);
-    }
+  // Log the targeting mode
+  if (finalConfig.buttonTargets.customSelectors.length > 0) {
+  } else if (finalConfig.buttonTargets.targetByClass.length > 0 || 
+             finalConfig.buttonTargets.targetByName.length > 0 || 
+             finalConfig.buttonTargets.targetByClassAndName.length > 0) {
+  } else if (finalConfig.buttonTargets.enableSmartDetection) {
+  } else {
   }
 
   // Only override onclick if we're using smart detection
@@ -202,9 +138,6 @@
 
   // Function to show office selector
   function showOfficeSelector(event) {
-    if (isStaging || isDevelopment) {
-      console.log(`🧪 ${envInfo.environment.toUpperCase()}: Office selector triggered`);
-    }
     
     // Prevent default behavior
     event.preventDefault();
@@ -220,9 +153,6 @@
                      button.className?.toLowerCase().includes('shopify-payment-button__button') ||
                      button.id?.toLowerCase().includes('buy-now');
     
-    if (isStaging || isDevelopment) {
-      console.log(`🧪 ${envInfo.environment.toUpperCase()}: Button type detected:`, isBuyNow ? 'Buy Now' : 'Checkout');
-    }
     
     let productData = null;
     let isCartCheckout = false;
@@ -285,12 +215,8 @@
       };
     }
     
-    // Use environment-detected base URL
-    const baseUrl = envInfo.baseUrl;
-    
-    if (isStaging || isDevelopment) {
-      console.log(`🧪 ${envInfo.environment.toUpperCase()}: Using base URL:`, baseUrl);
-    }
+    // Production URL for live sites - can be overridden by config
+    const baseUrl = config.baseUrl || 'https://checkout-form-zeta.vercel.app';
     
     // Add backdrop and iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
@@ -347,8 +273,6 @@
         // Allow messages from our iframe domain
         const allowedOrigins = [
           'https://checkout-form-zeta.vercel.app',
-          'https://checkout-form-staging.vercel.app',
-          'http://localhost:3000',
           baseUrl
         ];
         
@@ -697,17 +621,16 @@
         }
       };
       
-      // Add visual indicator - colored dot (if debug mode is enabled)
+      // Add visual indicator - red dot (if debug mode is enabled)
       if (finalConfig.buttonTargets.debugMode) {
         const dot = document.createElement('div');
-        const dotColor = isStaging ? '#f59e0b' : '#ef4444'; // Orange for staging, red for development
         dot.style.cssText = `
           position: absolute;
           top: 2px;
           right: 2px;
           width: 10px;
           height: 10px;
-          background: ${dotColor};
+          background: #ef4444;
           border: 2px solid white;
           border-radius: 50%;
           z-index: 1000;
