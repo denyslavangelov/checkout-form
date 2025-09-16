@@ -22,15 +22,6 @@
   // Configuration object - can be set before script loads
   const config = window.officeSelectorConfig || {};
   
-  // Debug logging for config
-  console.log('🏢 CDN: Initial config loaded:', {
-    environment: config.environment,
-    baseUrl: config.baseUrl,
-    hasShopify: !!config.shopify,
-    storeUrl: config.shopify?.storeUrl,
-    fullConfig: config
-  });
-  
   // Ensure all configuration properties have defaults
   const defaultConfig = {
     availableCouriers: ['speedy', 'econt'], // Default: both couriers available
@@ -224,21 +215,8 @@
       };
     }
     
-    // Determine base URL based on environment or explicit config
-    let baseUrl;
-    if (config.baseUrl) {
-      // Explicit baseUrl override
-      baseUrl = config.baseUrl;
-      console.log('🏢 CDN: Using explicit baseUrl:', baseUrl);
-    } else if (config.environment === 'staging') {
-      // Staging environment
-      baseUrl = 'https://checkout-form-staging.vercel.app';
-      console.log('🏢 CDN: Using STAGING environment:', baseUrl);
-    } else {
-      // Production environment (default)
-      baseUrl = 'https://checkout-form-zeta.vercel.app';
-      console.log('🏢 CDN: Using PRODUCTION environment:', baseUrl);
-    }
+    // Production URL for live sites - can be overridden by config
+    const baseUrl = config.baseUrl || 'https://checkout-form-zeta.vercel.app';
     
     // Add backdrop and iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
@@ -295,7 +273,6 @@
         // Allow messages from our iframe domain
         const allowedOrigins = [
           'https://checkout-form-zeta.vercel.app',
-          'https://checkout-form-staging.vercel.app',
           baseUrl
         ];
         
