@@ -215,8 +215,18 @@
       };
     }
     
-    // Production URL for live sites - can be overridden by config
-    const baseUrl = config.baseUrl || 'https://checkout-form-zeta.vercel.app';
+    // Determine base URL based on environment or explicit config
+    let baseUrl;
+    if (config.baseUrl) {
+      // Explicit baseUrl override
+      baseUrl = config.baseUrl;
+    } else if (config.environment === 'staging') {
+      // Staging environment
+      baseUrl = 'https://checkout-form-staging.vercel.app';
+    } else {
+      // Production environment (default)
+      baseUrl = 'https://checkout-form-zeta.vercel.app';
+    }
     
     // Add backdrop and iframe to page if not already there
     if (!document.getElementById('office-selector-iframe')) {
@@ -273,6 +283,7 @@
         // Allow messages from our iframe domain
         const allowedOrigins = [
           'https://checkout-form-zeta.vercel.app',
+          'https://checkout-form-staging.vercel.app',
           baseUrl
         ];
         
