@@ -942,7 +942,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         {/* Header with Courier Selection */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-            Метод на доставка123
+            Метод на доставка
           </h2>
           <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">
             Изберете куриер и начин на доставка
