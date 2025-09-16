@@ -223,7 +223,7 @@
       console.log('🏢 CDN: Using explicit baseUrl:', baseUrl);
     } else if (config.environment === 'staging') {
       // Staging environment
-      baseUrl = 'https://checkout-form-staging.vercel.app';
+      baseUrl = 'https://checkout-form-staging-eight.vercel.app';
       console.log('🏢 CDN: Using STAGING environment:', baseUrl);
     } else {
       // Production environment (default)
