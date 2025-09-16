@@ -98,7 +98,7 @@ If you need to use a completely custom URL:
 ## Environment URLs
 
 - **Production**: `https://checkout-form-zeta.vercel.app` (default)
-- **Staging**: `https://checkout-form-staging.vercel.app` (when `environment: 'staging'`)
+- **Staging**: `https://checkout-form-staging-eight.vercel.app` (when `environment: 'staging'`)
 
 ## Priority Order
 

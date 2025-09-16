@@ -220,12 +220,15 @@
     if (config.baseUrl) {
       // Explicit baseUrl override
       baseUrl = config.baseUrl;
+      console.log('🏢 CDN: Using explicit baseUrl:', baseUrl);
     } else if (config.environment === 'staging') {
       // Staging environment
       baseUrl = 'https://checkout-form-staging.vercel.app';
+      console.log('🏢 CDN: Using STAGING environment:', baseUrl);
     } else {
       // Production environment (default)
       baseUrl = 'https://checkout-form-zeta.vercel.app';
+      console.log('🏢 CDN: Using PRODUCTION environment:', baseUrl);
     }
     
     // Add backdrop and iframe to page if not already there
