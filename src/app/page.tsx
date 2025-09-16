@@ -8,6 +8,7 @@ export default function Home() {
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold">Welcome to Our Store</h1>
         <p className="text-lg text-muted-foreground">Office Selector is available for integration.</p>
+        <p className="text-sm text-blue-600 font-semibold">🚀 STAGING ENVIRONMENT</p>
       </div>
     </div>
   )
