@@ -150,6 +150,10 @@ export function OfficeSelectorModal({
   const [loadingShippingMethods, setLoadingShippingMethods] = useState(false);
   const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | null>(null);
   
+  // Cart total state for free shipping calculation
+  const [cartTotal, setCartTotal] = useState<number>(0);
+  const [loadingCartData, setLoadingCartData] = useState(false);
+  
   // Browser detection
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isChrome = /Chrome/i.test(navigator.userAgent);
@@ -269,6 +273,52 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   }, [isOpen, config.shopify?.storeUrl, config.shopify?.accessToken, fetchShippingMethods]);
 
+  // Fetch cart data for cart checkouts to check for free shipping eligibility
+  useEffect(() => {
+    const fetchCartDataForFreeShipping = async () => {
+      // Only fetch for cart checkouts
+      if (!isOpen || productId !== 'cart' || variantId !== 'cart') {
+        return;
+      }
+
+      try {
+        setLoadingCartData(true);
+        console.log('🛒 Fetching cart data to check free shipping eligibility...');
+        
+        const cartData = await getCartDataFromParent() as any;
+        
+        // Chrome mobile fallback
+        if (!cartData && isChromeMobile) {
+          try {
+            const storedCartData = localStorage.getItem('shopify-cart-data');
+            if (storedCartData) {
+              const parsedData = JSON.parse(storedCartData);
+              setCartTotal(parsedData.total_price || 0);
+              console.log('🛒 Cart total from localStorage:', parsedData.total_price);
+            }
+          } catch (error) {
+            console.error('Error getting cart data from localStorage:', error);
+          }
+        } else if (cartData) {
+          // Cart total is in cents, so we need to convert to BGN
+          const totalInBGN = (cartData.total_price || 0) / 100;
+          setCartTotal(cartData.total_price || 0);
+          console.log('🛒 Cart total fetched:', {
+            totalCents: cartData.total_price,
+            totalBGN: totalInBGN,
+            isFreeShipping: totalInBGN >= 80
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching cart data for free shipping check:', error);
+      } finally {
+        setLoadingCartData(false);
+      }
+    };
+
+    fetchCartDataForFreeShipping();
+  }, [isOpen, productId, variantId]);
+
   // Update courier selection when config changes
   useEffect(() => {
     
@@ -288,6 +338,15 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
   // Helper function to get price for a specific courier and delivery type combination
   const getShippingPrice = (courier: 'speedy' | 'econt', deliveryType: 'office' | 'address') => {
+    // Check if this is a cart checkout with free shipping (>= 80 BGN)
+    const isCartCheckout = productId === 'cart' && variantId === 'cart';
+    const totalInBGN = cartTotal / 100;
+    const isFreeShipping = isCartCheckout && totalInBGN >= 80;
+    
+    if (isFreeShipping) {
+      return 'Безплатна';
+    }
+    
     // If only one courier is available, assume non-office methods belong to that courier
     const isSingleCourier = config.availableCouriers.length === 1;
     const availableCourier = config.availableCouriers[0] as 'speedy' | 'econt';
@@ -717,6 +776,20 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           return;
         }
 
+        // Check if free shipping applies (cart total >= 80 BGN)
+        const totalInBGN = (cartData.total_price || 0) / 100;
+        const isFreeShipping = totalInBGN >= 80;
+        
+        // Get the selected shipping method and modify price if free shipping applies
+        let shippingMethodToSend = availableShippingMethods.find(method => method.id === selectedShippingMethodId);
+        if (isFreeShipping && shippingMethodToSend) {
+          shippingMethodToSend = {
+            ...shippingMethodToSend,
+            price: '0.00'
+          };
+          console.log('🎉 Free shipping applied! Cart total:', totalInBGN, 'BGN');
+        }
+        
         // Create draft order with cart items and office address
         const response = await fetch(`${baseUrl}/api/create-draft-order`, {
           method: 'POST',
@@ -730,7 +803,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               deliveryType: deliveryType
             },
             selectedShippingMethodId: selectedShippingMethodId,
-            selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
+            selectedShippingMethod: shippingMethodToSend,
             shopify: { storeUrl, accessToken }, // Pass Shopify credentials
             shippingAddress: {
               address1: (() => {
@@ -942,7 +1015,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         {/* Header with Courier Selection */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-            Метод на доставкаа
+            Метод на доставка
           </h2>
           <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">
             Изберете куриер и начин на доставка
