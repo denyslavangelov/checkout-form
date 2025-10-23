@@ -42,6 +42,9 @@
       targetByClass: [], // Array of class names to target
       targetByName: [], // Array of name attributes to target
       targetByClassAndName: [] // Array of objects with both class and name: [{class: 'btn', name: 'checkout'}]
+    },
+    redirectInterception: {
+      enabled: false // Enable redirect interception to show office selector modal
     }
   };
   
@@ -56,6 +59,10 @@
     buttonTargets: {
       ...defaultConfig.buttonTargets,
       ...(config.buttonTargets || {})
+    },
+    redirectInterception: {
+      ...defaultConfig.redirectInterception,
+      ...(config.redirectInterception || {})
     }
   };    
 
@@ -713,7 +720,123 @@
   }
   
   // Monitor the DOM for changes to catch when buttons appear
+  // Redirect interception functionality
+  function interceptRedirects() {
+    // Store original window.location methods
+    const originalAssign = window.location.assign;
+    const originalReplace = window.location.replace;
+    const originalHref = Object.getOwnPropertyDescriptor(window.location, 'href');
+    
+    // Intercept window.location.assign
+    window.location.assign = function(url) {
+      console.log('🛑 Intercepted window.location.assign:', url);
+      
+      // Check if it's a checkout redirect
+      if (isCheckoutRedirect(url)) {
+        showOfficeSelectorModal('cart', 'cart');
+        return;
+      }
+      
+      // Allow normal redirects
+      return originalAssign.call(window.location, url);
+    };
+    
+    // Intercept window.location.replace
+    window.location.replace = function(url) {
+      console.log('🛑 Intercepted window.location.replace:', url);
+      
+      // Check if it's a checkout redirect
+      if (isCheckoutRedirect(url)) {
+        showOfficeSelectorModal('cart', 'cart');
+        return;
+      }
+      
+      // Allow normal redirects
+      return originalReplace.call(window.location, url);
+    };
+    
+    // Intercept window.location.href changes
+    Object.defineProperty(window.location, 'href', {
+      set: function(url) {
+        console.log('🛑 Intercepted window.location.href set:', url);
+        
+        // Check if it's a checkout redirect
+        if (isCheckoutRedirect(url)) {
+          showOfficeSelectorModal('cart', 'cart');
+          return;
+        }
+        
+        // Allow normal href changes
+        if (originalHref && originalHref.set) {
+          return originalHref.set.call(window.location, url);
+        }
+      },
+      get: originalHref ? originalHref.get : function() { return window.location.toString(); }
+    });
+    
+    // Intercept form submissions that might redirect
+    document.addEventListener('submit', function(event) {
+      const form = event.target;
+      if (form && form.tagName === 'FORM') {
+        const action = form.action || '';
+        
+        // Check if form submission leads to checkout
+        if (isCheckoutRedirect(action) || isCheckoutForm(form)) {
+          console.log('🛑 Intercepted form submission to checkout');
+          event.preventDefault();
+          showOfficeSelectorModal('cart', 'cart');
+          return false;
+        }
+      }
+    }, true);
+    
+    console.log('🛑 Redirect interception enabled');
+  }
+  
+  // Helper function to check if a URL is a checkout redirect
+  function isCheckoutRedirect(url) {
+    if (!url) return false;
+    
+    const checkoutPatterns = [
+      '/checkout',
+      '/cart',
+      'checkout.shopify.com',
+      'checkout.myshopify.com',
+      'checkout/',
+      'cart/',
+      'checkout?',
+      'cart?'
+    ];
+    
+    return checkoutPatterns.some(pattern => url.includes(pattern));
+  }
+  
+  // Helper function to check if a form is a checkout form
+  function isCheckoutForm(form) {
+    const action = form.action || '';
+    const className = form.className || '';
+    const id = form.id || '';
+    
+    const checkoutPatterns = [
+      'checkout',
+      'cart',
+      'checkout/',
+      'cart/'
+    ];
+    
+    return checkoutPatterns.some(pattern => 
+      action.includes(pattern) || 
+      className.includes(pattern) || 
+      id.includes(pattern)
+    );
+  }
+
   function startObserving() {
+    // Initialize redirect interception only if enabled in config
+    if (finalConfig.redirectInterception.enabled) {
+      interceptRedirects();
+    }
+    
     // Check for checkout buttons (reduced frequency to avoid console spam)
     
     // Also use MutationObserver for more efficient monitoring
