@@ -349,7 +349,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     const isFreeShipping = isCartCheckout && config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold;
     
     if (isFreeShipping) {
-      return 'Безплатна';
+      return 'Безплатна 🎉';
     }
     
     // If only one courier is available, assume non-office methods belong to that courier
