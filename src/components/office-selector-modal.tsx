@@ -36,6 +36,10 @@ interface OfficeSelectorModalProps {
     defaultCourier: string;
     defaultDeliveryType: string;
     showPrices?: boolean;
+    freeShipping?: {
+      enabled: boolean;
+      threshold: number; // Amount in BGN - required when freeShipping is configured
+    };
     continueButton?: {
       text?: string;
       backgroundColor?: string;
@@ -306,7 +310,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           console.log('🛒 Cart total fetched:', {
             totalCents: cartData.total_price,
             totalBGN: totalInBGN,
-            isFreeShipping: totalInBGN >= 80
+            freeShippingConfig: config.freeShipping,
+            isFreeShipping: config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold
           });
         }
       } catch (error) {
@@ -338,10 +343,10 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
   // Helper function to get price for a specific courier and delivery type combination
   const getShippingPrice = (courier: 'speedy' | 'econt', deliveryType: 'office' | 'address') => {
-    // Check if this is a cart checkout with free shipping (>= 80 BGN)
+    // Check if this is a cart checkout with free shipping
     const isCartCheckout = productId === 'cart' && variantId === 'cart';
     const totalInBGN = cartTotal / 100;
-    const isFreeShipping = isCartCheckout && totalInBGN >= 80;
+    const isFreeShipping = isCartCheckout && config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold;
     
     if (isFreeShipping) {
       return 'Безплатна';
@@ -776,9 +781,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           return;
         }
 
-        // Check if free shipping applies (cart total >= 80 BGN)
+        // Check if free shipping applies
         const totalInBGN = (cartData.total_price || 0) / 100;
-        const isFreeShipping = totalInBGN >= 80;
+        const isFreeShipping = config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold;
         
         // Get the selected shipping method and modify price if free shipping applies
         let shippingMethodToSend = availableShippingMethods.find(method => method.id === selectedShippingMethodId);
