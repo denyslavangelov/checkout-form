@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log('Using Shopify credentials:', { storeUrl: STORE_URL, accessToken: ACCESS_TOKEN.substring(0, 10) + '...' });
 
     // Simple validation
     if (!variantId && !cartData) {
@@ -128,7 +127,6 @@ export async function POST(request: NextRequest) {
           currencyCode: shippingCurrency
         }
       };
-      console.log('✅ Using shipping method with actual price:', {
         title: shippingTitle,
         price: shippingPrice,
         currency: shippingCurrency,
@@ -143,7 +141,6 @@ export async function POST(request: NextRequest) {
           currencyCode: 'BGN'
         }
       };
-      console.log('⚠️ Using shipping method without price data:', shippingLine);
     } else {
       // No shipping method selected - log error and proceed without shipping line
       console.error('❌ No shipping method selected:', {
@@ -165,7 +162,6 @@ export async function POST(request: NextRequest) {
         `customer-first-name:${customerInfo.firstName}`,
         `customer-last-name:${customerInfo.lastName}`
       ];
-      console.log('✅ Customer info added as tags:', {
         firstName: customerInfo.firstName,
         lastName: customerInfo.lastName
       });
@@ -202,7 +198,6 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     if (data.errors && Array.isArray(data.errors)) {
-      console.log('GraphQL errors received:', JSON.stringify(data.errors, null, 2));
       
       // Check if it's a permission error
       const permissionError = data.errors.some((error: any) => 
@@ -248,7 +243,6 @@ export async function POST(request: NextRequest) {
       const draftOrderId = draftOrder.id.split('/').pop();
       const constructedCheckoutUrl = `https://${STORE_URL}/admin/draft_orders/${draftOrderId}/checkout`;
       
-      console.log('✅ Draft order created successfully:', {
         id: draftOrder.id,
         name: draftOrder.name,
         status: draftOrder.status,

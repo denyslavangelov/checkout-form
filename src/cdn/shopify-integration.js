@@ -32,17 +32,8 @@
       accessToken: '' // Shopify access token (e.g., 'shpat_...')
     },
     buttonTargets: {
-      // Button targeting configuration
-      enableSmartDetection: true, // Enable smart button detection
-      customSelectors: [], // Custom CSS selectors for buttons
-      excludeSelectors: [], // CSS selectors to exclude
-      buttonTypes: ['checkout', 'buy-now', 'cart-checkout'], // Types of buttons to target
-      debugMode: false, // Show red dots on targeted buttons
-      // Enhanced targeting by class and name
-      targetByClass: [], // Array of class names to target
-      targetByName: [], // Array of name attributes to target
-      targetByText: [], // Array of text content to target
-      targetByClassAndName: [] // Array of objects with both class and name: [{class: 'btn', name: 'checkout'}]
+      targetByClass: [], // Array of class names to target (e.g., ['cart__checkout-button', 'checkout-btn'])
+      debugMode: false // Show red dots on targeted buttons for debugging
     }
   };
   
@@ -96,45 +87,9 @@
     ></iframe>
   `;
   
-  // Log the targeting mode
-  if (finalConfig.buttonTargets.customSelectors.length > 0) {
-  } else if (finalConfig.buttonTargets.targetByClass.length > 0 || 
-             finalConfig.buttonTargets.targetByName.length > 0 || 
-             finalConfig.buttonTargets.targetByClassAndName.length > 0) {
-  } else if (finalConfig.buttonTargets.enableSmartDetection) {
-  } else {
-  }
-
-  // Only override onclick if we're using smart detection
-  // For custom selectors and enhanced targeting, we'll use a different approach
-  const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
-                              finalConfig.buttonTargets.targetByName.length > 0 ||
-                              finalConfig.buttonTargets.targetByClassAndName.length > 0;
-  
-  if (finalConfig.buttonTargets.enableSmartDetection && 
-      finalConfig.buttonTargets.customSelectors.length === 0 && 
-      !hasEnhancedTargeting) {
-  const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
-  
-  Object.defineProperty(HTMLElement.prototype, 'onclick', {
-      set: function(value) {
-        const result = originalOnClickDescriptor.set.call(this, value);
-        
-        // Add our handler after a short delay to ensure it runs after the original
-        setTimeout(() => {
-          addOurCheckoutHandler(this);
-        }, 100);
-      
-      return result;
-    },
-    get: originalOnClickDescriptor.get
-  });
-  } else if (finalConfig.buttonTargets.customSelectors.length > 0) {
-    // For custom selectors, use a more targeted approach
-    initializeCustomSelectorTargeting();
-  } else if (hasEnhancedTargeting) {
-    // For enhanced targeting, use the standard approach
-    findAndInitializeCheckoutButtons();
+  // Initialize button targeting by class names
+  if (finalConfig.buttonTargets.targetByClass.length > 0) {
+    initializeClassBasedTargeting();
   }
 
   // Function to show office selector
@@ -256,13 +211,6 @@
       const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
       
-      // Debug logging for config
-      console.log('🏢 CDN: Final config being passed to iframe:', {
-        hasShopify: !!finalConfig.shopify,
-        storeUrl: finalConfig.shopify?.storeUrl,
-        accessToken: finalConfig.shopify?.accessToken ? '***' + finalConfig.shopify.accessToken.slice(-4) : 'none',
-        fullConfig: finalConfig
-      });
       
       iframe.src = officeSelectorUrl;
       
@@ -377,15 +325,14 @@
     document.body.style.overflow = '';
   }
 
-  // Initialize custom selector targeting (no constant checking)
-  function initializeCustomSelectorTargeting() {
-    
+  // Initialize class-based button targeting
+  function initializeClassBasedTargeting() {
     // Find and attach to existing buttons
-    finalConfig.buttonTargets.customSelectors.forEach(selector => {
-      const buttons = document.querySelectorAll(selector);
+    finalConfig.buttonTargets.targetByClass.forEach(className => {
+      const buttons = document.querySelectorAll(`.${className}`);
       
       buttons.forEach(button => {
-        if (!button._hasOurHandler) {
+        if (button && !button._hasOurHandler) {
           addOurCheckoutHandler(button);
         }
       });
@@ -396,18 +343,18 @@
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === 1) { // Element node
-            // Check if the added node matches our selectors
-            finalConfig.buttonTargets.customSelectors.forEach(selector => {
-              if (node.matches && node.matches(selector)) {
+            // Check if the added node itself matches any class
+            finalConfig.buttonTargets.targetByClass.forEach(className => {
+              if (node.classList && node.classList.contains(className)) {
                 if (!node._hasOurHandler) {
                   addOurCheckoutHandler(node);
                 }
               }
             });
             
-            // Check if any child elements match our selectors
-            finalConfig.buttonTargets.customSelectors.forEach(selector => {
-              const newButtons = node.querySelectorAll && node.querySelectorAll(selector);
+            // Check if any child elements match our classes
+            finalConfig.buttonTargets.targetByClass.forEach(className => {
+              const newButtons = node.querySelectorAll && node.querySelectorAll(`.${className}`);
               if (newButtons) {
                 newButtons.forEach(button => {
                   if (!button._hasOurHandler) {
@@ -426,180 +373,8 @@
       childList: true,
       subtree: true
     });
-    
   }
 
-  // Function to check if an element is a checkout button
-  function isCheckoutButton(element) {
-    if (!element || !element.tagName) return false;
-
-    // Check exclude selectors first (applies to all targeting methods)
-    if (finalConfig.buttonTargets.excludeSelectors.length > 0) {
-      const excludeMatch = finalConfig.buttonTargets.excludeSelectors.some(selector => {
-        try {
-          return element.matches(selector);
-        } catch (e) {
-          return false;
-        }
-      });
-      if (excludeMatch) {
-        return false;
-      }
-    }
-
-    // If we have custom selectors, ONLY use those (skip all other detection)
-    if (finalConfig.buttonTargets.customSelectors.length > 0) {
-      // Check custom selectors
-      const customMatch = finalConfig.buttonTargets.customSelectors.some(selector => {
-        try {
-          return element.matches(selector);
-        } catch (e) {
-          return false;
-        }
-      });
-      if (customMatch) {
-        return true;
-      }
-      
-      // If we have custom selectors but this element doesn't match, return false
-      return false;
-    }
-
-    // Check enhanced targeting by class and name
-    const className = element.className?.toLowerCase() || '';
-    const name = element.name?.toLowerCase() || '';
-    
-    // Target by class only
-    if (finalConfig.buttonTargets.targetByClass.length > 0) {
-      const classMatch = finalConfig.buttonTargets.targetByClass.some(targetClass => {
-        return className.includes(targetClass.toLowerCase());
-      });
-      if (classMatch) {
-        return true;
-      }
-    }
-    
-    // Target by name only
-    if (finalConfig.buttonTargets.targetByName.length > 0) {
-      const nameMatch = finalConfig.buttonTargets.targetByName.some(targetName => {
-        return name.includes(targetName.toLowerCase());
-      });
-      if (nameMatch) {
-        return true;
-      }
-    }
-    
-    // Target by text content
-    if (finalConfig.buttonTargets.targetByText.length > 0) {
-      const textMatch = finalConfig.buttonTargets.targetByText.some(targetText => {
-        return text.includes(targetText.toLowerCase());
-      });
-      if (textMatch) {
-        return true;
-      }
-    }
-    
-    // Target by both class and name (must match both)
-    if (finalConfig.buttonTargets.targetByClassAndName.length > 0) {
-      const classAndNameMatch = finalConfig.buttonTargets.targetByClassAndName.some(target => {
-        const classMatch = className.includes(target.class.toLowerCase());
-        const nameMatch = name.includes(target.name.toLowerCase());
-        return classMatch && nameMatch;
-      });
-      if (classAndNameMatch) {
-        return true;
-      }
-    }
-    
-    // If we have any enhanced targeting configured, don't use smart detection
-    const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
-                                finalConfig.buttonTargets.targetByName.length > 0 ||
-                                finalConfig.buttonTargets.targetByText.length > 0 ||
-                                finalConfig.buttonTargets.targetByClassAndName.length > 0;
-    
-    if (hasEnhancedTargeting) {
-      return false; // Enhanced targeting was already checked above
-    }
-    
-    // If smart detection is disabled, return false
-    if (!finalConfig.buttonTargets.enableSmartDetection) {
-      return false;
-    }
-
-    const tagName = element.tagName.toLowerCase();
-    const text = element.textContent?.toLowerCase().trim() || '';
-    const id = element.id?.toLowerCase() || '';
-    const type = element.type?.toLowerCase() || '';
-
-    // Smart detection patterns for different Shopify themes
-    const patterns = {
-      // Primary target: All submit buttons (covers most checkout/buy now buttons)
-      submitButtons: [
-        type === 'submit'
-      ],
-      
-      // Buy Now / Quick Buy patterns
-      buyNow: [
-        // Text patterns
-        text.includes('buy now') || text.includes('buy it now') || text.includes('купи сега'),
-        // Class patterns
-        className.includes('buy-now') || className.includes('quick-buy') || className.includes('shopify-payment-button'),
-        // ID patterns
-        id.includes('buy-now') || id.includes('quick-buy'),
-        // Type patterns
-        type === 'button' && (className.includes('payment') || className.includes('checkout')),
-        // Specific Shopify payment button pattern
-        type === 'button' && className.includes('shopify-payment-button__button') && className.includes('shopify-payment-button__button--unbranded')
-      ],
-      
-      // Checkout patterns
-      checkout: [
-        // Text patterns
-        text.includes('checkout') || text.includes('proceed to checkout') || text.includes('go to checkout') || 
-        text.includes('завърши поръчката') || text.includes('продължи към плащане'),
-        // Class patterns
-        className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
-        // Specific cart checkout button pattern
-        className.includes('cart__checkout-button') && className.includes('button'),
-        // ID patterns
-        id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
-        // Form submit patterns
-        (type === 'submit' && (className.includes('checkout') || name.includes('checkout')))
-      ],
-      
-      // Exclude patterns (Add to Cart, etc.)
-      exclude: [
-        // Add to Cart patterns
-        text.includes('add to cart') || text.includes('добави в кошницата') || text.includes('add to bag'),
-        className.includes('add-to-cart') || className.includes('cart-add') || className.includes('product-form__submit'),
-        id.includes('add-to-cart') || id.includes('cart-add') || id.startsWith('productsubmitbutton-'),
-        name.includes('add') && (name.includes('cart') || name.includes('product')),
-        // Other exclusions
-        className.includes('close') || className.includes('remove') || className.includes('delete'),
-        element.getAttribute('aria-label')?.toLowerCase().includes('close') ||
-        element.getAttribute('aria-label')?.toLowerCase().includes('remove')
-      ]
-    };
-
-    // Check if button matches any exclusion patterns
-    const isExcluded = patterns.exclude.some(pattern => pattern);
-    if (isExcluded) {
-      return false;
-    }
-
-    // Check if button matches any target patterns based on configuration
-    const isSubmitButton = finalConfig.buttonTargets.buttonTypes.includes('submit') && patterns.submitButtons.some(pattern => pattern);
-    const isBuyNow = finalConfig.buttonTargets.buttonTypes.includes('buy-now') && patterns.buyNow.some(pattern => pattern);
-    const isCheckout = finalConfig.buttonTargets.buttonTypes.includes('checkout') && patterns.checkout.some(pattern => pattern);
-    const isCartCheckout = finalConfig.buttonTargets.buttonTypes.includes('cart-checkout') && patterns.checkout.some(pattern => pattern);
-    const isTargetButton = isSubmitButton || isBuyNow || isCheckout || isCartCheckout;
-
-    // Only log when we actually detect a target button (reduce console spam)
-    if (isTargetButton) {
-    }
-
-    return isTargetButton;
-  }
   
   // Function to add our checkout handler
   function addOurCheckoutHandler(button) {
@@ -611,26 +386,10 @@
       
       // Set new onclick that calls our function
       button.onclick = function(event) {
-        // For custom selectors, we know this is a target button, so no need to check
-        if (finalConfig.buttonTargets.customSelectors.length > 0) {
           event.preventDefault();
           event.stopPropagation();
           showOfficeSelector(event);
           return false;
-        }
-        
-        // For smart detection, check if this is a target button
-        if (isCheckoutButton(button)) {
-          event.preventDefault();
-          event.stopPropagation();
-          showOfficeSelector(event);
-          return false;
-        }
-        
-        // If not a target button, call original handler
-        if (originalOnclick) {
-          return originalOnclick.call(this, event);
-        }
       };
       
       // Add visual indicator - red dot (if debug mode is enabled)
@@ -661,251 +420,11 @@
     }
   }
   
-  // Function to find and initialize all checkout buttons
-  function findAndInitializeCheckoutButtons() {
-    // Comprehensive selectors to catch all possible buttons
-    const selectors = [
-      // All buttons and submit inputs
-      'button',
-      'input[type="submit"]',
-      'input[type="button"]',
-      'a[role="button"]',
-      
-      // Specific type selectors
-      'button[type="submit"]',
-      'button[type="button"]',
-      
-      // Class-based selectors
-      'button[class*="checkout"]',
-      'button[class*="buy-now"]',
-      'button[class*="buy"]',
-      'button[class*="payment"]',
-      'button[class*="cart"]',
-      'button[class*="proceed"]',
-      'button[class*="add-to-cart"]',
-      'button[class*="product-form"]',
-      'button[class*="shopify-payment"]',
-      
-      // ID-based selectors
-      'button[id*="checkout"]',
-      'button[id*="buy-now"]',
-      'button[id*="buy"]',
-      'button[id*="payment"]',
-      'button[id*="cart"]',
-      'button[id*="proceed"]',
-      'button[id*="add-to-cart"]',
-      'button[id*="product"]',
-      
-      // Link-based selectors
-      'a[class*="checkout"]',
-      'a[class*="buy-now"]',
-      'a[class*="buy"]',
-      'a[class*="payment"]',
-      'a[class*="cart"]',
-      'a[class*="proceed"]',
-      'a[id*="checkout"]',
-      'a[id*="buy-now"]',
-      'a[id*="buy"]',
-      'a[id*="payment"]',
-      'a[id*="cart"]',
-      'a[id*="proceed"]'
-    ];
-    
-    const buttons = [];
-    selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(el => buttons.push(el));
-    });
-    
-    buttons.forEach(button => {
-      if (isCheckoutButton(button)) {
-        addOurCheckoutHandler(button);
-      }
-    });
-  }
-  
-  // Monitor the DOM for changes to catch when buttons appear
-  function startObserving() {
-    // Check for checkout buttons (reduced frequency to avoid console spam)
-    
-    // Also use MutationObserver for more efficient monitoring
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              if (isCheckoutButton(node)) {
-                addOurCheckoutHandler(node);
-              }
-              // Also check children
-              const buttons = node.querySelectorAll ? node.querySelectorAll('button, input[type="submit"], a') : [];
-              buttons.forEach(button => {
-                if (isCheckoutButton(button)) {
-                  addOurCheckoutHandler(button);
-                }
-              });
-              
-              // Check for custom web components (Shopify Accelerated Checkout)
-              const customButtons = node.querySelectorAll ? node.querySelectorAll('shopify-buy-it-now-button button, shopify-accelerated-checkout button, .shopify-payment-button__button') : [];
-              if (customButtons.length > 0) {
-                console.log('🔍 MutationObserver found custom buttons:', customButtons.length);
-                customButtons.forEach((button, index) => {
-                  console.log(`🔍 MO Custom button ${index}:`, {
-                    tagName: button.tagName,
-                    className: button.className,
-                    textContent: button.textContent?.trim(),
-                    isTarget: isCheckoutButton(button)
-                  });
-                  
-                  if (isCheckoutButton(button)) {
-                    console.log('✅ MO Adding handler to custom button');
-                    addOurCheckoutHandler(button);
-                  }
-                });
-              }
-            }
-          });
-        }
-      });
-    });
-    
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class', 'style', 'display', 'visibility']
-    });
-    
-   
-  }
 
   // Make showOfficeSelector available globally for testing
   window.showOfficeSelector = showOfficeSelector;
 
-  // Start when the page loads
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startObserving);
-  } else {
-    startObserving();
-  }
-  
-  // Also scan for custom web components immediately
-  setTimeout(() => {
-    console.log('🔍 Scanning for custom web components...');
-    const customButtons = document.querySelectorAll('shopify-buy-it-now-button button, shopify-accelerated-checkout button, .shopify-payment-button__button');
-    console.log('🔍 Found custom buttons:', customButtons.length);
-    
-    customButtons.forEach((button, index) => {
-      console.log(`🔍 Custom button ${index}:`, {
-        tagName: button.tagName,
-        className: button.className,
-        textContent: button.textContent?.trim(),
-        isTarget: isCheckoutButton(button)
-      });
-      
-      if (isCheckoutButton(button)) {
-        console.log('✅ Adding handler to custom button');
-        addOurCheckoutHandler(button);
-      }
-    });
-  }, 1000); // Wait 1 second for custom elements to load
 
-  // Test function to analyze button HTML
-  function testButtonDetection(buttonHtml) {
-    
-    // Create a temporary element to parse the HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = buttonHtml;
-    const button = tempDiv.firstElementChild;
-    
-    if (!button) {
-      return;
-    }
-    
-    // Run the detection logic
-    const tagName = button.tagName.toLowerCase();
-    const text = button.textContent?.toLowerCase().trim() || '';
-    const className = button.className?.toLowerCase() || '';
-    const id = button.id?.toLowerCase() || '';
-    const type = button.type?.toLowerCase() || '';
-    const name = button.name?.toLowerCase() || '';
-
-    // Smart detection patterns for different Shopify themes
-    const patterns = {
-      // Primary target: All submit buttons (covers most checkout/buy now buttons)
-      submitButtons: [
-        type === 'submit'
-      ],
-      
-      // Buy Now / Quick Buy patterns
-      buyNow: [
-        // Text patterns
-        text.includes('buy now') || text.includes('buy it now') || text.includes('купи сега'),
-        // Class patterns
-        className.includes('buy-now') || className.includes('quick-buy') || className.includes('shopify-payment-button'),
-        // ID patterns
-        id.includes('buy-now') || id.includes('quick-buy'),
-        // Type patterns
-        type === 'button' && (className.includes('payment') || className.includes('checkout')),
-        // Specific Shopify payment button pattern
-        type === 'button' && className.includes('shopify-payment-button__button') && className.includes('shopify-payment-button__button--unbranded')
-      ],
-      
-      // Checkout patterns
-      checkout: [
-        // Text patterns
-        text.includes('checkout') || text.includes('proceed to checkout') || text.includes('go to checkout') || 
-        text.includes('завърши поръчката') || text.includes('продължи към плащане'),
-        // Class patterns
-        className.includes('checkout') || className.includes('cart-checkout') || className.includes('proceed'),
-        // Specific cart checkout button pattern
-        className.includes('cart__checkout-button') && className.includes('button'),
-        // ID patterns
-        id.includes('checkout') || id.includes('cart-checkout') || id.includes('proceed'),
-        // Form submit patterns
-        (type === 'submit' && (className.includes('checkout') || name.includes('checkout')))
-      ],
-      
-      // Exclude patterns (Add to Cart, etc.)
-      exclude: [
-        // Add to Cart patterns
-        text.includes('add to cart') || text.includes('добави в кошницата') || text.includes('add to bag'),
-        className.includes('add-to-cart') || className.includes('cart-add') || className.includes('product-form__submit'),
-        id.includes('add-to-cart') || id.includes('cart-add') || id.startsWith('productsubmitbutton-'),
-        name.includes('add') && (name.includes('cart') || name.includes('product')),
-        // Other exclusions
-        className.includes('close') || className.includes('remove') || className.includes('delete'),
-        button.getAttribute('aria-label')?.toLowerCase().includes('close') ||
-        button.getAttribute('aria-label')?.toLowerCase().includes('remove')
-      ]
-    };
-
-    // Check if button matches any exclusion patterns
-    const isExcluded = patterns.exclude.some(pattern => pattern);
-    if (isExcluded) {
-      return 'EXCLUDED';
-    }
-
-    // Check if button matches any target patterns
-    const isSubmitButton = patterns.submitButtons.some(pattern => pattern);
-    const isBuyNow = patterns.buyNow.some(pattern => pattern);
-    const isCheckout = patterns.checkout.some(pattern => pattern);
-    const isTargetButton = isSubmitButton || isBuyNow || isCheckout;
-
-    if (isSubmitButton) {
-      return 'SUBMIT_BUTTON';
-    } else if (isBuyNow) {
-      return 'BUY_NOW';
-    } else if (isCheckout) {
-      return 'CHECKOUT';
-    } else {
-      return 'NOT_DETECTED';
-    }
-  }
-
-
-  // Make functions globally available for testing
-  window.testButtonDetection = testButtonDetection;
 
   // When page loads, make cart data globally available
   document.addEventListener('DOMContentLoaded', function() {

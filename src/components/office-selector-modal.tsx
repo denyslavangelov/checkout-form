@@ -83,8 +83,6 @@ export function OfficeSelectorModal({
     }
   }
 }: OfficeSelectorModalProps) {
-  // Debug logging for font family
-  console.log('🏢 Office Selector: Font family config:', config.font?.family);
   
   // Font loading state (removed - fonts load asynchronously without blocking UI)
   
@@ -115,17 +113,14 @@ export function OfficeSelectorModal({
       
       if (isGoogleFont(extractedFont)) {
         try {
-          console.log(`🔄 Loading Google Font: ${extractedFont} (weights: ${weights.join(', ')})`);
           await loadGoogleFont({ 
             family: extractedFont,
             weights: weights
           });
-          console.log(`✅ Google Font loaded: ${extractedFont} with weights ${weights.join(', ')}`);
         } catch (error) {
           console.warn(`⚠️ Failed to load Google Font ${extractedFont}:`, error);
         }
       } else {
-        console.log(`📝 Using system font: ${fontFamily} (weight: ${fontWeight || '400'})`);
       }
     };
     
@@ -211,17 +206,6 @@ export function OfficeSelectorModal({
       
       // No fallback credentials - require proper configuration
       
-      // Debug logging for credentials
-      console.log('🔑 Shopify credentials check:', {
-        hasConfigShopify: !!config.shopify,
-        configStoreUrl: config.shopify?.storeUrl,
-        configAccessToken: config.shopify?.accessToken ? '***' + config.shopify.accessToken.slice(-4) : 'none',
-        finalStoreUrl: storeUrl,
-        finalAccessToken: accessToken ? '***' + accessToken.slice(-4) : 'none',
-        hasStoreUrl: !!storeUrl,
-        hasAccessToken: !!accessToken,
-        fullConfig: config
-      });
       
       // Validate Shopify credentials
       if (!storeUrl || !accessToken) {
@@ -271,7 +255,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   // Load shipping methods when component mounts or config changes (non-blocking)
   useEffect(() => {
     if (isOpen && config.shopify?.storeUrl && config.shopify?.accessToken) {
-      console.log('🏢 Config is ready, fetching shipping methods');
       // Start fetching immediately but don't block UI
       fetchShippingMethods();
     }
@@ -287,7 +270,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
       try {
         setLoadingCartData(true);
-        console.log('🛒 Fetching cart data to check free shipping eligibility...');
         
         const cartData = await getCartDataFromParent() as any;
         
@@ -298,7 +280,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             if (storedCartData) {
               const parsedData = JSON.parse(storedCartData);
               setCartTotal(parsedData.total_price || 0);
-              console.log('🛒 Cart total from localStorage:', parsedData.total_price);
             }
           } catch (error) {
             console.error('Error getting cart data from localStorage:', error);
@@ -307,12 +288,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           // Cart total is in cents, so we need to convert to BGN
           const totalInBGN = (cartData.total_price || 0) / 100;
           setCartTotal(cartData.total_price || 0);
-          console.log('🛒 Cart total fetched:', {
-            totalCents: cartData.total_price,
-            totalBGN: totalInBGN,
-            freeShippingConfig: config.freeShipping,
-            isFreeShipping: config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold
-          });
         }
       } catch (error) {
         console.error('Error fetching cart data for free shipping check:', error);
@@ -792,7 +767,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             ...shippingMethodToSend,
             price: '0.00'
           };
-          console.log('🎉 Free shipping applied! Cart total:', totalInBGN, 'BGN');
         }
         
         // Create draft order with cart items and office address
@@ -840,29 +814,18 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
         const data = await response.json();   
         
-        // Debug logging to see what response we got
-        console.log('Draft order creation response:', JSON.stringify(data, null, 2));
         
         // Handle nested response structure from draft order API
         const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
         const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
         
-        console.log('🏢 Draft order response received:', {
-          success: data.success,
-          checkoutUrl: checkoutUrl,
-          invoiceUrl: invoiceUrl,
-          fullResponse: data
-        });
         
         // Prioritize invoiceUrl as it's the customer-facing checkout URL
         if (invoiceUrl) {
-          console.log('🏢 Using invoiceUrl for redirection:', invoiceUrl);
           onOrderCreated(invoiceUrl);
         } else if (checkoutUrl) {
-          console.log('🏢 Using checkoutUrl for redirection:', checkoutUrl);
           onOrderCreated(checkoutUrl);
         } else {
-          console.error('❌ No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
         }
         return;
@@ -930,22 +893,13 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
       const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
       
-      console.log('🏢 Buy Now - Draft order response received:', {
-        success: data.success,
-        checkoutUrl: checkoutUrl,
-        invoiceUrl: invoiceUrl,
-        fullResponse: data
-      });
       
       // Prioritize invoiceUrl as it's the customer-facing checkout URL
       if (invoiceUrl) {
-        console.log('🏢 Buy Now - Using invoiceUrl for redirection:', invoiceUrl);
         onOrderCreated(invoiceUrl);
       } else if (checkoutUrl) {
-        console.log('🏢 Buy Now - Using checkoutUrl for redirection:', checkoutUrl);
         onOrderCreated(checkoutUrl);
       } else {
-        console.error('❌ Buy Now - No checkout URL or invoice URL in response:', data);
         throw new Error('No checkout URL received');
       }
 

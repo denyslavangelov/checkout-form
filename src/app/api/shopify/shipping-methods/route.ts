@@ -49,16 +49,12 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 Starting shipping methods fetch via GraphQL...');
-    console.log('📡 Request URL:', request.url);
-    console.log('📡 Request headers:', Object.fromEntries(request.headers.entries()));
 
     // Extract Shopify credentials from query parameters
     const { searchParams } = new URL(request.url);
     const storeUrl = searchParams.get('storeUrl');
     const accessToken = searchParams.get('accessToken');
     
-    console.log('🔑 Extracted credentials:', {
       storeUrl: storeUrl,
       hasAccessToken: !!accessToken,
       accessTokenPreview: accessToken ? accessToken.substring(0, 10) + '...' : 'none'
@@ -97,11 +93,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log('🔑 Using Shopify credentials:', { storeUrl, accessToken: accessToken.substring(0, 10) + '...' });
 
     const graphqlUrl = `https://${storeUrl}/admin/api/2024-01/graphql.json`;
-    console.log('🌐 Making GraphQL request to:', graphqlUrl);
-    console.log('📝 GraphQL query:', SHIPPING_METHODS_QUERY);
 
     const response = await fetch(graphqlUrl, {
       method: 'POST',
@@ -114,7 +107,6 @@ export async function GET(request: NextRequest) {
       })
     });
     
-    console.log('📡 GraphQL response status:', {
       status: response.status,
       statusText: response.statusText,
       headers: Object.fromEntries(response.headers.entries())
@@ -145,7 +137,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('📦 GraphQL response data:', {
       hasData: !!data.data,
       hasErrors: !!data.errors,
       errors: data.errors,
@@ -177,7 +168,6 @@ export async function GET(request: NextRequest) {
 
     // Process the GraphQL response
     const deliveryProfiles = data.data?.deliveryProfiles?.nodes || [];
-    console.log('🏪 Processing delivery profiles:', {
       profileCount: deliveryProfiles.length,
       profiles: deliveryProfiles.map((p: any) => ({
         hasLocationGroups: !!p.profileLocationGroups,
@@ -188,26 +178,22 @@ export async function GET(request: NextRequest) {
     const allShippingMethods: any[] = [];
     
     deliveryProfiles.forEach((profile: any, profileIndex: number) => {
-      console.log(`📦 Processing profile ${profileIndex + 1}:`, {
         hasLocationGroups: !!profile.profileLocationGroups,
         locationGroupCount: profile.profileLocationGroups?.length || 0
       });
       
       profile.profileLocationGroups?.forEach((locationGroup: any, groupIndex: number) => {
-        console.log(`📍 Processing location group ${groupIndex + 1}:`, {
           hasZones: !!locationGroup.locationGroupZones,
           zoneCount: locationGroup.locationGroupZones?.nodes?.length || 0
         });
         
         locationGroup.locationGroupZones?.nodes?.forEach((zone: any, zoneIndex: number) => {
-          console.log(`🌍 Processing zone ${zoneIndex + 1}:`, {
             zoneName: zone.zone?.name,
             hasMethods: !!zone.methodDefinitions,
             methodCount: zone.methodDefinitions?.nodes?.length || 0
           });
           
           zone.methodDefinitions?.nodes?.forEach((method: any, methodIndex: number) => {
-            console.log(`🚚 Processing method ${methodIndex + 1}:`, {
               name: method.name,
               rateProviderType: method.rateProvider?.__typename,
               hasPrice: !!method.rateProvider?.price
@@ -234,7 +220,6 @@ export async function GET(request: NextRequest) {
               rateProviderType: method.rateProvider?.__typename || 'Unknown'
             };
             
-            console.log(`✅ Created shipping method:`, shippingMethod);
             allShippingMethods.push(shippingMethod);
           });
         });
@@ -242,8 +227,6 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter for Bulgaria-specific methods (Domestic zone and Bulgarian shipping methods)
-    console.log('🔍 Filtering for Bulgaria-specific methods...');
-    console.log('📋 All methods before filtering:', allShippingMethods.map(m => ({
       name: m.name,
       zone: m.zone,
       price: m.price,
@@ -262,11 +245,9 @@ export async function GET(request: NextRequest) {
         method.name?.toLowerCase().includes('личен');
       
       const isMatch = zoneMatch || nameMatch;
-      console.log(`🔍 Method "${method.name}" (${method.zone}): zoneMatch=${zoneMatch}, nameMatch=${nameMatch}, isMatch=${isMatch}`);
       return isMatch;
     });
 
-    console.log('📊 GraphQL Shipping Methods Results:', {
       total: allShippingMethods.length,
       bulgariaRelevant: bulgariaMethods.length,
       bulgariaMethods: bulgariaMethods.map(m => ({

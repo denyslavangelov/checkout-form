@@ -51,14 +51,6 @@ export async function GET(request: Request) {
   // Set the config on window for the integration script to use
   window.officeSelectorConfig = config;
 
-  // Log the configuration being used
-  console.log('🏢 Embedded script loaded with config:', {
-    hasShopify: !!config.shopify,
-    storeUrl: config.shopify?.storeUrl,
-    accessToken: config.shopify?.accessToken ? '***' + config.shopify.accessToken.slice(-4) : 'none',
-    availableCouriers: config.availableCouriers,
-    defaultCourier: config.defaultCourier
-  });
 
   // Now include the actual integration script
   ${fileContent}
