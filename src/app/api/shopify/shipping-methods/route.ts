@@ -54,11 +54,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const storeUrl = searchParams.get('storeUrl');
     const accessToken = searchParams.get('accessToken');
-    
-      storeUrl: storeUrl,
-      hasAccessToken: !!accessToken,
-      accessTokenPreview: accessToken ? accessToken.substring(0, 10) + '...' : 'none'
-    });
 
     // Validate required credentials
     if (!storeUrl) {
@@ -106,11 +101,6 @@ export async function GET(request: NextRequest) {
         query: SHIPPING_METHODS_QUERY
       })
     });
-    
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -137,12 +127,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-      hasData: !!data.data,
-      hasErrors: !!data.errors,
-      errors: data.errors,
-      dataKeys: data.data ? Object.keys(data.data) : [],
-      fullResponse: data
-    });
 
     if (data.errors && Array.isArray(data.errors)) {
       console.error('❌ GraphQL errors received:', {
@@ -168,36 +152,13 @@ export async function GET(request: NextRequest) {
 
     // Process the GraphQL response
     const deliveryProfiles = data.data?.deliveryProfiles?.nodes || [];
-      profileCount: deliveryProfiles.length,
-      profiles: deliveryProfiles.map((p: any) => ({
-        hasLocationGroups: !!p.profileLocationGroups,
-        locationGroupCount: p.profileLocationGroups?.length || 0
-      }))
-    });
     
     const allShippingMethods: any[] = [];
     
     deliveryProfiles.forEach((profile: any, profileIndex: number) => {
-        hasLocationGroups: !!profile.profileLocationGroups,
-        locationGroupCount: profile.profileLocationGroups?.length || 0
-      });
-      
       profile.profileLocationGroups?.forEach((locationGroup: any, groupIndex: number) => {
-          hasZones: !!locationGroup.locationGroupZones,
-          zoneCount: locationGroup.locationGroupZones?.nodes?.length || 0
-        });
-        
         locationGroup.locationGroupZones?.nodes?.forEach((zone: any, zoneIndex: number) => {
-            zoneName: zone.zone?.name,
-            hasMethods: !!zone.methodDefinitions,
-            methodCount: zone.methodDefinitions?.nodes?.length || 0
-          });
-          
           zone.methodDefinitions?.nodes?.forEach((method: any, methodIndex: number) => {
-              name: method.name,
-              rateProviderType: method.rateProvider?.__typename,
-              hasPrice: !!method.rateProvider?.price
-            });
             
             // Extract price information from rateProvider
             let price = '0.00';
@@ -227,11 +188,6 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter for Bulgaria-specific methods (Domestic zone and Bulgarian shipping methods)
-      name: m.name,
-      zone: m.zone,
-      price: m.price,
-      currency: m.currency
-    })));
     
     const bulgariaMethods = allShippingMethods.filter(method => {
       const zoneMatch = method.zone?.toLowerCase().includes('domestic');
@@ -248,15 +204,6 @@ export async function GET(request: NextRequest) {
       return isMatch;
     });
 
-      total: allShippingMethods.length,
-      bulgariaRelevant: bulgariaMethods.length,
-      bulgariaMethods: bulgariaMethods.map(m => ({
-        name: m.name,
-        zone: m.zone,
-        price: m.price,
-        currency: m.currency
-      }))
-    });
 
     return NextResponse.json({
       success: true,

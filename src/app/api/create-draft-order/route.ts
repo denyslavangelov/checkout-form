@@ -127,11 +127,6 @@ export async function POST(request: NextRequest) {
           currencyCode: shippingCurrency
         }
       };
-        title: shippingTitle,
-        price: shippingPrice,
-        currency: shippingCurrency,
-        fullMethod: selectedShippingMethod
-      });
     } else if (selectedShippingMethodId) {
       // Fallback: use just the ID without price (will default to 0.00)
       shippingLine = {
@@ -162,9 +157,6 @@ export async function POST(request: NextRequest) {
         `customer-first-name:${customerInfo.firstName}`,
         `customer-last-name:${customerInfo.lastName}`
       ];
-        firstName: customerInfo.firstName,
-        lastName: customerInfo.lastName
-      });
     }
 
     // Add shipping line if available
@@ -242,14 +234,6 @@ export async function POST(request: NextRequest) {
       
       const draftOrderId = draftOrder.id.split('/').pop();
       const constructedCheckoutUrl = `https://${STORE_URL}/admin/draft_orders/${draftOrderId}/checkout`;
-      
-        id: draftOrder.id,
-        name: draftOrder.name,
-        status: draftOrder.status,
-        totalPrice: draftOrder.totalPrice,
-        invoiceUrl: draftOrder.invoiceUrl,
-        constructedCheckoutUrl: constructedCheckoutUrl
-      });
       
       return NextResponse.json({
         success: true,
