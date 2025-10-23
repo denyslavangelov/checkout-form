@@ -41,6 +41,7 @@
       // Enhanced targeting by class and name
       targetByClass: [], // Array of class names to target
       targetByName: [], // Array of name attributes to target
+      targetByText: [], // Array of text content to target
       targetByClassAndName: [] // Array of objects with both class and name: [{class: 'btn', name: 'checkout'}]
     }
   };
@@ -488,6 +489,16 @@
       }
     }
     
+    // Target by text content
+    if (finalConfig.buttonTargets.targetByText.length > 0) {
+      const textMatch = finalConfig.buttonTargets.targetByText.some(targetText => {
+        return text.includes(targetText.toLowerCase());
+      });
+      if (textMatch) {
+        return true;
+      }
+    }
+    
     // Target by both class and name (must match both)
     if (finalConfig.buttonTargets.targetByClassAndName.length > 0) {
       const classAndNameMatch = finalConfig.buttonTargets.targetByClassAndName.some(target => {
@@ -503,6 +514,7 @@
     // If we have any enhanced targeting configured, don't use smart detection
     const hasEnhancedTargeting = finalConfig.buttonTargets.targetByClass.length > 0 ||
                                 finalConfig.buttonTargets.targetByName.length > 0 ||
+                                finalConfig.buttonTargets.targetByText.length > 0 ||
                                 finalConfig.buttonTargets.targetByClassAndName.length > 0;
     
     if (hasEnhancedTargeting) {
