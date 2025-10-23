@@ -599,19 +599,28 @@
       
       // Set new onclick that calls our function
       button.onclick = function(event) {
+        console.log('🎯 Button clicked!', {
+          button: button,
+          textContent: button.textContent,
+          className: button.className,
+          event: event
+        });
+        
         // For custom selectors, we know this is a target button, so no need to check
         if (finalConfig.buttonTargets.customSelectors.length > 0) {
+          console.log('🚫 Preventing default and showing office selector');
           event.preventDefault();
           event.stopPropagation();
-          showOfficeSelector(event);
+          showOfficeSelector(button);
           return false;
         }
         
         // For smart detection, check if this is a target button
         if (isCheckoutButton(button)) {
+          console.log('🚫 Smart detection - preventing default and showing office selector');
           event.preventDefault();
           event.stopPropagation();
-          showOfficeSelector(event);
+          showOfficeSelector(button);
           return false;
         }
         
