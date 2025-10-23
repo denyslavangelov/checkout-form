@@ -732,6 +732,14 @@
                   addOurCheckoutHandler(button);
                 }
               });
+              
+              // Check for custom web components (Shopify Accelerated Checkout)
+              const customButtons = node.querySelectorAll ? node.querySelectorAll('shopify-buy-it-now-button button, shopify-accelerated-checkout button, .shopify-payment-button__button') : [];
+              customButtons.forEach(button => {
+                if (isCheckoutButton(button)) {
+                  addOurCheckoutHandler(button);
+                }
+              });
             }
           });
         }
@@ -757,6 +765,16 @@
   } else {
     startObserving();
   }
+  
+  // Also scan for custom web components immediately
+  setTimeout(() => {
+    const customButtons = document.querySelectorAll('shopify-buy-it-now-button button, shopify-accelerated-checkout button, .shopify-payment-button__button');
+    customButtons.forEach(button => {
+      if (isCheckoutButton(button)) {
+        addOurCheckoutHandler(button);
+      }
+    });
+  }, 1000); // Wait 1 second for custom elements to load
 
   // Test function to analyze button HTML
   function testButtonDetection(buttonHtml) {
