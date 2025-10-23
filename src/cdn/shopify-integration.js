@@ -45,6 +45,13 @@
     }
   };
   
+  // Debug logging for config merge
+  console.log('🔧 CDN Debug - Original window.officeSelectorConfig:', config);
+  console.log('🔧 CDN Debug - Has freeShipping:', !!config.freeShipping);
+  if (config.freeShipping) {
+    console.log('🔧 CDN Debug - freeShipping details:', config.freeShipping);
+  }
+
   // Merge user config with defaults
   const finalConfig = {
     ...defaultConfig,
@@ -57,7 +64,10 @@
       ...defaultConfig.buttonTargets,
       ...(config.buttonTargets || {})
     }
-  };    
+  };
+
+  console.log('🔧 CDN Debug - Final merged config:', finalConfig);
+  console.log('🔧 CDN Debug - Final config has freeShipping:', !!finalConfig.freeShipping);    
 
   // Office selector iframe container
   const OFFICE_SELECTOR_HTML = `
