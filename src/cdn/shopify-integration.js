@@ -1,5 +1,5 @@
 /**
- * Office Selector CDN Integration Script
+ * Office Selector CDN Integration Script - Simplified Version
  * 
  * To configure Shopify credentials, set window.officeSelectorConfig before loading this script:
  * 
@@ -11,10 +11,13 @@
  *   },
  *   availableCouriers: ['speedy', 'econt'],
  *   defaultCourier: 'speedy',
- *   defaultDeliveryType: 'office'
+ *   defaultDeliveryType: 'office',
+ *   buttonTargets: {
+ *     targetByClass: ['cart__checkout-button', 'checkout-button']
+ *   }
  * };
  * </script>
- * <script src="https://checkout-form-zeta.vercel.app/cdn/shopify-integration.js"></script>
+ * <script src="https://checkout-form-zeta. brainly.com/cdn/shopify-integration.js"></script>
  */
 (function() {
   'use strict';
@@ -32,8 +35,8 @@
       accessToken: '' // Shopify access token (e.g., 'shpat_...')
     },
     buttonTargets: {
-      targetByClass: [], // Array of class names to target (e.g., ['cart__checkout-button', 'checkout-btn'])
-      debugMode: false // Show red dots on targeted buttons for debugging
+      targetByClass: [], // Array of class names to target
+      debugMode: false // Show red dots on targeted buttons
     }
   };
   
@@ -87,9 +90,34 @@
     ></iframe>
   `;
   
-  // Initialize button targeting by class names
+  // Log the targeting mode
   if (finalConfig.buttonTargets.targetByClass.length > 0) {
-    initializeClassBasedTargeting();
+    console.log('🎯 Using class-based targeting mode');
+  } else {
+    console.log('🎯 No class targeting configured - using fallback detection');
+  }
+
+  // Simple class-based targeting or fallback detection
+  if (finalConfig.buttonTargets.targetByClass.length > 0) {
+    // Class-based targeting
+    findAndInitializeCheckoutButtons();
+  } else {
+    // Fallback: use onclick override for smart detection
+    const originalOnClickDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick');
+    
+    Object.defineProperty(HTMLElement.prototype, 'onclick', {
+        set: function(value) {
+          const result = originalOnClickDescriptor.set.call(this, value);
+          
+          // Add our handler after a short delay to ensure it runs after the original
+          setTimeout(() => {
+            addOurCheckoutHandler(this);
+          }, 100);
+        
+        return result;
+      },
+      get: originalOnClickDescriptor.get
+    });
   }
 
   // Function to show office selector
@@ -133,309 +161,197 @@
           }
         }
       }
-      
-      // Get quantity from the form or button
-      let quantity = 1; // Default quantity
-      if (button.dataset.quantity) {
-        quantity = parseInt(button.dataset.quantity) || 1;
-      } else {
-        // Try to find quantity input in the form
-        const productForm = button.closest('form[action*="/cart/add"]');
-        if (productForm) {
-          const quantityInput = productForm.querySelector('input[name="quantity"]');
-          if (quantityInput) {
-            quantity = parseInt(quantityInput.value) || 1;
-          }
-        }
-      }
-      
-      // Add quantity to product data
-      if (productData) {
-        productData.quantity = quantity;
-      }
-      
-      // If no product data found, use test data
-      if (!productData) {
-        productData = {
-          productId: '8378591772803',
-          variantId: '44557290995843'
-        };
-      }
     } else {
-      // For regular checkout, this is a cart checkout
+      // For checkout buttons, this is a cart checkout
       isCartCheckout = true;
       productData = {
         productId: 'cart',
-        variantId: 'cart',
-        isCartCheckout: true
+        variantId: 'cart'
       };
     }
     
-    // Production URL for live sites - can be overridden by config
-    const baseUrl = config.baseUrl || 'https://checkout-form-zeta.vercel.app';
-    
-    // Add backdrop and iframe to page if not already there
-    if (!document.getElementById('office-selector-iframe')) {
-      document.body.insertAdjacentHTML('beforeend', OFFICE_SELECTOR_HTML);
+    if (!productData) {
+      console.error('❌ Could not determine product data for button:', button);
+      return;
     }
     
-    // Show the backdrop and iframe
+    // Show the office selector
+    showOfficeSelectorModal(productData, isCartCheckout);
+  }
+
+  // Function to show office selector modal
+  function showOfficeSelectorModal(productData, isCartCheckout) {
+    // Create and show the modal
+    const modalHtml = OFFICE_SELECTOR_HTML;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
     const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
-    if (backdrop && iframe) {
-      // Show backdrop first for immediate visual feedback
-      backdrop.style.display = 'block';
+    // Show the modal
+    backdrop.style.display = 'block';
+    iframe.style.display = 'block';
+    
+    // Set iframe source with product data and configuration
+    const configParam = encodeURIComponent(JSON.stringify(finalConfig));
+    const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
+    const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
+    
+    iframe.src = officeSelectorUrl;
+    
+    // Listen for messages from the iframe
+    const messageHandler = (event) => {
+      // Allow messages from our iframe domain
+      const allowedOrigins = [
+        'https://checkout-form-zeta.vercel.app',
+        baseUrl
+      ];
       
-      // Add click handler to backdrop to close modal
-      backdrop.onclick = (e) => {
-        if (e.target === backdrop) {
-          hideOfficeSelector();
-        }
-      };
+      if (!allowedOrigins.includes(event.origin)) {
+        return;
+      }
       
-      // Disable body scrolling
-      document.body.style.overflow = 'hidden';
-      
-      // Add keyboard support (ESC key)
-      const handleKeyDown = (e) => {
-        if (e.key === 'Escape') {
-          hideOfficeSelector();
-          document.removeEventListener('keydown', handleKeyDown);
-        }
-      };
-      document.addEventListener('keydown', handleKeyDown);
-      
-      // Set iframe source with product data and configuration
-      const configParam = encodeURIComponent(JSON.stringify(finalConfig));
-      const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
-      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
-      
-      
-      iframe.src = officeSelectorUrl;
-      
-      iframe.style.display = 'block';
-      
-      // Listen for messages from the iframe
-      const messageHandler = (event) => {
-        
-        // Allow messages from our iframe domain
-        const allowedOrigins = [
-          'https://checkout-form-zeta.vercel.app',
-          baseUrl
-        ];
-        
-        
-        if (!allowedOrigins.includes(event.origin)) {
-          return;
-        }
-        
-        
-        if (event.data.type === 'iframe-ready') {
-        } else if (event.data.type === 'office-selector-closed') {
-          hideOfficeSelector();
-          window.removeEventListener('message', messageHandler);
-        } else if (event.data.type === 'order-created') {
-          window.location.href = event.data.checkoutUrl;
-          hideOfficeSelector();
-          window.removeEventListener('message', messageHandler);
-        } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
-          
-          // Fetch fresh cart data from Shopify
-          fetch('/cart.js')
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-              }
-              return response.json();
-            })
-            .then(freshCartData => {
-              
-              // Update global cart data
-              window.shopifyCart = freshCartData;
-              window.cartData = freshCartData;
-              
-              // Store in localStorage for Chrome mobile fallback
-              try {
-                localStorage.setItem('shopify-cart-data', JSON.stringify(freshCartData));
-              } catch (error) {
-              }
-              
-              // Send fresh cart data to the office selector iframe
-              if (iframe.contentWindow) {
-                
-                try {
-                  iframe.contentWindow.postMessage({
-                    type: 'cart-data',
-                    cart: freshCartData
-                  }, baseUrl);
-                } catch (error) {
-                  console.error('🏢 Error sending message to iframe:', error);
-                }
-              } else {
-                console.error('🏢 No iframe contentWindow found');
-              }
-            })
-            .catch(error => {
-              console.error('🏢 Error fetching fresh cart data:', error);
-              
-              // Fallback to cached cart data
-              const fallbackCart = window.shopifyCart || window.cartData;   
-              
-              if (iframe.contentWindow) {
-                if (fallbackCart) {
-                  iframe.contentWindow.postMessage({
-                    type: 'cart-data',
-                    cart: fallbackCart
-                  }, baseUrl);
-                } else {
-                  console.error('🏢 No fallback cart data available');
-                  iframe.contentWindow.postMessage({
-                    type: 'cart-data',
-                    cart: null
-                  }, baseUrl);
-                }
-              } else {
-                console.error('🏢 No iframe contentWindow found for fallback');
-              }
-            });
-        }
-      };
-      
-      window.addEventListener('message', messageHandler);
-    } else {
-      console.error('🏢 Office selector modal or iframe not found');
-    }
+      if (event.data?.type === 'office-selector-closed') {
+        // Close the modal
+        closeOfficeSelectorModal();
+      } else if (event.data?.type === 'order-created') {
+        // Redirect to checkout
+        window.location.href = event.data.checkoutUrl;
+      }
+    };
+    
+    window.addEventListener('message', messageHandler);
+    
+    // Close modal when backdrop is clicked
+    backdrop.addEventListener('click', closeOfficeSelectorModal);
+    
+    // Close modal when escape key is pressed
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeOfficeSelectorModal();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
   }
 
-  // Hide office selector
-  function hideOfficeSelector() {
+  // Function to close office selector modal
+  function closeOfficeSelectorModal() {
     const backdrop = document.getElementById('office-selector-backdrop');
     const iframe = document.getElementById('office-selector-iframe');
     
     if (backdrop) {
-      backdrop.style.display = 'none';
+      backdrop.remove();
     }
-    
     if (iframe) {
-      iframe.style.display = 'none';
+      iframe.remove();
     }
-    
-    // Re-enable body scrolling
-    document.body.style.overflow = '';
   }
 
-  // Initialize class-based button targeting
-  function initializeClassBasedTargeting() {
-    // Find and attach to existing buttons
-    finalConfig.buttonTargets.targetByClass.forEach(className => {
-      const buttons = document.querySelectorAll(`.${className}`);
-      
-      buttons.forEach(button => {
-        if (button && !button._hasOurHandler) {
-          addOurCheckoutHandler(button);
-        }
+  // Function to find and initialize checkout buttons using class-based targeting
+  function findAndInitializeCheckoutButtons() {
+    // Simple class-based targeting only
+    const buttons = [];
+    
+    // Find buttons by class names
+    if (finalConfig.buttonTargets.targetByClass.length > 0) {
+      finalConfig.buttonTargets.targetByClass.forEach(targetClass => {
+        const classButtons = document.querySelectorAll(`.${targetClass}`);
+        buttons.push(...Array.from(classButtons));
       });
+    }
+    
+    // Remove duplicates
+    const uniqueButtons = [...new Set(buttons)];
+    
+    // Initialize each button
+    uniqueButtons.forEach(button => {
+      initializeButton(button);
     });
     
-    // Watch for new buttons being added to the DOM
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === 1) { // Element node
-            // Check if the added node itself matches any class
-            finalConfig.buttonTargets.targetByClass.forEach(className => {
-              if (node.classList && node.classList.contains(className)) {
-                if (!node._hasOurHandler) {
-                  addOurCheckoutHandler(node);
-                }
-              }
-            });
-            
-            // Check if any child elements match our classes
-            finalConfig.buttonTargets.targetByClass.forEach(className => {
-              const newButtons = node.querySelectorAll && node.querySelectorAll(`.${className}`);
-              if (newButtons) {
-                newButtons.forEach(button => {
-                  if (!button._hasOurHandler) {
-                    addOurCheckoutHandler(button);
-                  }
-                });
-              }
+    console.log(`🎯 Initialized ${uniqueButtons.length} buttons using class-based targeting`);
+  }
+
+  // Function to initialize a button
+  function initializeButton(button) {
+    // Remove any existing listeners
+    button.removeEventListener('click', showOfficeSelector);
+    
+    // Add our click listener
+    button.addEventListener('click', showOfficeSelector);
+    
+    // Add visual indicator if debug mode is enabled
+    if (finalConfig.buttonTargets.debugMode) {
+      button.style.position = 'relative';
+      button.style.border = '2px solid red';
+      
+      // Add a small red dot
+      const dot = document.createElement('div');
+      dot.style.position = 'absolute';
+      dot.style.top = '-5px';
+      dot.style.right = '-5px';
+      dot.style.width = '10px';
+      dot.style.height = '10px';
+      dot.style.backgroundColor = 'red';
+      dot.style.borderRadius = '50%';
+      dot.style.zIndex = '9999';
+      button.appendChild(dot);
+    }
+  }
+
+  // Function to add our checkout handler (for fallback detection)
+  function addOurCheckoutHandler(element) {
+    if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+      // Check if this looks like a checkout button
+      const text = element.textContent?.toLowerCase() || '';
+      const className = element.className?.toLowerCase() || '';
+      const id = element.id?.toLowerCase() || '';
+      
+      if (text.includes('checkout') || text.includes('buy now') || text.includes('купи сега') ||
+          className.includes('checkout') || className.includes('buy-now') || className.includes('buy') ||
+          id.includes('checkout') || id.includes('buy-now') || id.includes('buy')) {
+        
+        initializeButton(element);
+      }
+    }
+  }
+
+  // Base URL for the office selector
+  const baseUrl = 'https://checkout-form-zeta.vercel.app';
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (finalConfig.buttonTargets.targetByClass.length > 0) {
+        findAndInitializeCheckoutButtons();
+      }
+    });
+  } else {
+    if (finalConfig.buttonTargets.targetByClass.length > 0) {
+      findAndInitializeCheckoutButtons();
+    }
+  }
+
+  // Also initialize when new content is added (for dynamic content)
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) { // Element node
+          if (finalConfig.buttonTargets.targetByClass.length > 0) {
+            finalConfig.buttonTargets.targetByClass.forEach(targetClass => {
+              const buttons = node.querySelectorAll(`.${targetClass}`);
+              buttons.forEach(button => {
+                initializeButton(button);
+              });
             });
           }
-        });
+        }
       });
     });
-    
-    // Start observing
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-  }
-
-  
-  // Function to add our checkout handler
-  function addOurCheckoutHandler(button) {
-    if (button && !button._hasOurHandler) {
-      button._hasOurHandler = true;
-      
-      // Store original onclick
-      const originalOnclick = button.onclick;
-      
-      // Set new onclick that calls our function
-      button.onclick = function(event) {
-          event.preventDefault();
-          event.stopPropagation();
-          showOfficeSelector(event);
-          return false;
-      };
-      
-      // Add visual indicator - red dot (if debug mode is enabled)
-      if (finalConfig.buttonTargets.debugMode) {
-        const dot = document.createElement('div');
-        dot.style.cssText = `
-          position: absolute;
-          top: 2px;
-          right: 2px;
-          width: 10px;
-          height: 10px;
-          background: #ef4444;
-          border: 2px solid white;
-          border-radius: 50%;
-          z-index: 1000;
-          pointer-events: none;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        `;
-        
-        // Make sure button has relative positioning for absolute dot
-        if (button.style.position !== 'absolute' && button.style.position !== 'relative') {
-          button.style.position = 'relative';
-        }
-        
-        button.appendChild(dot);
-      }
-      
-    }
-  }
-  
-
-  // Make showOfficeSelector available globally for testing
-  window.showOfficeSelector = showOfficeSelector;
-
-
-
-  // When page loads, make cart data globally available
-  document.addEventListener('DOMContentLoaded', function() {
-    // Get cart data on page load and make it available for the checkout form
-    fetch('/cart.js')
-      .then(response => response.json())
-      .then(cartData => {
-        window.shopifyCart = cartData;
-        // Store for checkout form
-        window.cartData = cartData;
-      })
-      .catch(error => console.error('Error fetching cart data:', error));
   });
-})(); 
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+})();

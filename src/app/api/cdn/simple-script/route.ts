@@ -45,6 +45,14 @@ export async function GET(request: Request) {
   // Set the configuration
   window.officeSelectorConfig = ${JSON.stringify(embeddedConfig, null, 2)};
 
+  // Log the configuration
+  console.log('🏢 Simple script loaded with config:', {
+    hasShopify: !!window.officeSelectorConfig.shopify,
+    storeUrl: window.officeSelectorConfig.shopify?.storeUrl,
+    accessToken: window.officeSelectorConfig.shopify?.accessToken ? '***' + window.officeSelectorConfig.shopify.accessToken.slice(-4) : 'none',
+    availableCouriers: window.officeSelectorConfig.availableCouriers,
+    defaultCourier: window.officeSelectorConfig.defaultCourier
+  });
 
   // Include the integration script
   ${fileContent}

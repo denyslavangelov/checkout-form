@@ -98,6 +98,7 @@ export function Combobox({
   // Debug mount/unmount
   React.useEffect(() => {
     
+    console.log('Combobox mounting with:', {
       optionsCount: options.length,
       type,
       value,
@@ -107,6 +108,7 @@ export function Combobox({
     
     return () => {
       
+      console.log('Combobox unmounting with:', {
         finalValue: internalValue,
         type,
         optionsCount: options.length
@@ -121,6 +123,7 @@ export function Combobox({
       return
     }
 
+    console.log('Value prop changed:', { 
       from: internalValue, 
       to: value,
       hasOptions: options.length > 0,
@@ -193,10 +196,12 @@ export function Combobox({
   
   // When search changes, keep dropdown open
   const handleSearchChange = React.useCallback((value: string) => {
+    console.log('Search changed:', value);
     setSearchValue(value);
     
     // Don't clear selection when typing
     if (value === '' && internalValue) {
+      console.log('Search field cleared, resetting selection');
       setInternalValue('');
       onChange('');
     }
@@ -213,9 +218,11 @@ export function Combobox({
       try {
         // If the value is long enough, trigger search
         if (value.length >= minimumLength) {
+          console.log(`Search term meets ${minimumLength} char threshold, triggering search`);
           onSearch(value);
         } else if (value.length === 0) {
           // If the search field is cleared, reset the search
+          console.log('Search field cleared, resetting search');
           onSearch('');
         }
       } catch (error) {
@@ -226,6 +233,7 @@ export function Combobox({
   }, [onSearch, open, onChange, internalValue, isMobile]);
   
   const handleSelect = React.useCallback((optionValue: string) => {
+    console.log('handleSelect called with:', {
       optionValue,
       currentValue: internalValue,
       options: options.length,
@@ -235,6 +243,7 @@ export function Combobox({
     const selectedOption = options.find(opt => opt.value === optionValue)
     
     if (selectedOption) {
+      console.log('Found selected option:', selectedOption)
       setSearchValue(selectedOption.label)
       setInternalValue(optionValue)
       onChange(optionValue)
@@ -258,6 +267,7 @@ export function Combobox({
   const displayValue = React.useMemo(() => {
     // If we have a selected value, show it with its icon
     const selectedOption = options.find(option => option.value === internalValue)
+    console.log('Calculating display value:', {
       internalValue,
       selectedOption,
       optionsCount: options.length,
@@ -299,6 +309,7 @@ export function Combobox({
 
   // Debug logging
   React.useEffect(() => {
+    console.log('Combobox State:', {
       value,
       searchValue,
       open,
@@ -338,6 +349,7 @@ export function Combobox({
   const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
     // Stop event propagation to prevent the dropdown from opening
     e.stopPropagation();
+    console.log('Clearing selection');
     setInternalValue('');
     setSearchValue('');
     onChange('');

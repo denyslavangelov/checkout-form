@@ -50,6 +50,7 @@ export async function loadGoogleFont(options: FontLoadOptions): Promise<void> {
     // Wait for font to be loaded
     await waitForFontLoad(family);
     
+    console.log(`✅ Font loaded: ${family}`);
   } catch (error) {
     console.warn(`⚠️ Failed to load font ${family}:`, error);
     // Don't throw - let it fall back to system fonts
