@@ -13,6 +13,7 @@ export default function OfficeSelectorPage() {
     defaultCourier: 'speedy',
     defaultDeliveryType: 'office',
     showPrices: true,
+    freeShipping: undefined as { enabled: boolean; threshold: number } | undefined,
     continueButton: {
       text: 'Продължи към завършване',
       backgroundColor: 'bg-red-600',
@@ -55,6 +56,7 @@ export default function OfficeSelectorPage() {
           defaultCourier: parsedConfig.defaultCourier || 'speedy',
           defaultDeliveryType: parsedConfig.defaultDeliveryType || 'office',
           showPrices: parsedConfig.showPrices !== undefined ? parsedConfig.showPrices : true,
+          freeShipping: parsedConfig.freeShipping, // Include freeShipping configuration
           continueButton: {
             text: parsedConfig.continueButton?.text || 'Продължи към завършване',
             backgroundColor: parsedConfig.continueButton?.backgroundColor || 'bg-red-600',

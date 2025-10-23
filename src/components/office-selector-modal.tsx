@@ -313,13 +313,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             freeShippingConfig: config.freeShipping,
             isFreeShipping: config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold
           });
-          console.log('🔧 Debug - Full config object:', config);
-          console.log('🔧 Debug - freeShipping specifically:', {
-            exists: !!config.freeShipping,
-            enabled: config.freeShipping?.enabled,
-            threshold: config.freeShipping?.threshold,
-            rawValue: config.freeShipping
-          });
         }
       } catch (error) {
         console.error('Error fetching cart data for free shipping check:', error);
