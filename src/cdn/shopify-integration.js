@@ -735,11 +735,22 @@
               
               // Check for custom web components (Shopify Accelerated Checkout)
               const customButtons = node.querySelectorAll ? node.querySelectorAll('shopify-buy-it-now-button button, shopify-accelerated-checkout button, .shopify-payment-button__button') : [];
-              customButtons.forEach(button => {
-                if (isCheckoutButton(button)) {
-                  addOurCheckoutHandler(button);
-                }
-              });
+              if (customButtons.length > 0) {
+                console.log('🔍 MutationObserver found custom buttons:', customButtons.length);
+                customButtons.forEach((button, index) => {
+                  console.log(`🔍 MO Custom button ${index}:`, {
+                    tagName: button.tagName,
+                    className: button.className,
+                    textContent: button.textContent?.trim(),
+                    isTarget: isCheckoutButton(button)
+                  });
+                  
+                  if (isCheckoutButton(button)) {
+                    console.log('✅ MO Adding handler to custom button');
+                    addOurCheckoutHandler(button);
+                  }
+                });
+              }
             }
           });
         }
@@ -768,9 +779,20 @@
   
   // Also scan for custom web components immediately
   setTimeout(() => {
+    console.log('🔍 Scanning for custom web components...');
     const customButtons = document.querySelectorAll('shopify-buy-it-now-button button, shopify-accelerated-checkout button, .shopify-payment-button__button');
-    customButtons.forEach(button => {
+    console.log('🔍 Found custom buttons:', customButtons.length);
+    
+    customButtons.forEach((button, index) => {
+      console.log(`🔍 Custom button ${index}:`, {
+        tagName: button.tagName,
+        className: button.className,
+        textContent: button.textContent?.trim(),
+        isTarget: isCheckoutButton(button)
+      });
+      
       if (isCheckoutButton(button)) {
+        console.log('✅ Adding handler to custom button');
         addOurCheckoutHandler(button);
       }
     });
