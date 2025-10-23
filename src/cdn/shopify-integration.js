@@ -722,6 +722,9 @@
   // Monitor the DOM for changes to catch when buttons appear
   // Redirect interception functionality
   function interceptRedirects() {
+    // Flag to track if we're blocking a redirect
+    let isBlockingRedirect = false;
+    
     // Store original window.location methods
     const originalAssign = window.location.assign;
     const originalReplace = window.location.replace;
@@ -733,8 +736,10 @@
       
       // Check if it's a checkout redirect
       if (isCheckoutRedirect(url)) {
+        console.log('🛑 Blocking checkout redirect, showing office selector');
+        isBlockingRedirect = true;
         showOfficeSelectorModal('cart', 'cart');
-        return;
+        return false; // Prevent the redirect
       }
       
       // Allow normal redirects
@@ -747,8 +752,10 @@
       
       // Check if it's a checkout redirect
       if (isCheckoutRedirect(url)) {
+        console.log('🛑 Blocking checkout redirect, showing office selector');
+        isBlockingRedirect = true;
         showOfficeSelectorModal('cart', 'cart');
-        return;
+        return false; // Prevent the redirect
       }
       
       // Allow normal redirects
@@ -762,8 +769,10 @@
         
         // Check if it's a checkout redirect
         if (isCheckoutRedirect(url)) {
+          console.log('🛑 Blocking checkout redirect, showing office selector');
+          isBlockingRedirect = true;
           showOfficeSelectorModal('cart', 'cart');
-          return;
+          return; // Prevent the redirect
         }
         
         // Allow normal href changes
@@ -784,11 +793,41 @@
         if (isCheckoutRedirect(action) || isCheckoutForm(form)) {
           console.log('🛑 Intercepted form submission to checkout');
           event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
           showOfficeSelectorModal('cart', 'cart');
           return false;
         }
       }
     }, true);
+    
+    // Intercept clicks on links that might redirect to checkout
+    document.addEventListener('click', function(event) {
+      const link = event.target.closest('a');
+      if (link) {
+        const href = link.href || '';
+        
+        // Check if link leads to checkout
+        if (isCheckoutRedirect(href)) {
+          console.log('🛑 Intercepted link click to checkout');
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          showOfficeSelectorModal('cart', 'cart');
+          return false;
+        }
+      }
+    }, true);
+    
+    // Intercept beforeunload to prevent navigation when blocking redirects
+    window.addEventListener('beforeunload', function(event) {
+      if (isBlockingRedirect) {
+        console.log('🛑 Preventing page unload due to blocked redirect');
+        event.preventDefault();
+        event.returnValue = ''; // Required for some browsers
+        return '';
+      }
+    });
     
     console.log('🛑 Redirect interception enabled');
   }
@@ -805,10 +844,32 @@
       'checkout/',
       'cart/',
       'checkout?',
-      'cart?'
+      'cart?',
+      'checkout#',
+      'cart#',
+      'checkout',
+      'cart',
+      '/checkouts/',
+      '/checkout/',
+      'checkout.myshopify.com/',
+      'checkout.shopify.com/',
+      // Shopify checkout patterns
+      '/checkouts/cn/',
+      '/checkouts/',
+      'checkouts/cn/',
+      'checkouts/'
     ];
     
-    return checkoutPatterns.some(pattern => url.includes(pattern));
+    // Convert to lowercase for case-insensitive matching
+    const lowerUrl = url.toLowerCase();
+    
+    // Check for Shopify checkout pattern: /checkouts/cn/[token]/[locale]
+    const shopifyCheckoutRegex = /\/checkouts\/cn\/[a-zA-Z0-9]+\/[a-z-]+/;
+    if (shopifyCheckoutRegex.test(url)) {
+      return true;
+    }
+    
+    return checkoutPatterns.some(pattern => lowerUrl.includes(pattern.toLowerCase()));
   }
   
   // Helper function to check if a form is a checkout form
