@@ -404,7 +404,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     });
     
     if (method && method.price && method.price !== '0.00') {
-      return `${method.price} лв.`;
+      return `${method.price} €`;
     }
     return null;
   };
