@@ -1005,7 +1005,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   return createPortal(
     <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
-        className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-4 sm:my-8 text-[12px] sm:text-base"
+        className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-8 max-w-md sm:max-w-[38rem] w-full relative shadow-lg border border-gray-200 min-h-fit my-4 sm:my-8 text-[12px] sm:text-base"
         style={{
           '--custom-font-family': config.font?.family || 'inherit',
           '--custom-font-weight': config.font?.weight || '400',
