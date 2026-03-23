@@ -29,7 +29,6 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      console.error('Speedy API error:', errorData);
       throw new Error(
         errorData?.error?.message || 
         `HTTP error! status: ${response.status}`
@@ -71,7 +70,6 @@ export async function GET(request: Request) {
       });
     }
   } catch (error) {
-    console.error('Error in /api/speedy/search-site:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch site data' },
       { 

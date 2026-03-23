@@ -18,7 +18,6 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('Error serving shopify-integration.js:', error);
     return new NextResponse('Error loading script', { status: 500 });
   }
 }

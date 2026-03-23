@@ -21,7 +21,6 @@ export async function GET(request: Request) {
       try {
         embeddedConfig = JSON.parse(decodeURIComponent(configParam));
       } catch (error) {
-        console.error('🏢 Error parsing config parameter:', error);
       }
     }
 
@@ -46,14 +45,6 @@ export async function GET(request: Request) {
   window.officeSelectorConfig = ${JSON.stringify(embeddedConfig, null, 2)};
 
   // Log the configuration
-  console.log('🏢 Simple script loaded with config:', {
-    hasShopify: !!window.officeSelectorConfig.shopify,
-    storeUrl: window.officeSelectorConfig.shopify?.storeUrl,
-    accessToken: window.officeSelectorConfig.shopify?.accessToken ? '***' + window.officeSelectorConfig.shopify.accessToken.slice(-4) : 'none',
-    availableCouriers: window.officeSelectorConfig.availableCouriers,
-    defaultCourier: window.officeSelectorConfig.defaultCourier
-  });
-
   // Include the integration script
   ${fileContent}
 })();
@@ -72,7 +63,6 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    console.error('Error serving simple script:', error);
     return new NextResponse('Error loading simple script', { status: 500 });
   }
 }

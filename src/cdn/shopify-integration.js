@@ -256,12 +256,6 @@
       const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
       
       // Debug logging for config
-      console.log('🏢 CDN: Final config being passed to iframe:', {
-        hasShopify: !!finalConfig.shopify,
-        storeUrl: finalConfig.shopify?.storeUrl,
-        accessToken: finalConfig.shopify?.accessToken ? '***' + finalConfig.shopify.accessToken.slice(-4) : 'none',
-        fullConfig: finalConfig
-      });
       
       iframe.src = officeSelectorUrl;
       
@@ -321,14 +315,11 @@
                     cart: freshCartData
                   }, baseUrl);
                 } catch (error) {
-                  console.error('🏢 Error sending message to iframe:', error);
                 }
               } else {
-                console.error('🏢 No iframe contentWindow found');
               }
             })
             .catch(error => {
-              console.error('🏢 Error fetching fresh cart data:', error);
               
               // Fallback to cached cart data
               const fallbackCart = window.shopifyCart || window.cartData;   
@@ -340,14 +331,12 @@
                     cart: fallbackCart
                   }, baseUrl);
                 } else {
-                  console.error('🏢 No fallback cart data available');
                   iframe.contentWindow.postMessage({
                     type: 'cart-data',
                     cart: null
                   }, baseUrl);
                 }
               } else {
-                console.error('🏢 No iframe contentWindow found for fallback');
               }
             });
         }
@@ -355,7 +344,6 @@
       
       window.addEventListener('message', messageHandler);
     } else {
-      console.error('🏢 Office selector modal or iframe not found');
     }
   }
 

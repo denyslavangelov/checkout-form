@@ -13,7 +13,6 @@ export async function POST(request: Request) {
 
     // Validate input
     if (!countryId) {
-      console.error("Missing countryId parameter");
       return NextResponse.json(
         { error: "Missing required parameter: countryId" },
         { status: 400 }
@@ -44,7 +43,6 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`🏢 Error from Speedy API: ${response.status} ${response.statusText}`, errorText);
       throw new Error('Failed to fetch districts from Speedy API');
     }
 
@@ -79,7 +77,6 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    console.error('Error searching districts:', error);
     return NextResponse.json(
       { error: 'Failed to search districts' },
       { 

@@ -161,7 +161,6 @@ export default function IframePage() {
       if (event.data && event.data.type === 'cart-data') {
         
         if (!event.data.cart || !event.data.cart.items) {
-          console.warn('Received cart data is invalid, missing items array');
           return;
         }
         
@@ -178,7 +177,6 @@ export default function IframePage() {
           try {
             localStorage.setItem('cartData', JSON.stringify(event.data.cart));
           } catch (e) {
-            console.warn('Could not save cart data to localStorage', e);
           }
         }
         
@@ -249,14 +247,12 @@ export default function IframePage() {
             return;
           }
         } catch (error) {
-          console.error('Error accessing localStorage:', error);
         }
         
         // 4. Make a last request for cart data
         if (hasCartParam === 'true' && loadingRetries < 3) {
           requestCartData();
         } else {
-          console.warn('Failed to receive cart data after multiple attempts');
           
           // If in development, use a test cart
           if (process.env.NODE_ENV === 'development') {
@@ -291,7 +287,6 @@ export default function IframePage() {
     // Set a final timeout to hide loading screen even if we can't get data
     const loadingTimeoutId = setTimeout(() => {
       if (isLoading) {
-        console.warn('Forcing loading screen to hide after timeout');
         setIsLoading(false);
       }
     }, 4000); // Force loading to end after 4 seconds max

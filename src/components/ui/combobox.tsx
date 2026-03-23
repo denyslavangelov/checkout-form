@@ -98,21 +98,9 @@ export function Combobox({
   // Debug mount/unmount
   React.useEffect(() => {
     
-    console.log('Combobox mounting with:', {
-      optionsCount: options.length,
-      type,
-      value,
-      internalValue,
-      isMobile
-    })
     
     return () => {
       
-      console.log('Combobox unmounting with:', {
-        finalValue: internalValue,
-        type,
-        optionsCount: options.length
-      })
     }
   }, [])
 
@@ -123,13 +111,6 @@ export function Combobox({
       return
     }
 
-    console.log('Value prop changed:', { 
-      from: internalValue, 
-      to: value,
-      hasOptions: options.length > 0,
-      type,
-      stack: new Error().stack 
-    })
     
     // Only update internal value if we have options and the new value exists in options
     if (options.length > 0) {
@@ -137,7 +118,6 @@ export function Combobox({
       if (valueExists) {
         setInternalValue(value)
       } else {
-        console.warn('Attempted to set value that does not exist in options:', value)
       }
     }
   }, [value, options, type])
@@ -196,12 +176,10 @@ export function Combobox({
   
   // When search changes, keep dropdown open
   const handleSearchChange = React.useCallback((value: string) => {
-    console.log('Search changed:', value);
     setSearchValue(value);
     
     // Don't clear selection when typing
     if (value === '' && internalValue) {
-      console.log('Search field cleared, resetting selection');
       setInternalValue('');
       onChange('');
     }
@@ -218,37 +196,25 @@ export function Combobox({
       try {
         // If the value is long enough, trigger search
         if (value.length >= minimumLength) {
-          console.log(`Search term meets ${minimumLength} char threshold, triggering search`);
           onSearch(value);
         } else if (value.length === 0) {
           // If the search field is cleared, reset the search
-          console.log('Search field cleared, resetting search');
           onSearch('');
         }
       } catch (error) {
-        console.error('Error in search handler:', error);
         // Continue normally even if search fails - we'll show error UI in the results area
       }
     }
   }, [onSearch, open, onChange, internalValue, isMobile]);
   
   const handleSelect = React.useCallback((optionValue: string) => {
-    console.log('handleSelect called with:', {
-      optionValue,
-      currentValue: internalValue,
-      options: options.length,
-      type
-    })
-
     const selectedOption = options.find(opt => opt.value === optionValue)
     
     if (selectedOption) {
-      console.log('Found selected option:', selectedOption)
       setSearchValue(selectedOption.label)
       setInternalValue(optionValue)
       onChange(optionValue)
     } else {
-      console.warn('Selected option not found in options list')
     }
     
     setOpen(false)
@@ -267,12 +233,6 @@ export function Combobox({
   const displayValue = React.useMemo(() => {
     // If we have a selected value, show it with its icon
     const selectedOption = options.find(option => option.value === internalValue)
-    console.log('Calculating display value:', {
-      internalValue,
-      selectedOption,
-      optionsCount: options.length,
-      type
-    })
     
     if (selectedOption) {
       const optionType = selectedOption.type || type
@@ -309,15 +269,6 @@ export function Combobox({
 
   // Debug logging
   React.useEffect(() => {
-    console.log('Combobox State:', {
-      value,
-      searchValue,
-      open,
-      disabled,
-      optionsCount: options.length,
-      selectedOption: options.find(opt => opt.value === value),
-      type
-    })
   }, [value, searchValue, open, disabled, options, type])
 
   const getOptionIcon = (option: ComboboxOption) => {
@@ -349,7 +300,6 @@ export function Combobox({
   const handleClearSelection = React.useCallback((e: React.MouseEvent) => {
     // Stop event propagation to prevent the dropdown from opening
     e.stopPropagation();
-    console.log('Clearing selection');
     setInternalValue('');
     setSearchValue('');
     onChange('');

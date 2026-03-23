@@ -53,7 +53,6 @@ export async function GET(request: Request) {
     if (!streetResponse.ok || !complexResponse.ok) {
       const errorResponse = !streetResponse.ok ? streetResponse : complexResponse;
       const errorData = await errorResponse.json().catch(() => null);
-      console.error('Speedy API error:', errorData);
       throw new Error(
         errorData?.error?.message || 
         `HTTP error! status: ${errorResponse.status}`
@@ -106,7 +105,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ streets: combinedResults });
   } catch (error) {
-    console.error('Error in /api/speedy/search-street:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch street data' },
       { status: 500 }

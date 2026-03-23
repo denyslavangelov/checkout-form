@@ -23,7 +23,6 @@ export async function POST(request: Request) {
       config: config
     });
   } catch (error) {
-    console.error('Error generating script URL:', error);
     return NextResponse.json({ error: 'Error generating script URL' }, { status: 500 });
   }
 }

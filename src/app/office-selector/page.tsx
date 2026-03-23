@@ -73,7 +73,6 @@ export default function OfficeSelectorPage() {
         });
         
       } catch (error) {
-        console.error('🏢 Error parsing config:', error);
       }
     }
   };

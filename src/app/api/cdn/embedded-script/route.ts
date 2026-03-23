@@ -41,7 +41,6 @@ export async function GET(request: Request) {
     try {
       embeddedConfig = JSON.parse(decodeURIComponent(configParam));
     } catch (error) {
-      console.error('🏢 Error parsing embedded config:', error);
     }
   }
 
@@ -52,14 +51,6 @@ export async function GET(request: Request) {
   window.officeSelectorConfig = config;
 
   // Log the configuration being used
-  console.log('🏢 Embedded script loaded with config:', {
-    hasShopify: !!config.shopify,
-    storeUrl: config.shopify?.storeUrl,
-    accessToken: config.shopify?.accessToken ? '***' + config.shopify.accessToken.slice(-4) : 'none',
-    availableCouriers: config.availableCouriers,
-    defaultCourier: config.defaultCourier
-  });
-
   // Now include the actual integration script
   ${fileContent}
 })();
@@ -78,7 +69,6 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    console.error('Error serving embedded script:', error);
     return new NextResponse('Error loading embedded script', { status: 500 });
   }
 }

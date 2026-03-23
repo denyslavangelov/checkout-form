@@ -83,7 +83,6 @@ export default function TestModalPage() {
       try {
         parsedConfig = JSON.parse(decodeURIComponent(configParam));
       } catch (error) {
-        console.error('🏢 Error parsing config:', error);
       }
     }
     
@@ -114,17 +113,13 @@ export default function TestModalPage() {
   const handleOrderCreated = (checkoutUrl: string) => {
     const result = `Order created! Checkout URL: ${checkoutUrl}`;
     setTestResults(prev => [...prev, result]);
-    console.log('🏢 Test - Order created:', checkoutUrl);
     
     // Only run in browser environment
     if (typeof window === 'undefined') return;
     
-    console.log('🏢 Order created with checkout URL:', checkoutUrl);
-    console.log('🏢 Product ID:', productId, 'Variant ID:', variantId);
     
     // For cart checkout, redirect the parent window to Shopify checkout
     if (productId === 'cart' && variantId === 'cart') {
-      console.log('🏢 Cart checkout - redirecting to /checkout');
       if (window.parent) {
         window.parent.location.href = '/checkout';
       } else {
@@ -132,7 +127,6 @@ export default function TestModalPage() {
       }
     } else {
       // For Buy Now, redirect the parent window to the checkout URL
-      console.log('🏢 Buy Now - redirecting to checkout URL:', checkoutUrl);
       if (window.parent) {
         window.parent.location.href = checkoutUrl;
       } else {
@@ -163,12 +157,6 @@ export default function TestModalPage() {
     const result2 = `📡 Live Server CDN would create iframe with URL: ${officeSelectorUrl}`;
     setTestResults(prev => [...prev, result2]);
     
-    console.log('🔄 Live Server CDN Integration Simulation:', {
-      baseUrl,
-      configParam,
-      officeSelectorUrl,
-      cdnConfig
-    });
     
     // Actually open the iframe URL in a new window to test it
     const result3 = `🌐 Opening iframe URL in new window for testing...`;
@@ -206,9 +194,6 @@ export default function TestModalPage() {
     const configParam = encodeURIComponent(JSON.stringify(cdnConfig));
     const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productId)}&variantId=${encodeURIComponent(variantId)}&quantity=${encodeURIComponent(quantity)}&config=${configParam}`;
     
-    console.log('🏢 Creating iframe with URL:', officeSelectorUrl);
-    console.log('🏢 Config being passed:', cdnConfig);
-    console.log('🏢 Encoded config param:', configParam);
     
     // Create iframe exactly like CDN script
     const iframe = document.createElement('iframe');
@@ -270,11 +255,6 @@ export default function TestModalPage() {
     
     window.addEventListener('message', messageHandler);
     
-    console.log('🔄 Created CDN-style iframe:', {
-      baseUrl,
-      officeSelectorUrl,
-      iframe: iframe
-    });
   };
 
   const updateCdnConfig = (field: string, value: any) => {
@@ -305,7 +285,6 @@ export default function TestModalPage() {
     const configParam = encodeURIComponent(JSON.stringify(cdnConfig));
     const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productId)}&variantId=${encodeURIComponent(variantId)}&quantity=${encodeURIComponent(quantity)}&config=${configParam}`;
     
-    console.log('🏢 Testing iframe URL in new window:', officeSelectorUrl);
     setTestResults(prev => [...prev, `🌐 Testing iframe URL: ${officeSelectorUrl}`]);
     window.open(officeSelectorUrl, '_blank');
   };
