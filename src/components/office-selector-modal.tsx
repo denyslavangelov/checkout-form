@@ -693,7 +693,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       setShowCityDropdown(true);
       debouncedSearchCities(value);
     } else {
-      setShowCityDropdown(false);
+      setShowCityDropdown(true);
       setCities([]);
     }
   };
@@ -701,11 +701,19 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   // Handle office search input
   const handleOfficeSearch = (value: string) => {
     setOfficeSearch(value);
+
+    // If user clears the office input, clear previous selected office preview too.
+    if (value.trim().length === 0) {
+      setSelectedOffice(null);
+    }
+
     if (selectedCity && value.length >= 1) {
       setShowOfficeDropdown(true);
       debouncedSearchOffices(selectedCity.id, value);
     } else {
-      setShowOfficeDropdown(false);
+      if (selectedCity) {
+        setShowOfficeDropdown(true);
+      }
       setOffices([]);
     }
   };
@@ -997,7 +1005,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   return createPortal(
     <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
       <div 
-        className="office-selector-modal bg-transparent rounded-lg p-6 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-8"
+        className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-8 max-w-md w-full relative shadow-lg border border-gray-200 min-h-fit my-4 sm:my-8 text-[12px] sm:text-base"
         style={{
           '--custom-font-family': config.font?.family || 'inherit',
           '--custom-font-weight': config.font?.weight || '400',
@@ -1018,11 +1026,11 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         </button>
 
         {/* Header with Courier Selection */}
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+        <div className="mb-4 sm:mb-8">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
             Метод на доставка
           </h2>
-          <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">
+          <h3 className="text-sm sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">
             Изберете куриер и начин на доставка
           </h3>
           
@@ -1138,7 +1146,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* City Selection */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
@@ -1150,6 +1158,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                 placeholder="Изберете населено място"
                 value={citySearch}
                 onChange={(e) => handleCitySearch(e.target.value)}
+                onFocus={() => setShowCityDropdown(true)}
+                onClick={() => setShowCityDropdown(true)}
+                readOnly
                 className="pr-8"
               />
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -1160,8 +1171,38 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               
               {/* City Dropdown */}
               {showCityDropdown && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-80 sm:max-h-96 overflow-y-auto mt-1">
-                  {loadingCities ? (
+                <div className="fixed inset-0 z-30">
+                  <button
+                    type="button"
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setShowCityDropdown(false)}
+                    aria-label="Затвори избора на град"
+                  />
+                  <div className="absolute top-1/2 left-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl border border-gray-200 shadow-2xl max-h-[70vh] overflow-y-auto p-4">
+                    <div className="mb-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-gray-800">Изберете град</h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowCityDropdown(false)}
+                          className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                          Затвори
+                        </button>
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="Започнете да пишете населено място"
+                        value={citySearch}
+                        onChange={(e) => handleCitySearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  {citySearch.trim().length < 1 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      Започнете да пишете, за да видите предложения за град.
+                    </div>
+                  ) : loadingCities ? (
                     <div className="p-4 text-center text-gray-500">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                       <span className="text-sm">Зареждане на градове...</span>
@@ -1171,7 +1212,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                       <button
                         key={city.id}
                         onClick={() => handleCitySelect(city)}
-                        className="w-full px-4 py-3 sm:py-4 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-4 text-left hover:bg-gray-50 flex items-center gap-2 sm:gap-3 border-b border-gray-100 last:border-b-0 transition-colors"
                       >
                         <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0" />
                         <span className="text-sm sm:text-base font-medium text-gray-900">{city.label}</span>
@@ -1182,6 +1223,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                       Няма намерени градове
                     </div>
                   )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1220,7 +1262,10 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                     placeholder={`Изберете Офис на ${selectedCourier === 'speedy' ? 'Спиди' : 'Еконт'}`}
                     value={officeSearch}
                     onChange={(e) => handleOfficeSearch(e.target.value)}
+                    onFocus={() => selectedCity && setShowOfficeDropdown(true)}
+                    onClick={() => selectedCity && setShowOfficeDropdown(true)}
                     disabled={!selectedCity}
+                    readOnly
                     className="pl-8 pr-8"
                   />
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -1232,8 +1277,40 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               
               {/* Office Dropdown */}
               {showOfficeDropdown && selectedCity && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-80 sm:max-h-96 overflow-y-auto mt-1">
-                  {loadingOffices ? (
+                <div className="fixed inset-0 z-30">
+                  <button
+                    type="button"
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setShowOfficeDropdown(false)}
+                    aria-label="Затвори избора на офис"
+                  />
+                  <div className="absolute top-1/2 left-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl border border-gray-200 shadow-2xl max-h-[70vh] overflow-y-auto p-4">
+                    <div className="mb-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          Изберете офис ({selectedCourier === 'speedy' ? 'Спиди' : 'Еконт'})
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowOfficeDropdown(false)}
+                          className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                          Затвори
+                        </button>
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder={`Започнете да пишете офис на ${selectedCourier === 'speedy' ? 'Спиди' : 'Еконт'}`}
+                        value={officeSearch}
+                        onChange={(e) => handleOfficeSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  {officeSearch.trim().length < 1 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      Започнете да пишете, за да видите наличните офиси.
+                    </div>
+                  ) : loadingOffices ? (
                     <div className="p-4 text-center text-gray-500">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                       <span className="text-sm">Зареждане на офиси...</span>
@@ -1243,7 +1320,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                       <button
                         key={office.id}
                         onClick={() => handleOfficeSelect(office)}
-                        className="w-full px-4 py-3 sm:py-4 text-left hover:bg-gray-50 flex items-start gap-3 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-4 text-left hover:bg-gray-50 flex items-start gap-2 sm:gap-3 border-b border-gray-100 last:border-b-0 transition-colors"
                       >
                         <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 307 287" className="w-full h-full">
@@ -1276,6 +1353,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                       Няма намерени офиси за избрания град
                     </div>
                   )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1347,7 +1425,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               (deliveryType === 'office' && !selectedOffice) ||
               (deliveryType === 'address' && !addressInput.trim())
             }
-            className="w-full text-white py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors duration-200"
+            className="w-full text-white py-2.5 sm:py-4 text-xs sm:text-base font-medium transition-colors duration-200"
             style={{
               backgroundColor: config.continueButton?.backgroundColor || '#dc2626'
             }}
@@ -1365,10 +1443,10 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             {creatingOrder ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span className="text-sm sm:text-base">Зареждане...</span>
+                <span className="text-xs sm:text-base">Зареждане...</span>
               </>
             ) : (
-              <span className="text-sm sm:text-base">{config.continueButton?.text || 'Продължи към завършване'}</span>
+              <span className="text-xs sm:text-base">{config.continueButton?.text || 'Продължи към завършване'}</span>
             )}
           </Button>
         </div>
