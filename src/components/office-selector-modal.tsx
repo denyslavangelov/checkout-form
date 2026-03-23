@@ -718,6 +718,39 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   };
 
+  const trackMetaInitiateCheckout = () => {
+    if (typeof window === 'undefined') return;
+
+    const pixelId =
+      ((config as any)?.meta?.pixelId as string | undefined) ||
+      ((config as any)?.pixelId as string | undefined) ||
+      ((config as any)?.metaPixelId as string | undefined);
+
+    if (!pixelId) return;
+
+    const w = window as any;
+    if (typeof w.fbq !== 'function') {
+      console.warn('Meta Pixel is not loaded, skipping InitiateCheckout event.');
+      return;
+    }
+
+    // Prevent duplicate init calls for the same pixel in one session.
+    w.__metaPixelInitialized = w.__metaPixelInitialized || {};
+    if (!w.__metaPixelInitialized[pixelId]) {
+      w.fbq('init', pixelId);
+      w.__metaPixelInitialized[pixelId] = true;
+    }
+
+    w.fbq('track', 'InitiateCheckout', {
+      content_type: 'product',
+      product_id: productId,
+      variant_id: variantId,
+      quantity: Number(quantity) || 1,
+      delivery_type: deliveryType,
+      courier: selectedCourier
+    });
+  };
+
   // Create order function
   const handleCreateOrder = async () => {
     // Validate based on delivery type
@@ -734,6 +767,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
 
     try {
+      trackMetaInitiateCheckout();
       setCreatingOrder(true);
       setError('');
 
