@@ -41,7 +41,8 @@ const CREATE_DRAFT_ORDER_MUTATION = `
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, customerInfo, shopify } = body;
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, customerInfo, shopify, discountCode } = body;
+    const normalizedDiscountCode = typeof discountCode === 'string' ? discountCode.trim() : '';
     
     // Extract Shopify credentials from request body
     const STORE_URL = shopify?.storeUrl;
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
         if (discountLineCents > 0) {
           const discountPerUnit = discountLineCents / quantityValue / 100;
           lineItem.appliedDiscount = {
-            value: discountPerUnit.toFixed(2),
+            value: Number(discountPerUnit.toFixed(2)),
             valueType: 'FIXED_AMOUNT',
             title: 'Cart discount',
             description: 'Imported from Shopify cart discounts'
@@ -276,6 +277,12 @@ export async function POST(request: NextRequest) {
       
       const draftOrderId = draftOrder.id.split('/').pop();
       const constructedCheckoutUrl = `https://${STORE_URL}/admin/draft_orders/${draftOrderId}/checkout`;
+      const invoiceUrlWithDiscount = normalizedDiscountCode
+        ? `${draftOrder.invoiceUrl}${draftOrder.invoiceUrl.includes('?') ? '&' : '?'}discount=${encodeURIComponent(normalizedDiscountCode)}`
+        : draftOrder.invoiceUrl;
+      const checkoutUrlWithDiscount = normalizedDiscountCode
+        ? `${constructedCheckoutUrl}${constructedCheckoutUrl.includes('?') ? '&' : '?'}discount=${encodeURIComponent(normalizedDiscountCode)}`
+        : constructedCheckoutUrl;
       
       console.log('✅ Draft order created successfully:', {
         id: draftOrder.id,
@@ -293,8 +300,8 @@ export async function POST(request: NextRequest) {
           name: draftOrder.name,
           status: draftOrder.status,
           totalPrice: draftOrder.totalPrice,
-          invoiceUrl: draftOrder.invoiceUrl,
-          checkoutUrl: constructedCheckoutUrl
+          invoiceUrl: invoiceUrlWithDiscount,
+          checkoutUrl: checkoutUrlWithDiscount
         }
       });
     } else {

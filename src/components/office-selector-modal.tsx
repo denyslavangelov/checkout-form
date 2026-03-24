@@ -165,6 +165,7 @@ export function OfficeSelectorModal({
   const [cartTotal, setCartTotal] = useState<number>(0);
   const [loadingCartData, setLoadingCartData] = useState(false);
   const [cartItemsSummary, setCartItemsSummary] = useState<CartItemSummary[]>([]);
+  const [discountCode, setDiscountCode] = useState('');
   
   // Browser detection
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -205,6 +206,36 @@ export function OfficeSelectorModal({
       return storedCartData ? JSON.parse(storedCartData) : null;
     } catch {
       return null;
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const discountFromUrl = urlParams.get('discount') || urlParams.get('discountCode') || '';
+    const discountFromConfig =
+      ((config as any)?.discountCode as string | undefined) ||
+      ((config as any)?.discount as string | undefined) ||
+      '';
+
+    const initialDiscount = (discountFromConfig || discountFromUrl).trim();
+    if (initialDiscount) {
+      setDiscountCode(initialDiscount);
+    }
+  }, [config]);
+
+  const appendDiscountToUrl = (url: string) => {
+    const cleanCode = discountCode.trim();
+    if (!cleanCode) return url;
+
+    try {
+      const parsedUrl = new URL(url);
+      parsedUrl.searchParams.set('discount', cleanCode);
+      return parsedUrl.toString();
+    } catch {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}discount=${encodeURIComponent(cleanCode)}`;
     }
   };
   
@@ -870,6 +901,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           },
           body: JSON.stringify({
             cartData: { ...cartData, items: items },
+            discountCode: discountCode.trim() || undefined,
             shippingMethod: {
               courier: selectedCourier,
               deliveryType: deliveryType
@@ -923,11 +955,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         
         // Prioritize invoiceUrl as it's the customer-facing checkout URL
         if (invoiceUrl) {
-          console.log('🏢 Using invoiceUrl for redirection:', invoiceUrl);
-          onOrderCreated(invoiceUrl);
+          onOrderCreated(appendDiscountToUrl(invoiceUrl));
         } else if (checkoutUrl) {
-          console.log('🏢 Using checkoutUrl for redirection:', checkoutUrl);
-          onOrderCreated(checkoutUrl);
+          onOrderCreated(appendDiscountToUrl(checkoutUrl));
         } else {
           console.error('❌ No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
@@ -956,6 +986,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           productId,
           variantId,
           quantity: parseInt(quantity) || 1, // Use quantity from props
+          discountCode: discountCode.trim() || undefined,
           shippingMethod: {
             courier: selectedCourier,
             deliveryType: deliveryType
@@ -1006,11 +1037,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       
       // Prioritize invoiceUrl as it's the customer-facing checkout URL
       if (invoiceUrl) {
-        console.log('🏢 Buy Now - Using invoiceUrl for redirection:', invoiceUrl);
-        onOrderCreated(invoiceUrl);
+        onOrderCreated(appendDiscountToUrl(invoiceUrl));
       } else if (checkoutUrl) {
-        console.log('🏢 Buy Now - Using checkoutUrl for redirection:', checkoutUrl);
-        onOrderCreated(checkoutUrl);
+        onOrderCreated(appendDiscountToUrl(checkoutUrl));
       } else {
         console.error('❌ Buy Now - No checkout URL or invoice URL in response:', data);
         throw new Error('No checkout URL received');
@@ -1470,6 +1499,19 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               </div>
             </div>
           )}
+
+          {/* Discount Code */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              Код за отстъпка
+            </Label>
+            <Input
+              type="text"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+              className="w-full"
+            />
+          </div>
 
           {/* Office Preview */}
           {selectedOffice && (
