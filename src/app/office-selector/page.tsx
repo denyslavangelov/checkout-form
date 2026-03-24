@@ -39,10 +39,52 @@ export default function OfficeSelectorPage() {
     const variant = urlParams.get('variantId') || '';
     const qty = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
+    const mockCart = urlParams.get('mockCart');
+
+    const shouldInjectMockCart = mockCart === '1' || mockCart === 'true';
+    if (shouldInjectMockCart && typeof window !== 'undefined') {
+      const mockItems = [
+        {
+          id: Date.now(),
+          variant_id: 900111001,
+          product_id: 700111001,
+          title: 'Тениска Premium Black / M',
+          product_title: 'Тениска Premium Black',
+          variant_title: 'M',
+          quantity: 2,
+          price: 3490,
+          line_price: 6980,
+          final_line_price: 6980
+        },
+        {
+          id: Date.now() + 1,
+          variant_id: 900111002,
+          product_id: 700111002,
+          title: 'Суичър Urban Grey / L',
+          product_title: 'Суичър Urban Grey',
+          variant_title: 'L',
+          quantity: 1,
+          price: 6260,
+          line_price: 6260,
+          final_line_price: 6260
+        }
+      ];
+
+      window.localStorage.setItem(
+        'shopify-cart-data',
+        JSON.stringify({
+          token: `mock-${Date.now()}`,
+          currency: 'BGN',
+          item_count: mockItems.reduce((sum, item) => sum + item.quantity, 0),
+          total_price: mockItems.reduce((sum, item) => sum + item.final_line_price, 0),
+          items: mockItems
+        })
+      );
+    }
     
     // Set basic parameters
-    setProductId(product);
-    setVariantId(variant);
+    setProductId(shouldInjectMockCart ? 'cart' : product);
+    setVariantId(shouldInjectMockCart ? 'cart' : variant);
     setQuantity(qty);
     
     // Parse config if present

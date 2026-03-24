@@ -24,6 +24,13 @@ interface Office {
   fullAddressString?: string;
 }
 
+interface CartItemSummary {
+  id: string | number;
+  title: string;
+  quantity: number;
+  linePriceCents?: number;
+}
+
 interface OfficeSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -157,11 +164,49 @@ export function OfficeSelectorModal({
   // Cart total state for free shipping calculation
   const [cartTotal, setCartTotal] = useState<number>(0);
   const [loadingCartData, setLoadingCartData] = useState(false);
+  const [cartItemsSummary, setCartItemsSummary] = useState<CartItemSummary[]>([]);
   
   // Browser detection
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isChrome = /Chrome/i.test(navigator.userAgent);
   const isChromeMobile = isMobile && isChrome;
+  const isCartCheckout = productId === 'cart' && variantId === 'cart';
+
+  const formatMoneyFromCents = (cents?: number) => {
+    if (typeof cents !== 'number') return null;
+    return `${(cents / 100).toFixed(2)} лв`;
+  };
+
+  const normalizeCartItems = (rawCart: any): CartItemSummary[] => {
+    const items = rawCart?.items || rawCart?.line_items || rawCart?.products || [];
+    if (!Array.isArray(items)) return [];
+
+    return items.map((item: any, index: number) => {
+      const qty = Number(item.quantity) || 1;
+      const linePriceRaw =
+        item.final_line_price ??
+        item.line_price ??
+        item.total_price ??
+        (typeof item.price === 'number' ? item.price * qty : undefined);
+
+      return {
+        id: item.id ?? item.variant_id ?? index,
+        title: item.product_title || item.title || item.name || 'Продукт',
+        quantity: qty,
+        linePriceCents: typeof linePriceRaw === 'number' ? linePriceRaw : undefined
+      };
+    });
+  };
+
+  const getStoredCartData = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const storedCartData = window.localStorage.getItem('shopify-cart-data');
+      return storedCartData ? JSON.parse(storedCartData) : null;
+    } catch {
+      return null;
+    }
+  };
   
   // Ref for the continue button to enable scrolling
   const continueButtonRef = useRef<HTMLButtonElement>(null);
@@ -281,7 +326,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   useEffect(() => {
     const fetchCartDataForFreeShipping = async () => {
       // Only fetch for cart checkouts
-      if (!isOpen || productId !== 'cart' || variantId !== 'cart') {
+      if (!isOpen || !isCartCheckout) {
+        setCartItemsSummary([]);
         return;
       }
 
@@ -289,24 +335,14 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         setLoadingCartData(true);
         console.log('🛒 Fetching cart data to check free shipping eligibility...');
         
-        const cartData = await getCartDataFromParent() as any;
-        
-        // Chrome mobile fallback
-        if (!cartData && isChromeMobile) {
-          try {
-            const storedCartData = localStorage.getItem('shopify-cart-data');
-            if (storedCartData) {
-              const parsedData = JSON.parse(storedCartData);
-              setCartTotal(parsedData.total_price || 0);
-              console.log('🛒 Cart total from localStorage:', parsedData.total_price);
-            }
-          } catch (error) {
-            console.error('Error getting cart data from localStorage:', error);
-          }
-        } else if (cartData) {
+        const cartDataFromParent = await getCartDataFromParent() as any;
+        const cartData = cartDataFromParent || getStoredCartData();
+
+        if (cartData) {
           // Cart total is in cents, so we need to convert to BGN
           const totalInBGN = (cartData.total_price || 0) / 100;
           setCartTotal(cartData.total_price || 0);
+          setCartItemsSummary(normalizeCartItems(cartData));
           console.log('🛒 Cart total fetched:', {
             totalCents: cartData.total_price,
             totalBGN: totalInBGN,
@@ -322,7 +358,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     };
 
     fetchCartDataForFreeShipping();
-  }, [isOpen, productId, variantId]);
+  }, [isOpen, isCartCheckout]);
 
   // Update courier selection when config changes
   useEffect(() => {
@@ -778,19 +814,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         // For cart checkout, we need to create a draft order with the cart items
         
         // Get cart data from the parent window
-        let cartData = await getCartDataFromParent() as any;
-        
-        // Chrome mobile fallback - try to get cart data from localStorage
-        if (!cartData && isChromeMobile) {
-          try {
-            const storedCartData = localStorage.getItem('shopify-cart-data');
-            if (storedCartData) {
-              cartData = JSON.parse(storedCartData);
-            }
-          } catch (error) {
-            console.error('Chrome mobile: localStorage fallback failed:', error);
-          }
-        }
+        const cartDataFromParent = await getCartDataFromParent() as any;
+        let cartData = cartDataFromParent || getStoredCartData();
         
         // No other fallback needed - parent communication is the only way due to CORS
         if (!cartData) {
@@ -1404,6 +1429,45 @@ Current config: ${JSON.stringify(config, null, 2)}`;
                 onChange={(e) => setAddressInput(e.target.value)}
                 className="w-full"
               />
+            </div>
+          )}
+
+          {/* Cart Summary */}
+          {isCartCheckout && (
+            <div className="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-md space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm sm:text-base font-semibold text-gray-800">Данни от кошницата</h4>
+                {loadingCartData && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
+              </div>
+
+              {cartItemsSummary.length > 0 ? (
+                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                  {cartItemsSummary.map((item) => (
+                    <div key={String(item.id)} className="flex items-start justify-between gap-3 text-xs sm:text-sm">
+                      <div className="text-gray-700 min-w-0">
+                        <div className="font-medium truncate">{item.title}</div>
+                        <div className="text-gray-500">Количество: {item.quantity}</div>
+                      </div>
+                      {formatMoneyFromCents(item.linePriceCents) && (
+                        <div className="text-gray-700 whitespace-nowrap">
+                          {formatMoneyFromCents(item.linePriceCents)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs sm:text-sm text-gray-500">
+                  {loadingCartData ? 'Зареждаме продуктите от кошницата...' : 'Няма данни за продукти в кошницата.'}
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-sm sm:text-base">
+                <span className="font-medium text-gray-700">Общо:</span>
+                <span className="font-semibold text-gray-900">
+                  {formatMoneyFromCents(cartTotal) || '—'}
+                </span>
+              </div>
             </div>
           )}
 
