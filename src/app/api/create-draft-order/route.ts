@@ -38,21 +38,10 @@ const CREATE_DRAFT_ORDER_MUTATION = `
   }
 `;
 
-const VALIDATE_DISCOUNT_CODE_QUERY = `
-  query validateDiscountCode($query: String!) {
-    codeDiscountNodes(first: 1, query: $query) {
-      nodes {
-        id
-      }
-    }
-  }
-`;
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, customerInfo, shopify, discountCode } = body;
-    const normalizedDiscountCode = typeof discountCode === 'string' ? discountCode.trim() : '';
+    const { productId, variantId, quantity, shippingAddress, cartData, shippingMethod, selectedShippingMethodId, selectedShippingMethod, customerInfo, shopify } = body;
     
     // Extract Shopify credentials from request body
     const STORE_URL = shopify?.storeUrl;
@@ -73,47 +62,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate discount code against the store before creating draft order.
-    if (normalizedDiscountCode) {
-      const discountValidationResponse = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': ACCESS_TOKEN,
-        },
-        body: JSON.stringify({
-          query: VALIDATE_DISCOUNT_CODE_QUERY,
-          variables: {
-            query: `code:${normalizedDiscountCode} status:active`
-          }
-        })
-      });
-
-      if (!discountValidationResponse.ok) {
-        return NextResponse.json({
-          success: false,
-          error: `Unable to validate discount code (${discountValidationResponse.status})`
-        }, { status: discountValidationResponse.status });
-      }
-
-      const discountValidationData = await discountValidationResponse.json();
-      if (discountValidationData.errors && Array.isArray(discountValidationData.errors)) {
-        return NextResponse.json({
-          success: false,
-          error: 'Unable to validate discount code for this store',
-          details: discountValidationData.errors
-        }, { status: 400 });
-      }
-
-      const hasValidDiscountCode = (discountValidationData.data?.codeDiscountNodes?.nodes || []).length > 0;
-      if (!hasValidDiscountCode) {
-        return NextResponse.json({
-          success: false,
-          error: `Discount code "${normalizedDiscountCode}" does not exist or is not active for this store`
-        }, { status: 400 });
-      }
-    }
-    
     console.log('Using Shopify credentials:', { storeUrl: STORE_URL, accessToken: ACCESS_TOKEN.substring(0, 10) + '...' });
 
     // Simple validation
@@ -328,12 +276,6 @@ export async function POST(request: NextRequest) {
       
       const draftOrderId = draftOrder.id.split('/').pop();
       const constructedCheckoutUrl = `https://${STORE_URL}/admin/draft_orders/${draftOrderId}/checkout`;
-      const invoiceUrlWithDiscount = normalizedDiscountCode
-        ? `${draftOrder.invoiceUrl}${draftOrder.invoiceUrl.includes('?') ? '&' : '?'}discount=${encodeURIComponent(normalizedDiscountCode)}`
-        : draftOrder.invoiceUrl;
-      const checkoutUrlWithDiscount = normalizedDiscountCode
-        ? `${constructedCheckoutUrl}${constructedCheckoutUrl.includes('?') ? '&' : '?'}discount=${encodeURIComponent(normalizedDiscountCode)}`
-        : constructedCheckoutUrl;
       
       console.log('✅ Draft order created successfully:', {
         id: draftOrder.id,
@@ -351,8 +293,8 @@ export async function POST(request: NextRequest) {
           name: draftOrder.name,
           status: draftOrder.status,
           totalPrice: draftOrder.totalPrice,
-          invoiceUrl: invoiceUrlWithDiscount,
-          checkoutUrl: checkoutUrlWithDiscount
+          invoiceUrl: draftOrder.invoiceUrl,
+          checkoutUrl: constructedCheckoutUrl
         }
       });
     } else {
