@@ -166,6 +166,7 @@ export function OfficeSelectorModal({
   const [loadingCartData, setLoadingCartData] = useState(false);
   const [cartItemsSummary, setCartItemsSummary] = useState<CartItemSummary[]>([]);
   const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscountCode, setAppliedDiscountCode] = useState('');
   
   // Browser detection
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -222,11 +223,12 @@ export function OfficeSelectorModal({
     const initialDiscount = (discountFromConfig || discountFromUrl).trim();
     if (initialDiscount) {
       setDiscountCode(initialDiscount);
+      setAppliedDiscountCode(initialDiscount.toUpperCase());
     }
   }, [config]);
 
   const appendDiscountToUrl = (url: string) => {
-    const cleanCode = discountCode.trim();
+    const cleanCode = appliedDiscountCode.trim();
     if (!cleanCode) return url;
 
     try {
@@ -237,6 +239,11 @@ export function OfficeSelectorModal({
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}discount=${encodeURIComponent(cleanCode)}`;
     }
+  };
+
+  const handleApplyDiscountCode = () => {
+    const cleanCode = discountCode.trim().toUpperCase();
+    setAppliedDiscountCode(cleanCode);
   };
   
   // Ref for the continue button to enable scrolling
@@ -833,6 +840,12 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       }
     }
 
+    const enteredDiscountCode = discountCode.trim().toUpperCase();
+    if (enteredDiscountCode && enteredDiscountCode !== appliedDiscountCode) {
+      setError('Моля, натиснете "Приложи" за кода за отстъпка преди да продължите.');
+      return;
+    }
+
     try {
       trackMetaInitiateCheckout();
       setCreatingOrder(true);
@@ -901,7 +914,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           },
           body: JSON.stringify({
             cartData: { ...cartData, items: items },
-            discountCode: discountCode.trim() || undefined,
+            discountCode: appliedDiscountCode || undefined,
             shippingMethod: {
               courier: selectedCourier,
               deliveryType: deliveryType
@@ -986,7 +999,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           productId,
           variantId,
           quantity: parseInt(quantity) || 1, // Use quantity from props
-          discountCode: discountCode.trim() || undefined,
+          discountCode: appliedDiscountCode || undefined,
           shippingMethod: {
             courier: selectedCourier,
             deliveryType: deliveryType
@@ -1505,12 +1518,33 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             <Label className="text-sm font-medium text-gray-700">
               Код за отстъпка
             </Label>
-            <Input
-              type="text"
-              value={discountCode}
-              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-              className="w-full"
-            />
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={discountCode}
+                onChange={(e) => {
+                  const nextCode = e.target.value.toUpperCase();
+                  setDiscountCode(nextCode);
+                  if (appliedDiscountCode && nextCode.trim() !== appliedDiscountCode) {
+                    setAppliedDiscountCode('');
+                  }
+                }}
+                className="w-full"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleApplyDiscountCode}
+                className="px-3 sm:px-4"
+              >
+                Приложи
+              </Button>
+            </div>
+            {appliedDiscountCode && (
+              <p className="text-xs text-green-700">
+                Кодът е приложен: <span className="font-semibold">{appliedDiscountCode}</span>
+              </p>
+            )}
           </div>
 
           {/* Office Preview */}
