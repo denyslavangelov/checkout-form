@@ -165,8 +165,6 @@ export function OfficeSelectorModal({
   const [cartTotal, setCartTotal] = useState<number>(0);
   const [loadingCartData, setLoadingCartData] = useState(false);
   const [cartItemsSummary, setCartItemsSummary] = useState<CartItemSummary[]>([]);
-  const [discountCode, setDiscountCode] = useState('');
-  const [appliedDiscountCode, setAppliedDiscountCode] = useState('');
   
   // Browser detection
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -210,42 +208,6 @@ export function OfficeSelectorModal({
     }
   };
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const discountFromUrl = urlParams.get('discount') || urlParams.get('discountCode') || '';
-    const discountFromConfig =
-      ((config as any)?.discountCode as string | undefined) ||
-      ((config as any)?.discount as string | undefined) ||
-      '';
-
-    const initialDiscount = (discountFromConfig || discountFromUrl).trim();
-    if (initialDiscount) {
-      setDiscountCode(initialDiscount);
-      setAppliedDiscountCode(initialDiscount.toUpperCase());
-    }
-  }, [config]);
-
-  const appendDiscountToUrl = (url: string) => {
-    const cleanCode = appliedDiscountCode.trim();
-    if (!cleanCode) return url;
-
-    try {
-      const parsedUrl = new URL(url);
-      parsedUrl.searchParams.set('discount', cleanCode);
-      return parsedUrl.toString();
-    } catch {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}discount=${encodeURIComponent(cleanCode)}`;
-    }
-  };
-
-  const handleApplyDiscountCode = () => {
-    const cleanCode = discountCode.trim().toUpperCase();
-    setAppliedDiscountCode(cleanCode);
-  };
-  
   // Ref for the continue button to enable scrolling
   const continueButtonRef = useRef<HTMLButtonElement>(null);
   
@@ -840,12 +802,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       }
     }
 
-    const enteredDiscountCode = discountCode.trim().toUpperCase();
-    if (enteredDiscountCode && enteredDiscountCode !== appliedDiscountCode) {
-      setError('Моля, натиснете "Приложи" за кода за отстъпка преди да продължите.');
-      return;
-    }
-
     try {
       trackMetaInitiateCheckout();
       setCreatingOrder(true);
@@ -914,7 +870,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           },
           body: JSON.stringify({
             cartData: { ...cartData, items: items },
-            discountCode: appliedDiscountCode || undefined,
             shippingMethod: {
               courier: selectedCourier,
               deliveryType: deliveryType
@@ -968,9 +923,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         
         // Prioritize invoiceUrl as it's the customer-facing checkout URL
         if (invoiceUrl) {
-          onOrderCreated(appendDiscountToUrl(invoiceUrl));
+          onOrderCreated(invoiceUrl);
         } else if (checkoutUrl) {
-          onOrderCreated(appendDiscountToUrl(checkoutUrl));
+          onOrderCreated(checkoutUrl);
         } else {
           console.error('❌ No checkout URL or invoice URL in response:', data);
           throw new Error('No checkout URL received');
@@ -999,7 +954,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           productId,
           variantId,
           quantity: parseInt(quantity) || 1, // Use quantity from props
-          discountCode: appliedDiscountCode || undefined,
           shippingMethod: {
             courier: selectedCourier,
             deliveryType: deliveryType
@@ -1050,9 +1004,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       
       // Prioritize invoiceUrl as it's the customer-facing checkout URL
       if (invoiceUrl) {
-        onOrderCreated(appendDiscountToUrl(invoiceUrl));
+        onOrderCreated(invoiceUrl);
       } else if (checkoutUrl) {
-        onOrderCreated(appendDiscountToUrl(checkoutUrl));
+        onOrderCreated(checkoutUrl);
       } else {
         console.error('❌ Buy Now - No checkout URL or invoice URL in response:', data);
         throw new Error('No checkout URL received');
@@ -1512,40 +1466,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               </div>
             </div>
           )}
-
-          {/* Discount Code */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">
-              Код за отстъпка
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={discountCode}
-                onChange={(e) => {
-                  const nextCode = e.target.value.toUpperCase();
-                  setDiscountCode(nextCode);
-                  if (appliedDiscountCode && nextCode.trim() !== appliedDiscountCode) {
-                    setAppliedDiscountCode('');
-                  }
-                }}
-                className="w-full"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleApplyDiscountCode}
-                className="px-3 sm:px-4"
-              >
-                Приложи
-              </Button>
-            </div>
-            {appliedDiscountCode && (
-              <p className="text-xs text-green-700">
-                Кодът е приложен: <span className="font-semibold">{appliedDiscountCode}</span>
-              </p>
-            )}
-          </div>
 
           {/* Office Preview */}
           {selectedOffice && (
