@@ -38,6 +38,16 @@ const CREATE_DRAFT_ORDER_MUTATION = `
   }
 `;
 
+const VALIDATE_DISCOUNT_CODE_QUERY = `
+  query validateDiscountCode($query: String!) {
+    codeDiscountNodes(first: 1, query: $query) {
+      nodes {
+        id
+      }
+    }
+  }
+`;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -61,6 +71,47 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'Missing required parameter: shopify.accessToken'
       }, { status: 400 });
+    }
+
+    // Validate discount code against the store before creating draft order.
+    if (normalizedDiscountCode) {
+      const discountValidationResponse = await fetch(`https://${STORE_URL}/admin/api/2024-01/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': ACCESS_TOKEN,
+        },
+        body: JSON.stringify({
+          query: VALIDATE_DISCOUNT_CODE_QUERY,
+          variables: {
+            query: `code:${normalizedDiscountCode} status:active`
+          }
+        })
+      });
+
+      if (!discountValidationResponse.ok) {
+        return NextResponse.json({
+          success: false,
+          error: `Unable to validate discount code (${discountValidationResponse.status})`
+        }, { status: discountValidationResponse.status });
+      }
+
+      const discountValidationData = await discountValidationResponse.json();
+      if (discountValidationData.errors && Array.isArray(discountValidationData.errors)) {
+        return NextResponse.json({
+          success: false,
+          error: 'Unable to validate discount code for this store',
+          details: discountValidationData.errors
+        }, { status: 400 });
+      }
+
+      const hasValidDiscountCode = (discountValidationData.data?.codeDiscountNodes?.nodes || []).length > 0;
+      if (!hasValidDiscountCode) {
+        return NextResponse.json({
+          success: false,
+          error: `Discount code "${normalizedDiscountCode}" does not exist or is not active for this store`
+        }, { status: 400 });
+      }
     }
     
     console.log('Using Shopify credentials:', { storeUrl: STORE_URL, accessToken: ACCESS_TOKEN.substring(0, 10) + '...' });
