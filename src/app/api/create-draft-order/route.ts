@@ -98,11 +98,40 @@ export async function POST(request: NextRequest) {
     let lineItems: any[] = [];
     
     if (cartData && cartData.items && cartData.items.length > 0) {
-      // Cart checkout - use cart items
-      lineItems = cartData.items.map((item: any) => ({
-        variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
-        quantity: item.quantity
-      }));
+      // Cart checkout - preserve item-level discounts from Shopify cart data.
+      lineItems = cartData.items.map((item: any) => {
+        const quantityValue = Number(item.quantity) || 1;
+        const originalLinePriceCents =
+          typeof item.original_line_price === 'number'
+            ? item.original_line_price
+            : (typeof item.original_price === 'number' ? item.original_price * quantityValue : undefined);
+        const finalLinePriceCents =
+          typeof item.final_line_price === 'number'
+            ? item.final_line_price
+            : (typeof item.line_price === 'number' ? item.line_price : undefined);
+
+        const discountLineCents =
+          typeof originalLinePriceCents === 'number' && typeof finalLinePriceCents === 'number'
+            ? Math.max(0, originalLinePriceCents - finalLinePriceCents)
+            : 0;
+
+        const lineItem: any = {
+          variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
+          quantity: quantityValue
+        };
+
+        if (discountLineCents > 0) {
+          const discountPerUnit = discountLineCents / quantityValue / 100;
+          lineItem.appliedDiscount = {
+            value: discountPerUnit.toFixed(2),
+            valueType: 'FIXED_AMOUNT',
+            title: 'Cart discount',
+            description: 'Imported from Shopify cart discounts'
+          };
+        }
+
+        return lineItem;
+      });
     } else if (productId && variantId) {
       // Buy Now - use single product
       lineItems = [{
