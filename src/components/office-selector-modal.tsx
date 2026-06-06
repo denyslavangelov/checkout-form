@@ -718,6 +718,66 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   };
 
+  const getShippingAddressLine = () => {
+    if (deliveryType === 'address') {
+      return addressInput.trim();
+    }
+    if (deliveryType === 'office' && selectedOffice) {
+      if (typeof selectedOffice.address === 'string') {
+        return selectedOffice.address;
+      }
+      if (selectedOffice.fullAddressString) {
+        return selectedOffice.fullAddressString;
+      }
+      if (selectedOffice.address && typeof selectedOffice.address === 'object') {
+        return (
+          selectedOffice.address.fullAddressString ||
+          selectedOffice.address.address ||
+          JSON.stringify(selectedOffice.address)
+        );
+      }
+    }
+    return '';
+  };
+
+  const buildCartCheckoutDelivery = () => {
+    const shippingMethod = availableShippingMethods.find(
+      (method) => method.id === selectedShippingMethodId
+    );
+
+    return {
+      courier: selectedCourier,
+      deliveryType,
+      city: selectedCity?.name || '',
+      postalCode: selectedCity?.postCode || '',
+      address: getShippingAddressLine(),
+      officeName: selectedOffice?.name || '',
+      shippingMethodTitle: shippingMethod?.title || '',
+      shippingMethodPrice: shippingMethod?.price || '',
+      note: [
+        `Куриер: ${selectedCourier}`,
+        `Тип доставка: ${deliveryType === 'office' ? 'до офис' : 'до адрес'}`,
+        selectedCity?.name ? `Град: ${selectedCity.name}` : '',
+        deliveryType === 'office' && selectedOffice?.name ? `Офис: ${selectedOffice.name}` : '',
+        getShippingAddressLine() ? `Адрес: ${getShippingAddressLine()}` : '',
+        shippingMethod?.title ? `Доставка: ${shippingMethod.title}` : ''
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      attributes: {
+        Courier: selectedCourier,
+        'Delivery Type': deliveryType,
+        City: selectedCity?.name || '',
+        'Postal Code': selectedCity?.postCode || '',
+        ...(deliveryType === 'office' && selectedOffice?.name
+          ? { Office: selectedOffice.name }
+          : {}),
+        ...(getShippingAddressLine() ? { Address: getShippingAddressLine() } : {}),
+        ...(shippingMethod?.title ? { 'Shipping Method': shippingMethod.title } : {})
+      }
+    };
+  };
+
   const trackMetaInitiateCheckout = () => {
     if (typeof window === 'undefined') return;
 
@@ -775,125 +835,35 @@ Current config: ${JSON.stringify(config, null, 2)}`;
 
       // Check if this is a cart checkout
       if (productId === 'cart' && variantId === 'cart') {
-        // For cart checkout, we need to create a draft order with the cart items
-        
-        // Get cart data from the parent window
         const cartDataFromParent = await getCartDataFromParent() as any;
-        let cartData = cartDataFromParent || getStoredCartData();
-        
-        // No other fallback needed - parent communication is the only way due to CORS
+        const cartData = cartDataFromParent || getStoredCartData();
+
         if (!cartData) {
-        }
-        
-        if (!cartData) {
-          setError('Не можахме да получим данните за кошницата. Моля, опитайте отново или обновете страницата.');
+          setError('Не можахме да получим данните за кошницата. Моля, опитайте отнови или обновете страницата.');
           return;
         }
-        
-        if (!cartData.items && !cartData.line_items && !cartData.products) {
-          setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
-          return;
-        }
-        
-        // Check for different possible cart data structures
+
         const items = cartData.items || cartData.line_items || cartData.products || [];
-        
+
         if (!items || items.length === 0) {
           setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
           return;
         }
-        
-        // Validate Shopify credentials before creating draft order
-        const storeUrl = config.shopify?.storeUrl || (config as any).storeUrl;
-        const accessToken = config.shopify?.accessToken || (config as any).accessToken;
-        
-        if (!storeUrl || !accessToken) {
-          setError('Shopify credentials are missing. Please configure storeUrl and accessToken in the config.');
-          return;
-        }
 
-        // Check if free shipping applies
-        const totalInBGN = (cartData.total_price || 0) / 100;
-        const isFreeShipping = config.freeShipping?.enabled && config.freeShipping?.threshold && totalInBGN >= config.freeShipping.threshold;
-        
-        // Get the selected shipping method and modify price if free shipping applies
-        let shippingMethodToSend = availableShippingMethods.find(method => method.id === selectedShippingMethodId);
-        if (isFreeShipping && shippingMethodToSend) {
-          shippingMethodToSend = {
-            ...shippingMethodToSend,
-            price: '0.00'
-          };
-          console.log('🎉 Free shipping applied! Cart total:', totalInBGN, 'BGN');
-        }
-        
-        // Create draft order with cart items and office address
-        const response = await fetch(`${baseUrl}/api/create-draft-order`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            cartData: { ...cartData, items: items },
-            shippingMethod: {
-              courier: selectedCourier,
-              deliveryType: deliveryType
+        const delivery = buildCartCheckoutDelivery();
+
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            {
+              type: 'proceed-to-cart-checkout',
+              delivery
             },
-            selectedShippingMethodId: selectedShippingMethodId,
-            selectedShippingMethod: shippingMethodToSend,
-            shopify: { storeUrl, accessToken }, // Pass Shopify credentials
-            shippingAddress: {
-              address1: (() => {
-                if (deliveryType === 'address') {
-                  return addressInput.trim();
-                } else if (deliveryType === 'office' && selectedOffice) {
-                  if (typeof selectedOffice.address === 'string') {
-                    return selectedOffice.address;
-                  } else if (selectedOffice.fullAddressString) {
-                    return selectedOffice.fullAddressString;
-                  } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-                    return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
-                  }
-                  return 'Address not available';
-                }
-                return 'Address not available';
-              })(),
-              city: selectedCity?.name || '',
-              country: 'Bulgaria',
-              postalCode: selectedCity?.postCode || ''
-            }
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create draft order');
+            '*'
+          );
         }
 
-        const data = await response.json();   
-        
-        // Debug logging to see what response we got
-        console.log('Draft order creation response:', JSON.stringify(data, null, 2));
-        
-        // Handle nested response structure from draft order API
-        const checkoutUrl = data.checkoutUrl || data.draftOrder?.checkoutUrl;
-        const invoiceUrl = data.invoiceUrl || data.draftOrder?.invoiceUrl;
-        
-        console.log('🏢 Draft order response received:', {
-          success: data.success,
-          checkoutUrl: checkoutUrl,
-          invoiceUrl: invoiceUrl,
-          fullResponse: data
-        });
-        
-        // Prioritize invoiceUrl as it's the customer-facing checkout URL
-        if (invoiceUrl) {
-          onOrderCreated(invoiceUrl);
-        } else if (checkoutUrl) {
-          onOrderCreated(checkoutUrl);
-        } else {
-          console.error('❌ No checkout URL or invoice URL in response:', data);
-          throw new Error('No checkout URL received');
-        }
+        // Native cart checkout (/checkouts/cn/...) instead of draft order (/checkouts/do/...).
+        onOrderCreated('/checkout');
         return;
       }
 

@@ -284,6 +284,27 @@
           window.location.href = event.data.checkoutUrl;
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
+        } else if (event.data.type === 'proceed-to-cart-checkout') {
+          const delivery = event.data.delivery || {};
+          const attributes = delivery.attributes || {};
+          const note = delivery.note || '';
+
+          fetch('/cart/update.js', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              note,
+              attributes
+            })
+          })
+            .catch(() => {})
+            .finally(() => {
+              window.location.href = '/checkout';
+              hideOfficeSelector();
+              window.removeEventListener('message', messageHandler);
+            });
         } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
           
           // Fetch fresh cart data from Shopify
