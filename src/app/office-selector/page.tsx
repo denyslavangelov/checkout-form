@@ -124,26 +124,13 @@ export default function OfficeSelectorPage() {
     parseUrlParams();
   }, []);
 
-  const handleOrderCreated = (checkoutUrl: string) => {
+  const handleOrderCreated = (invoiceUrl: string) => {
     if (typeof window === 'undefined') return;
 
-    const isCartCheckout = checkoutUrl === '/checkout';
-
-    if (isCartCheckout) {
-      // Embedded flow: parent CDN script updates cart and redirects.
-      if (!window.parent || window.parent === window) {
-        const storeUrl = config.shopify?.storeUrl;
-        if (storeUrl) {
-          window.location.href = `https://${storeUrl.replace(/^https?:\/\//, '')}/checkout`;
-        }
-      }
-      return;
-    }
-
-    if (window.parent && window.parent !== window) {
-      window.parent.location.href = checkoutUrl;
+    if (window.parent) {
+      window.parent.location.href = invoiceUrl;
     } else {
-      window.location.href = checkoutUrl;
+      window.location.href = invoiceUrl;
     }
   };
 
