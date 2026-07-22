@@ -53,8 +53,15 @@ interface OfficeSelectorModalProps {
       storeUrl: string;
       accessToken: string;
     };
+    // Opt-in only. Default / omitted = draft-order (existing stores unchanged).
+    cartCheckout?: {
+      mode?: 'draft-order' | 'native';
+    };
   };
 }
+
+const usesNativeCartCheckout = (config?: OfficeSelectorModalProps['config']) =>
+  config?.cartCheckout?.mode === 'native';
 
 export function OfficeSelectorModal({ 
   isOpen, 
@@ -80,6 +87,9 @@ export function OfficeSelectorModal({
     shopify: {
       storeUrl: '',
       accessToken: ''
+    },
+    cartCheckout: {
+      mode: 'draft-order'
     }
   }
 }: OfficeSelectorModalProps) {
@@ -718,8 +728,78 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   };
 
+  const getShippingAddressLine = () => {
+    if (deliveryType === 'address') {
+      return addressInput.trim();
+    }
+    if (deliveryType === 'office' && selectedOffice) {
+      if (typeof selectedOffice.address === 'string') {
+        return selectedOffice.address;
+      }
+      if (selectedOffice.fullAddressString) {
+        return selectedOffice.fullAddressString;
+      }
+      if (selectedOffice.address && typeof selectedOffice.address === 'object') {
+        return (
+          selectedOffice.address.fullAddressString ||
+          selectedOffice.address.address ||
+          JSON.stringify(selectedOffice.address)
+        );
+      }
+    }
+    return '';
+  };
+
+  const buildCartCheckoutDelivery = () => {
+    const shippingMethod = availableShippingMethods.find(
+      (method) => method.id === selectedShippingMethodId
+    );
+    const addressLine = getShippingAddressLine();
+
+    return {
+      courier: selectedCourier,
+      deliveryType,
+      city: selectedCity?.name || '',
+      postalCode: selectedCity?.postCode || '',
+      address: addressLine,
+      officeName: selectedOffice?.name || '',
+      shippingMethodTitle: shippingMethod?.title || shippingMethod?.name || '',
+      shippingMethodPrice: shippingMethod?.price || '',
+      note: [
+        `Куриер: ${selectedCourier}`,
+        `Тип доставка: ${deliveryType === 'office' ? 'до офис' : 'до адрес'}`,
+        selectedCity?.name ? `Град: ${selectedCity.name}` : '',
+        deliveryType === 'office' && selectedOffice?.name ? `Офис: ${selectedOffice.name}` : '',
+        addressLine ? `Адрес: ${addressLine}` : '',
+        shippingMethod?.title || shippingMethod?.name
+          ? `Доставка: ${shippingMethod?.title || shippingMethod?.name}`
+          : ''
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      attributes: {
+        Courier: selectedCourier,
+        'Delivery Type': deliveryType,
+        City: selectedCity?.name || '',
+        'Postal Code': selectedCity?.postCode || '',
+        ...(deliveryType === 'office' && selectedOffice?.name
+          ? { Office: selectedOffice.name }
+          : {}),
+        ...(addressLine ? { Address: addressLine } : {}),
+        ...(shippingMethod?.title || shippingMethod?.name
+          ? { 'Shipping Method': shippingMethod?.title || shippingMethod?.name }
+          : {})
+      }
+    };
+  };
+
   const trackMetaInitiateCheckout = () => {
     if (typeof window === 'undefined') return;
+
+    // Native cart checkout: parent store page fires InitiateCheckout (fbq lives there).
+    if (usesNativeCartCheckout(config) && productId === 'cart' && variantId === 'cart') {
+      return;
+    }
 
     const pixelId =
       ((config as any)?.meta?.pixelId as string | undefined) ||
@@ -800,6 +880,25 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         
         if (!items || items.length === 0) {
           setError('Кошницата е празна. Моля, добавете продукти преди да продължите.');
+          return;
+        }
+
+        // Opt-in native cart checkout (Agility-style). Default stays draft-order.
+        if (usesNativeCartCheckout(config)) {
+          const delivery = buildCartCheckoutDelivery();
+
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              {
+                type: 'proceed-to-cart-checkout',
+                delivery
+              },
+              '*'
+            );
+          }
+
+          // Parent CDN updates cart and redirects to /checkout.
+          onOrderCreated('/checkout');
           return;
         }
         

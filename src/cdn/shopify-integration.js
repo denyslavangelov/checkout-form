@@ -11,7 +11,9 @@
  *   },
  *   availableCouriers: ['speedy', 'econt'],
  *   defaultCourier: 'speedy',
- *   defaultDeliveryType: 'office'
+ *   defaultDeliveryType: 'office',
+ *   // Opt-in only for one store at a time. Omit elsewhere to keep draft orders.
+ *   cartCheckout: { mode: 'native' }
  * };
  * </script>
  * <script src="https://checkout-form-zeta.vercel.app/cdn/shopify-integration.js"></script>
@@ -27,6 +29,10 @@
     availableCouriers: ['speedy', 'econt'], // Default: both couriers available
     defaultCourier: 'speedy', // Default selected courier
     defaultDeliveryType: 'office', // Default delivery type
+    // Default keeps existing draft-order behavior for all stores.
+    cartCheckout: {
+      mode: 'draft-order'
+    },
     shopify: {
       storeUrl: '', // Shopify store URL (e.g., 'your-store.myshopify.com')
       accessToken: '' // Shopify access token (e.g., 'shpat_...')
@@ -56,6 +62,10 @@
     buttonTargets: {
       ...defaultConfig.buttonTargets,
       ...(config.buttonTargets || {})
+    },
+    cartCheckout: {
+      ...defaultConfig.cartCheckout,
+      ...(config.cartCheckout || {})
     }
   };    
 
@@ -284,6 +294,63 @@
           window.location.href = event.data.checkoutUrl;
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);
+        } else if (
+          event.data.type === 'proceed-to-cart-checkout' &&
+          finalConfig.cartCheckout &&
+          finalConfig.cartCheckout.mode === 'native'
+        ) {
+          // Agility-style handoff: stamp cart, fire Meta on parent, go to /checkout.
+          var delivery = event.data.delivery || {};
+          var attributes = delivery.attributes || {};
+          var note = delivery.note || '';
+          var address1 = delivery.address || '';
+          var city = delivery.city || '';
+          var postalCode = delivery.postalCode || '';
+
+          try {
+            if (typeof window.fbq === 'function') {
+              var cart = window.shopifyCart || window.cartData || {};
+              var value = typeof cart.total_price === 'number' ? cart.total_price / 100 : undefined;
+              var currency = cart.currency || 'BGN';
+              var numItems = cart.item_count || (cart.items && cart.items.length) || 0;
+              window.fbq('track', 'InitiateCheckout', {
+                value: value,
+                currency: currency,
+                num_items: numItems,
+                content_type: 'product'
+              });
+            }
+          } catch (e) {}
+
+          var checkoutParams = [];
+          if (city) {
+            checkoutParams.push('checkout[shipping_address][city]=' + encodeURIComponent(city));
+          }
+          if (address1) {
+            checkoutParams.push('checkout[shipping_address][address1]=' + encodeURIComponent(address1));
+          }
+          if (postalCode) {
+            checkoutParams.push('checkout[shipping_address][zip]=' + encodeURIComponent(postalCode));
+          }
+          checkoutParams.push('checkout[shipping_address][country]=' + encodeURIComponent('BG'));
+          var checkoutUrl = '/checkout' + (checkoutParams.length ? '?' + checkoutParams.join('&') : '');
+
+          fetch('/cart/update.js', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              note: note,
+              attributes: attributes
+            })
+          })
+            .catch(function () {})
+            .finally(function () {
+              window.location.href = checkoutUrl;
+              hideOfficeSelector();
+              window.removeEventListener('message', messageHandler);
+            });
         } else if (event.data.type === 'request-cart-data' || event.data.type === 'request-fresh-cart-data') {
           
           // Fetch fresh cart data from Shopify

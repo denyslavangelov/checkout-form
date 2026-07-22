@@ -16,6 +16,9 @@ export default function TestModalPage() {
     shopify: {
       storeUrl: 'testing-client-check.myshopify.com',
       accessToken: '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'
+    },
+    cartCheckout: {
+      mode: 'native' as 'draft-order' | 'native'
     }
   });
 
@@ -28,6 +31,9 @@ export default function TestModalPage() {
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
     defaultDeliveryType: 'office',
+    cartCheckout: {
+      mode: 'native' as 'draft-order' | 'native'
+    },
     buttonTargets: {
       enableSmartDetection: true,
       customSelectors: [],
@@ -395,6 +401,21 @@ export default function TestModalPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     placeholder="shpat_..."
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Cart checkout mode:</label>
+                  <select
+                    value={cdnConfig.cartCheckout?.mode || 'draft-order'}
+                    onChange={(e) =>
+                      updateCdnConfig('cartCheckout', {
+                        mode: e.target.value as 'draft-order' | 'native'
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="draft-order">draft-order (safe default)</option>
+                    <option value="native">native (/checkouts/cn/)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Default Courier:</label>

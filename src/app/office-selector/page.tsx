@@ -26,6 +26,9 @@ export default function OfficeSelectorPage() {
     shopify: {
       storeUrl: '',
       accessToken: ''
+    },
+    cartCheckout: {
+      mode: 'draft-order' as 'draft-order' | 'native'
     }
   });
 
@@ -111,6 +114,9 @@ export default function OfficeSelectorPage() {
           shopify: {
             storeUrl: parsedConfig.shopify?.storeUrl || '',
             accessToken: parsedConfig.shopify?.accessToken || ''
+          },
+          cartCheckout: {
+            mode: parsedConfig.cartCheckout?.mode === 'native' ? 'native' : 'draft-order'
           }
         });
         
@@ -124,13 +130,25 @@ export default function OfficeSelectorPage() {
     parseUrlParams();
   }, []);
 
-  const handleOrderCreated = (invoiceUrl: string) => {
+  const handleOrderCreated = (checkoutUrl: string) => {
     if (typeof window === 'undefined') return;
 
-    if (window.parent) {
-      window.parent.location.href = invoiceUrl;
+    // Native cart checkout: parent CDN handles /cart/update.js + redirect.
+    // Do not race-redirect from the iframe when embedded.
+    if (checkoutUrl === '/checkout') {
+      if (!window.parent || window.parent === window) {
+        const storeUrl = config.shopify?.storeUrl;
+        if (storeUrl) {
+          window.location.href = `https://${storeUrl.replace(/^https?:\/\//, '')}/checkout`;
+        }
+      }
+      return;
+    }
+
+    if (window.parent && window.parent !== window) {
+      window.parent.location.href = checkoutUrl;
     } else {
-      window.location.href = invoiceUrl;
+      window.location.href = checkoutUrl;
     }
   };
 

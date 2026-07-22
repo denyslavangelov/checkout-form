@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "Checkout Form - Full Flow Simulation",
+    "description": "Simulate OLD vs NEW cart checkout and capture the checkout URL.\n\n## Before you start\n1. Open https://testing-client-check.myshopify.com in Chrome\n2. Enter store password\n3. Add at least 1 product to cart\n4. DevTools → Application → Cookies → copy:\n   - `cart`\n   - `storefront_digest` (password-protected stores)\n   - `_shopify_s` (optional but helps)\n5. Paste values into collection variables\n\n## OLD flow (other stores today)\nPOST create-draft-order → response `invoiceUrl` contains `/checkouts/do/...`\n\n## NEW flow (your test store with cartCheckout.mode=native)\nPOST /cart/update.js → GET /checkout → `Location` header contains `/checkouts/cn/...`\n\nOpen the captured URL in the same browser session to complete checkout manually.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "shopify_store_url", "value": "testing-client-check.myshopify.com" },
+    { "key": "app_base_url", "value": "https://checkout-form-zeta.vercel.app" },
+    { "key": "shopify_cart_cookie", "value": "PASTE_CART_COOKIE" },
+    { "key": "shopify_storefront_digest", "value": "PASTE_STOREFRONT_DIGEST" },
+    { "key": "shopify_session_cookie", "value": "PASTE__SHOPIFY_S_IF_PRESENT" },
+    { "key": "shopify_access_token", "value": "PASTE_SHPAT_TOKEN" },
+    { "key": "variant_id_from_cart", "value": "PASTE_FROM_STEP_1" },
+    { "key": "old_checkout_do_url", "value": "" },
+    { "key": "new_checkout_cn_url", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0 - Setup (read cart first)",
+      "item": [
+        {
+          "name": "GET Cart (copy variant_id for draft-order test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const cart = pm.response.json();",
+                  "pm.test('Cart has items', function () {",
+                  "  pm.expect(cart.items.length).to.be.above(0);",
+                  "});",
+                  "if (cart.items && cart.items[0]) {",
+                  "  pm.collectionVariables.set('variant_id_from_cart', String(cart.items[0].variant_id));",
+                  "  console.log('Saved variant_id_from_cart =', cart.items[0].variant_id);",
+                  "}",
+                  "console.log('Cart token:', cart.token);",
+                  "console.log('Cart total_price (cents):', cart.total_price);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "cart={{shopify_cart_cookie}}; storefront_digest={{shopify_storefront_digest}}; _shopify_s={{shopify_session_cookie}}"
+              }
+            ],
+            "url": "https://{{shopify_store_url}}/cart.js"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OLD flow - Draft order (/checkouts/do/)",
+      "item": [
+        {
+          "name": "POST Create Draft Order (cart checkout)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "const invoiceUrl = data?.draftOrder?.invoiceUrl || data?.invoiceUrl;",
+                  "pm.test('Draft order created', function () {",
+                  "  pm.expect(data.success).to.eql(true);",
+                  "  pm.expect(invoiceUrl).to.be.a('string');",
+                  "});",
+                  "if (invoiceUrl) {",
+                  "  pm.collectionVariables.set('old_checkout_do_url', invoiceUrl);",
+                  "  console.log('OLD checkout URL (do):', invoiceUrl);",
+                  "  pm.test('URL uses /checkouts/do/', function () {",
+                  "    pm.expect(invoiceUrl).to.include('/checkouts/do/');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cartData\": {\n    \"currency\": \"BGN\",\n    \"total_price\": 6980,\n    \"items\": [\n      {\n        \"variant_id\": {{variant_id_from_cart}},\n        \"quantity\": 1,\n        \"price\": 6980,\n        \"line_price\": 6980,\n        \"final_line_price\": 6980,\n        \"original_line_price\": 6980,\n        \"title\": \"Test product from cart\"\n      }\n    ]\n  },\n  \"shippingMethod\": {\n    \"courier\": \"speedy\",\n    \"deliveryType\": \"office\"\n  },\n  \"selectedShippingMethodId\": \"speedy-office\",\n  \"selectedShippingMethod\": {\n    \"id\": \"speedy-office\",\n    \"title\": \"Speedy до офис\",\n    \"price\": \"5.99\",\n    \"currency\": \"BGN\"\n  },\n  \"shopify\": {\n    \"storeUrl\": \"{{shopify_store_url}}\",\n    \"accessToken\": \"{{shopify_access_token}}\"\n  },\n  \"shippingAddress\": {\n    \"address1\": \"бул. Витоша 1, Speedy Office Center\",\n    \"city\": \"София\",\n    \"country\": \"Bulgaria\",\n    \"postalCode\": \"1000\"\n  }\n}"
+            },
+            "url": "{{app_base_url}}/api/create-draft-order"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NEW flow - Native cart (/checkouts/cn/)",
+      "item": [
+        {
+          "name": "POST Cart Update (same as CDN script)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const cart = pm.response.json();",
+                  "pm.test('Cart update succeeded', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "console.log('Cart note:', cart.note);",
+                  "console.log('Cart attributes:', cart.attributes);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "Cookie",
+                "value": "cart={{shopify_cart_cookie}}; storefront_digest={{shopify_storefront_digest}}; _shopify_s={{shopify_session_cookie}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Куриер: speedy\\nТип доставка: до офис\\nГрад: София\\nОфис: Speedy Office Center\\nАдрес: бул. Витоша 1\\nДоставка: Speedy до офис\",\n  \"attributes\": {\n    \"Courier\": \"speedy\",\n    \"Delivery Type\": \"office\",\n    \"City\": \"София\",\n    \"Postal Code\": \"1000\",\n    \"Office\": \"Speedy Office Center\",\n    \"Address\": \"бул. Витоша 1\",\n    \"Shipping Method\": \"Speedy до офис\"\n  }\n}"
+            },
+            "url": "https://{{shopify_store_url}}/cart/update.js"
+          }
+        },
+        {
+          "name": "GET Checkout - capture cn URL (redirects OFF)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const location = pm.response.headers.get('Location');",
+                  "if (location) {",
+                  "  const fullUrl = location.startsWith('http')",
+                  "    ? location",
+                  "    : 'https://' + pm.collectionVariables.get('shopify_store_url') + location;",
+                  "  pm.collectionVariables.set('new_checkout_cn_url', fullUrl);",
+                  "  console.log('NEW checkout URL (cn):', fullUrl);",
+                  "  pm.test('Redirect contains /checkouts/cn/', function () {",
+                  "    pm.expect(fullUrl).to.include('/checkouts/cn/');",
+                  "  });",
+                  "} else {",
+                  "  console.log('No Location header. Status:', pm.response.code);",
+                  "  console.log('Body preview:', pm.response.text().slice(0, 300));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "cart={{shopify_cart_cookie}}; storefront_digest={{shopify_storefront_digest}}; _shopify_s={{shopify_session_cookie}}"
+              }
+            ],
+            "url": "https://{{shopify_store_url}}/checkout"
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        },
+        {
+          "name": "GET Cart (verify note + attributes saved)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "cart={{shopify_cart_cookie}}; storefront_digest={{shopify_storefront_digest}}; _shopify_s={{shopify_session_cookie}}"
+              }
+            ],
+            "url": "https://{{shopify_store_url}}/cart.js"
+          }
+        }
+      ]
+    }
+  ]
+}
