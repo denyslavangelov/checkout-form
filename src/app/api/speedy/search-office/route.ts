@@ -49,15 +49,28 @@ export async function POST(request: Request) {
     const data = await response.json();
 
     // Format the offices for office selector
-    let formattedOffices = data.offices?.map((office: any) => ({
-      id: office.id,
-      name: office.name,
-      address: office.address,
-      siteId: office.siteId,
-      siteName: office.siteName,
-      value: `${office.id}|${office.name}|${office.address}`,
-      label: `${office.name}: ${office.address}`
-    })) || [];
+    let formattedOffices = data.offices?.map((office: any) => {
+      const address =
+        typeof office.address === 'string'
+          ? office.address
+          : office.address?.fullAddressString ||
+            office.address?.localAddressString ||
+            office.address ||
+            '';
+
+      return {
+        id: office.id,
+        name: office.name,
+        address,
+        fullAddressString:
+          typeof address === 'string' ? address : office.address?.fullAddressString || '',
+        type: office.type || 'OFFICE', // OFFICE | APT (locker)
+        siteId: office.siteId,
+        siteName: office.siteName,
+        value: `${office.id}|${office.name}|${typeof address === 'string' ? address : ''}`,
+        label: `${office.name}: ${typeof address === 'string' ? address : ''}`
+      };
+    }) || [];
 
     // Return empty array if no offices found - no mock data
 

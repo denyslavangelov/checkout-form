@@ -22,6 +22,8 @@ interface Office {
   name: string;
   address: any;
   fullAddressString?: string;
+  type?: 'OFFICE' | 'APT' | string;
+  siteName?: string;
 }
 
 interface OfficeSelectorModalProps {
@@ -728,24 +730,63 @@ Current config: ${JSON.stringify(config, null, 2)}`;
     }
   };
 
+  const getOfficeStreetAddress = (office: Office) => {
+    if (typeof office.address === 'string') {
+      return office.address.trim();
+    }
+    if (office.fullAddressString) {
+      return office.fullAddressString.trim();
+    }
+    if (office.address && typeof office.address === 'object') {
+      return (
+        office.address.fullAddressString ||
+        office.address.localAddressString ||
+        office.address.address ||
+        ''
+      )
+        .toString()
+        .trim();
+    }
+    return '';
+  };
+
+  const isOfficeAutomat = (office: Office) => {
+    const type = String(office.type || '').toUpperCase();
+    if (type === 'APT') return true;
+    const name = String(office.name || '').toLowerCase();
+    return name.includes('автомат') || name.includes('apt') || name.includes('locker');
+  };
+
+  const formatCourierLabel = (courier: 'speedy' | 'econt') =>
+    courier === 'econt' ? 'Econt' : 'Speedy';
+
+  /**
+   * Shopify checkout address1 for office/locker, e.g.:
+   * Автомат Speedy [9332] СОФИЯ - ФАНТАСТИКО: ул. ВИТОША No 1А
+   * Офис Speedy [832] МОНТАНА - МЛАДОСТ: бул. ГЕН. АРНОЛДИ No 9
+   * Офис Econt [49733] ПЛОВДИВ - ЦЕНТЪР
+   */
+  const formatOfficeCheckoutAddress = (office: Office) => {
+    const kind = isOfficeAutomat(office) ? 'Автомат' : 'Офис';
+    const courierLabel = formatCourierLabel(selectedCourier);
+    const code = office.id != null ? String(office.id) : '';
+    const name = (office.name || '').trim();
+    const street = getOfficeStreetAddress(office);
+
+    let line = `${kind} ${courierLabel}`;
+    if (code) line += ` [${code}]`;
+    if (name) line += ` ${name}`;
+    if (street && street !== name) line += `: ${street}`;
+
+    return line.trim();
+  };
+
   const getShippingAddressLine = () => {
     if (deliveryType === 'address') {
       return addressInput.trim();
     }
     if (deliveryType === 'office' && selectedOffice) {
-      if (typeof selectedOffice.address === 'string') {
-        return selectedOffice.address;
-      }
-      if (selectedOffice.fullAddressString) {
-        return selectedOffice.fullAddressString;
-      }
-      if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-        return (
-          selectedOffice.address.fullAddressString ||
-          selectedOffice.address.address ||
-          JSON.stringify(selectedOffice.address)
-        );
-      }
+      return formatOfficeCheckoutAddress(selectedOffice);
     }
     return '';
   };
@@ -763,6 +804,8 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       postalCode: selectedCity?.postCode || '',
       address: addressLine,
       officeName: selectedOffice?.name || '',
+      officeId: selectedOffice?.id != null ? String(selectedOffice.id) : '',
+      officeType: selectedOffice?.type || '',
       shippingMethodTitle: shippingMethod?.title || shippingMethod?.name || '',
       shippingMethodPrice: shippingMethod?.price || '',
       note: [
@@ -770,6 +813,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         `Тип доставка: ${deliveryType === 'office' ? 'до офис' : 'до адрес'}`,
         selectedCity?.name ? `Град: ${selectedCity.name}` : '',
         deliveryType === 'office' && selectedOffice?.name ? `Офис: ${selectedOffice.name}` : '',
+        deliveryType === 'office' && selectedOffice?.id != null
+          ? `Код офис: ${selectedOffice.id}`
+          : '',
         addressLine ? `Адрес: ${addressLine}` : '',
         shippingMethod?.title || shippingMethod?.name
           ? `Доставка: ${shippingMethod?.title || shippingMethod?.name}`
@@ -784,6 +830,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
         'Postal Code': selectedCity?.postCode || '',
         ...(deliveryType === 'office' && selectedOffice?.name
           ? { Office: selectedOffice.name }
+          : {}),
+        ...(deliveryType === 'office' && selectedOffice?.id != null
+          ? { 'Office Code': String(selectedOffice.id) }
           : {}),
         ...(addressLine ? { Address: addressLine } : {}),
         ...(shippingMethod?.title || shippingMethod?.name
@@ -941,21 +990,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
             selectedShippingMethod: shippingMethodToSend,
             shopify: { storeUrl, accessToken }, // Pass Shopify credentials
             shippingAddress: {
-              address1: (() => {
-                if (deliveryType === 'address') {
-                  return addressInput.trim();
-                } else if (deliveryType === 'office' && selectedOffice) {
-                  if (typeof selectedOffice.address === 'string') {
-                    return selectedOffice.address;
-                  } else if (selectedOffice.fullAddressString) {
-                    return selectedOffice.fullAddressString;
-                  } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-                    return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
-                  }
-                  return 'Address not available';
-                }
-                return 'Address not available';
-              })(),
+              address1: getShippingAddressLine() || 'Address not available',
               city: selectedCity?.name || '',
               country: 'Bulgaria',
               postalCode: selectedCity?.postCode || ''
@@ -1025,21 +1060,7 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           selectedShippingMethod: availableShippingMethods.find(method => method.id === selectedShippingMethodId),
           shopify: { storeUrl, accessToken }, // Pass Shopify credentials
           shippingAddress: {
-            address1: (() => {
-              if (deliveryType === 'address') {
-                return addressInput.trim();
-              } else if (deliveryType === 'office' && selectedOffice) {
-                if (typeof selectedOffice.address === 'string') {
-                  return selectedOffice.address;
-                } else if (selectedOffice.fullAddressString) {
-                  return selectedOffice.fullAddressString;
-                } else if (selectedOffice.address && typeof selectedOffice.address === 'object') {
-                  return selectedOffice.address.fullAddressString || selectedOffice.address.address || JSON.stringify(selectedOffice.address);
-                }
-                return 'Address not available';
-              }
-              return 'Address not available';
-            })(),
+            address1: getShippingAddressLine() || 'Address not available',
             city: selectedCity?.name || '',
             country: 'Bulgaria',
             postalCode: selectedCity?.postCode || ''
