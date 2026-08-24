@@ -33,6 +33,8 @@ interface OfficeSelectorModalProps {
   productId: string;
   variantId: string;
   quantity?: string;
+  /** modal = popup overlay (default). page = full-page pre-checkout layout. */
+  displayMode?: 'modal' | 'page';
   config?: {
     availableCouriers: string[];
     defaultCourier: string;
@@ -72,6 +74,7 @@ export function OfficeSelectorModal({
   productId, 
   variantId,
   quantity = '1',
+  displayMode = 'modal',
   config = {
     availableCouriers: ['speedy', 'econt'],
     defaultCourier: 'speedy',
@@ -944,10 +947,12 @@ Current config: ${JSON.stringify(config, null, 2)}`;
               },
               '*'
             );
+            // Parent CDN updates cart and redirects to /checkout.
+            onOrderCreated('/checkout');
+          } else {
+            // Full-page mode (no parent store frame): hand delivery back via callback.
+            onOrderCreated(`native-checkout:${encodeURIComponent(JSON.stringify(delivery))}`);
           }
-
-          // Parent CDN updates cart and redirects to /checkout.
-          onOrderCreated('/checkout');
           return;
         }
         
@@ -1137,14 +1142,19 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   if (!isOpen) return null;
 
   if (typeof window === 'undefined') return null;
+
+  const isPageMode = displayMode === 'page';
   
   // Show loading screen while shipping methods are being fetched
   // No loading screen - show form immediately for faster user experience
-  
-  return createPortal(
-    <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
+
+  const modalContent = (
       <div 
-        className="office-selector-modal bg-transparent rounded-lg p-4 sm:p-8 max-w-md sm:max-w-[38rem] w-full relative shadow-lg border border-gray-200 min-h-fit my-4 sm:my-8 text-[12px] sm:text-base"
+        className={
+          isPageMode
+            ? 'office-selector-modal bg-white rounded-lg p-4 sm:p-8 max-w-xl w-full relative border border-gray-200 text-[12px] sm:text-base mx-auto'
+            : 'office-selector-modal bg-transparent rounded-lg p-4 sm:p-8 max-w-md sm:max-w-[38rem] w-full relative shadow-lg border border-gray-200 min-h-fit my-4 sm:my-8 text-[12px] sm:text-base'
+        }
         style={{
           '--custom-font-family': config.font?.family || 'inherit',
           '--custom-font-weight': config.font?.weight || '400',
@@ -1156,10 +1166,11 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           fontVariant: 'inherit'
         } as React.CSSProperties}
       >
-        {/* Close button */}
+        {/* Close / back button */}
         <button
           onClick={handleClose}
           className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 z-10"
+          aria-label={isPageMode ? 'Назад' : 'Затвори'}
         >
           <X className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
@@ -1590,6 +1601,19 @@ Current config: ${JSON.stringify(config, null, 2)}`;
           </Button>
         </div>
       </div>
+  );
+
+  if (isPageMode) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-start justify-center p-4 sm:p-8">
+        {modalContent}
+      </div>
+    );
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 bg-transparent flex items-start justify-center z-50 p-4 overflow-y-auto">
+      {modalContent}
     </div>,
     document.body
   );
