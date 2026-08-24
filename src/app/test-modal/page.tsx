@@ -53,19 +53,24 @@ export default function TestModalPage() {
 
   // Memoize URL parsing for performance (same as office-selector page)
   const urlData = useMemo(() => {
+    const defaultConfig = {
+      availableCouriers: ['speedy', 'econt'],
+      defaultCourier: 'speedy',
+      defaultDeliveryType: 'office',
+      shopify: {
+        storeUrl: 'testing-client-check.myshopify.com',
+        accessToken: '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'
+      },
+      cartCheckout: {
+        mode: 'native' as 'draft-order' | 'native'
+      }
+    };
+
     if (typeof window === 'undefined') {
       return {
         product: 'test-product-123',
         variant: 'test-variant-456',
-        parsedConfig: {
-          availableCouriers: ['speedy', 'econt'],
-          defaultCourier: 'speedy',
-          defaultDeliveryType: 'office',
-          shopify: {
-            storeUrl: 'testing-client-check.myshopify.com',
-            accessToken: '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'
-          }
-        }
+        parsedConfig: defaultConfig
       };
     }
     
@@ -75,19 +80,22 @@ export default function TestModalPage() {
     const quantity = urlParams.get('quantity') || '1';
     const configParam = urlParams.get('config');
     
-    let parsedConfig = {
-      availableCouriers: ['speedy', 'econt'],
-      defaultCourier: 'speedy',
-      defaultDeliveryType: 'office',
-      shopify: {
-        storeUrl: 'testing-client-check.myshopify.com',
-        accessToken: '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'
-      }
-    };
+    let parsedConfig = { ...defaultConfig };
     
     if (configParam) {
       try {
-        parsedConfig = JSON.parse(decodeURIComponent(configParam));
+        const fromUrl = JSON.parse(decodeURIComponent(configParam));
+        parsedConfig = {
+          ...defaultConfig,
+          ...fromUrl,
+          shopify: {
+            ...defaultConfig.shopify,
+            ...(fromUrl.shopify || {})
+          },
+          cartCheckout: {
+            mode: fromUrl.cartCheckout?.mode === 'draft-order' ? 'draft-order' : 'native'
+          }
+        };
       } catch (error) {
       }
     }
