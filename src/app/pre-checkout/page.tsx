@@ -96,7 +96,12 @@ export default function PreCheckoutPage() {
 
     if (configParam) {
       try {
-        const parsed = JSON.parse(decodeURIComponent(configParam));
+        let parsed: any;
+        try {
+          parsed = JSON.parse(configParam);
+        } catch {
+          parsed = JSON.parse(decodeURIComponent(configParam));
+        }
         setConfig({
           availableCouriers: parsed.availableCouriers || ['speedy', 'econt'],
           defaultCourier: parsed.defaultCourier || 'speedy',
@@ -113,8 +118,8 @@ export default function PreCheckoutPage() {
             weight: parsed.font?.weight || '400'
           },
           shopify: {
-            storeUrl: parsed.shopify?.storeUrl || '',
-            accessToken: parsed.shopify?.accessToken || ''
+            storeUrl: parsed.shopify?.storeUrl || params.get('storeUrl') || '',
+            accessToken: parsed.shopify?.accessToken || params.get('accessToken') || ''
           },
           cartCheckout: {
             mode: parsed.cartCheckout?.mode === 'native' ? 'native' : 'draft-order'

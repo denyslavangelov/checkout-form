@@ -260,13 +260,38 @@
       };
       document.addEventListener('keydown', handleKeyDown);
       
-      // Set iframe source with product data and configuration
-      const configParam = encodeURIComponent(JSON.stringify(finalConfig));
+      // Pass only modal-relevant config (skip buttonTargets — keeps URL short/reliable)
+      const iframeConfig = {
+        availableCouriers: finalConfig.availableCouriers,
+        defaultCourier: finalConfig.defaultCourier,
+        defaultDeliveryType: finalConfig.defaultDeliveryType,
+        showPrices: finalConfig.showPrices !== undefined ? finalConfig.showPrices : true,
+        freeShipping: finalConfig.freeShipping,
+        continueButton: finalConfig.continueButton,
+        font: finalConfig.font,
+        shopify: finalConfig.shopify,
+        cartCheckout: finalConfig.cartCheckout
+      };
+      const configParam = encodeURIComponent(JSON.stringify(iframeConfig));
       const quantityParam = productData.quantity ? `&quantity=${encodeURIComponent(productData.quantity)}` : '';
-      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}`;
-      
-      // Debug logging for config
-      
+      const storeUrlParam = finalConfig.shopify?.storeUrl
+        ? `&storeUrl=${encodeURIComponent(finalConfig.shopify.storeUrl)}`
+        : '';
+      const accessTokenParam = finalConfig.shopify?.accessToken
+        ? `&accessToken=${encodeURIComponent(finalConfig.shopify.accessToken)}`
+        : '';
+      const officeSelectorUrl = `${baseUrl}/office-selector?productId=${encodeURIComponent(productData.productId)}&variantId=${encodeURIComponent(productData.variantId)}${quantityParam}&config=${configParam}${storeUrlParam}${accessTokenParam}`;
+
+      if (finalConfig.buttonTargets.debugMode) {
+        console.log('🏢 Opening office selector with config:', {
+          couriers: iframeConfig.availableCouriers,
+          mode: iframeConfig.cartCheckout?.mode,
+          storeUrl: iframeConfig.shopify?.storeUrl,
+          hasToken: !!iframeConfig.shopify?.accessToken,
+          urlLength: officeSelectorUrl.length
+        });
+      }
+
       iframe.src = officeSelectorUrl;
       
       iframe.style.display = 'block';
@@ -287,6 +312,25 @@
         
         
         if (event.data.type === 'iframe-ready') {
+          // Re-send config via postMessage (backup if URL config was truncated/failed to parse)
+          if (iframe.contentWindow) {
+            try {
+              iframe.contentWindow.postMessage({
+                type: 'office-selector-config',
+                config: {
+                  availableCouriers: finalConfig.availableCouriers,
+                  defaultCourier: finalConfig.defaultCourier,
+                  defaultDeliveryType: finalConfig.defaultDeliveryType,
+                  showPrices: finalConfig.showPrices !== undefined ? finalConfig.showPrices : true,
+                  freeShipping: finalConfig.freeShipping,
+                  continueButton: finalConfig.continueButton,
+                  font: finalConfig.font,
+                  shopify: finalConfig.shopify,
+                  cartCheckout: finalConfig.cartCheckout
+                }
+              }, baseUrl);
+            } catch (e) {}
+          }
         } else if (event.data.type === 'office-selector-closed') {
           hideOfficeSelector();
           window.removeEventListener('message', messageHandler);

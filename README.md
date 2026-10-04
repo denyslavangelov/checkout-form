@@ -2,6 +2,10 @@
 
 This project provides a custom checkout form that can be integrated with your Shopify store. The form is built with Next.js and can be embedded in your Shopify store via an iframe.
 
+## Shipping rate filtering (optional companion app)
+
+[`shopify-app/`](./shopify-app) contains **ShipMatch**, a standalone Shopify app that hides unmatched checkout shipping rates based on a cart attribute. It is designed for public App Store distribution (required for Functions on non-Plus stores). See [`shopify-app/README.md`](./shopify-app/README.md).
+
 ## Integration Steps
 
 ### 1. Deploy the Next.js App

@@ -418,8 +418,9 @@ Current config: ${JSON.stringify(config, null, 2)}`;
       return courierMatch && deliveryMatch;
     });
     
-    if (method && method.price && method.price !== '0.00') {
-      return `${method.price} €`;
+    if (method && method.price != null && String(method.price) !== '' && String(method.price) !== '0.00') {
+      const currency = method.currency === 'BGN' ? 'лв.' : method.currency === 'EUR' ? '€' : method.currency || '€';
+      return `${method.price} ${currency}`;
     }
     return null;
   };
@@ -427,9 +428,6 @@ Current config: ${JSON.stringify(config, null, 2)}`;
   // Auto-select shipping method based on courier and delivery type
   useEffect(() => {
     if (availableShippingMethods.length > 0) {
-      
-      debugger;
-      
       // Try to find a matching shipping method
       const matchingMethod = availableShippingMethods.find(method => {
         const title = method.title.toLowerCase();

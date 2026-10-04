@@ -178,18 +178,24 @@ export async function GET(request: NextRequest) {
     // Filter for Bulgaria-specific methods (Domestic zone and Bulgarian shipping methods)
     
     const bulgariaMethods = allShippingMethods.filter(method => {
-      const zoneMatch = method.zone?.toLowerCase().includes('domestic');
-      const nameMatch = method.name?.toLowerCase().includes('спиди') ||
-        method.name?.toLowerCase().includes('еконт') ||
-        method.name?.toLowerCase().includes('speedy') ||
-        method.name?.toLowerCase().includes('econt') ||
-        method.name?.toLowerCase().includes('офис') ||
-        method.name?.toLowerCase().includes('адрес') ||
-        method.name?.toLowerCase().includes('доставка') ||
-        method.name?.toLowerCase().includes('личен');
-      
-      const isMatch = zoneMatch || nameMatch;
-      return isMatch;
+      const zone = method.zone?.toLowerCase() || '';
+      const name = method.name?.toLowerCase() || '';
+      const zoneMatch =
+        zone.includes('domestic') ||
+        zone.includes('europe') ||
+        zone.includes('bulgaria') ||
+        zone.includes('българия');
+      const nameMatch =
+        name.includes('спиди') ||
+        name.includes('еконт') ||
+        name.includes('speedy') ||
+        name.includes('econt') ||
+        name.includes('офис') ||
+        name.includes('адрес') ||
+        name.includes('доставка') ||
+        name.includes('личен');
+
+      return zoneMatch || nameMatch;
     });
 
     return NextResponse.json({

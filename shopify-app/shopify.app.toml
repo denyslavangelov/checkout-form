@@ -1,0 +1,38 @@
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration
+#
+# Create a NEW public app (do not reuse checkout-form-extension):
+#   npx shopify app config link
+# Choose: create new app → name "ShipMatch"
+# Then set Distribution = Public in the Dev Dashboard before App Store submit.
+
+name = "ShipMatch"
+client_id = "REPLACE_AFTER_CONFIG_LINK"
+application_url = "https://localhost"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[access_scopes]
+scopes = "write_delivery_customizations,read_delivery_customizations"
+
+[auth]
+redirect_urls = [
+  "https://localhost/auth/callback",
+  "https://localhost/auth/shopify/callback",
+  "https://localhost/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+[pos]
+embedded = false

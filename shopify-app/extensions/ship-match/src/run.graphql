@@ -1,0 +1,18 @@
+query RunInput($attributeKey: String!) {
+  cart {
+    attribute(key: $attributeKey) {
+      value
+    }
+    deliveryGroups {
+      deliveryOptions {
+        handle
+        title
+      }
+    }
+  }
+  deliveryCustomization {
+    metafield(namespace: "$app:ship-match", key: "function-configuration") {
+      jsonValue
+    }
+  }
+}

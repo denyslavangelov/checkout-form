@@ -1,0 +1,25 @@
+api_version = "2026-07"
+uid = "cce79922-3fa3-ee1a-bd68-203cb9f139fd7193e7cd"
+
+[[extensions]]
+handle = "ship-match"
+name = "t:name"
+description = "t:description"
+type = "function"
+
+  [[extensions.targeting]]
+  target = "cart.delivery-options.transform.run"
+  input_query = "src/run.graphql"
+  export = "run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"
+
+  [extensions.input.variables]
+  namespace = "$app:ship-match"
+  key = "function-configuration"
+
+  [extensions.ui.paths]
+  create = "/app/rules/new"
+  details = "/app/rules/:id"

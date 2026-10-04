@@ -2,50 +2,69 @@
 
 import { useState, useEffect } from 'react';
 import { OfficeSelectorModal } from '@/components/office-selector-modal';
+import {
+  normalizeOfficeSelectorConfig,
+  readOfficeSelectorConfigFromSearch,
+  type OfficeSelectorParsedConfig
+} from '@/lib/parse-office-selector-config';
+
+const DEFAULT_CONFIG: OfficeSelectorParsedConfig = {
+  availableCouriers: ['speedy', 'econt'],
+  defaultCourier: 'speedy',
+  defaultDeliveryType: 'office',
+  showPrices: true,
+  freeShipping: undefined,
+  continueButton: {
+    text: 'Продължи към завършване',
+    backgroundColor: 'bg-red-600',
+    hoverColor: 'hover:bg-red-700'
+  },
+  font: {
+    family: 'inherit',
+    weight: '400'
+  },
+  shopify: {
+    storeUrl: '',
+    accessToken: ''
+  },
+  cartCheckout: {
+    mode: 'draft-order'
+  }
+};
 
 export default function OfficeSelectorPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [productId, setProductId] = useState('');
   const [variantId, setVariantId] = useState('');
   const [quantity, setQuantity] = useState('1');
-  const [config, setConfig] = useState({
-    availableCouriers: ['speedy', 'econt'],
-    defaultCourier: 'speedy',
-    defaultDeliveryType: 'office',
-    showPrices: true,
-    freeShipping: undefined as { enabled: boolean; threshold: number } | undefined,
-    continueButton: {
-      text: 'Продължи към завършване',
-      backgroundColor: 'bg-red-600',
-      hoverColor: 'hover:bg-red-700'
-    },
-    font: {
-      family: 'inherit',
-      weight: '400'
-    },
-    shopify: {
-      storeUrl: '',
-      accessToken: ''
-    },
-    cartCheckout: {
-      mode: 'draft-order' as 'draft-order' | 'native'
-    }
-  });
+  const [config, setConfig] = useState<OfficeSelectorParsedConfig>(DEFAULT_CONFIG);
 
+  const applyConfig = (next: OfficeSelectorParsedConfig) => {
+    setConfig((prev) => {
+      // Prefer non-empty credentials from either source
+      return {
+        ...prev,
+        ...next,
+        shopify: {
+          storeUrl: next.shopify.storeUrl || prev.shopify.storeUrl,
+          accessToken: next.shopify.accessToken || prev.shopify.accessToken
+        }
+      };
+    });
+  };
 
-  // Simple function to parse URL parameters
+  // Parse URL parameters
   const parseUrlParams = () => {
     if (typeof window === 'undefined') return;
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('productId') || '';
     const variant = urlParams.get('variantId') || '';
     const qty = urlParams.get('quantity') || '1';
-    const configParam = urlParams.get('config');
     const mockCart = urlParams.get('mockCart');
 
     const shouldInjectMockCart = mockCart === '1' || mockCart === 'true';
-    if (shouldInjectMockCart && typeof window !== 'undefined') {
+    if (shouldInjectMockCart) {
       const mockItems = [
         {
           id: Date.now(),
@@ -84,50 +103,40 @@ export default function OfficeSelectorPage() {
         })
       );
     }
-    
-    // Set basic parameters
+
     setProductId(shouldInjectMockCart ? 'cart' : product);
     setVariantId(shouldInjectMockCart ? 'cart' : variant);
     setQuantity(qty);
-    
-    // Parse config if present
-    if (configParam) {
-      try {
-        const parsedConfig = JSON.parse(decodeURIComponent(configParam));
-        
-        // Set the config with Shopify credentials
-        setConfig({
-          availableCouriers: parsedConfig.availableCouriers || ['speedy', 'econt'],
-          defaultCourier: parsedConfig.defaultCourier || 'speedy',
-          defaultDeliveryType: parsedConfig.defaultDeliveryType || 'office',
-          showPrices: parsedConfig.showPrices !== undefined ? parsedConfig.showPrices : true,
-          freeShipping: parsedConfig.freeShipping, // Include freeShipping configuration
-          continueButton: {
-            text: parsedConfig.continueButton?.text || 'Продължи към завършване',
-            backgroundColor: parsedConfig.continueButton?.backgroundColor || 'bg-red-600',
-            hoverColor: parsedConfig.continueButton?.hoverColor || 'hover:bg-red-700'
-          },
-          font: {
-            family: parsedConfig.font?.family || 'inherit',
-            weight: parsedConfig.font?.weight || '400'
-          },
-          shopify: {
-            storeUrl: parsedConfig.shopify?.storeUrl || '',
-            accessToken: parsedConfig.shopify?.accessToken || ''
-          },
-          cartCheckout: {
-            mode: parsedConfig.cartCheckout?.mode === 'native' ? 'native' : 'draft-order'
-          }
-        });
-        
-      } catch (error) {
-      }
+
+    const fromUrl = readOfficeSelectorConfigFromSearch(window.location.search);
+    if (fromUrl) {
+      applyConfig(fromUrl);
+      console.log('🏢 Office selector config from URL:', {
+        couriers: fromUrl.availableCouriers,
+        mode: fromUrl.cartCheckout.mode,
+        storeUrl: fromUrl.shopify.storeUrl,
+        hasToken: !!fromUrl.shopify.accessToken
+      });
     }
   };
 
-  // Run once when component mounts
   useEffect(() => {
     parseUrlParams();
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'office-selector-config' || !event.data.config) return;
+      const normalized = normalizeOfficeSelectorConfig(event.data.config);
+      applyConfig(normalized);
+      console.log('🏢 Office selector config from parent postMessage:', {
+        couriers: normalized.availableCouriers,
+        mode: normalized.cartCheckout.mode,
+        storeUrl: normalized.shopify.storeUrl,
+        hasToken: !!normalized.shopify.accessToken
+      });
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
   }, []);
 
   const handleOrderCreated = (checkoutUrl: string) => {
@@ -154,8 +163,7 @@ export default function OfficeSelectorPage() {
 
   const handleClose = () => {
     setIsOpen(false);
-    
-    // Notify parent window that modal is closed
+
     if (typeof window !== 'undefined' && window.parent) {
       window.parent.postMessage({ type: 'office-selector-closed' }, '*');
     }

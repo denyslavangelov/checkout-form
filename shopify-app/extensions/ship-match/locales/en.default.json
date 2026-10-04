@@ -1,0 +1,4 @@
+{
+  "name": "ShipMatch",
+  "description": "Hide shipping rates that do not match a selected cart attribute so checkout shows only the intended delivery option."
+}

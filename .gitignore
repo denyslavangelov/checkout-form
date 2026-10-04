@@ -42,3 +42,15 @@ next-env.d.ts
 
 # local env files
 .env*.local
+
+# Shopify app local artifacts
+/shopify-app/.env
+/shopify-app/.env.*
+/shopify-app/node_modules
+/shopify-app/.shopify
+/shopify-app/prisma/dev.sqlite
+/shopify-app/prisma/dev.sqlite-journal
+/shopify-app/extensions/*/dist
+/shopify-app/extensions/*/node_modules
+/shopify-app/.react-router
+/shopify-app/build
