@@ -1,10 +1,9 @@
 import {
-  DEFAULT_ATTRIBUTE_KEY,
   FUNCTION_HANDLE,
   METAFIELD_KEY,
   METAFIELD_NAMESPACE,
+  configFromRaw,
   configToMetafieldValue,
-  defaultConfig,
   type ShipMatchConfig,
 } from "./ship-match";
 
@@ -40,11 +39,7 @@ export async function listShipMatchRules(admin: AdminGraphql) {
       id: node.id as string,
       title: node.title as string,
       enabled: Boolean(node.enabled),
-      config: defaultConfig({
-        attributeKey: raw.attributeKey || DEFAULT_ATTRIBUTE_KEY,
-        matchMode: raw.matchMode === "exact" ? "exact" : "contains",
-        enabled: raw.enabled !== false,
-      }),
+      config: configFromRaw(raw),
     };
   });
 }
@@ -73,11 +68,7 @@ export async function getShipMatchRule(admin: AdminGraphql, id: string) {
     id: node.id as string,
     title: node.title as string,
     enabled: Boolean(node.enabled),
-    config: defaultConfig({
-      attributeKey: raw.attributeKey || DEFAULT_ATTRIBUTE_KEY,
-      matchMode: raw.matchMode === "exact" ? "exact" : "contains",
-      enabled: raw.enabled !== false,
-    }),
+    config: configFromRaw(raw),
   };
 }
 

@@ -54,3 +54,6 @@ next-env.d.ts
 /shopify-app/extensions/*/node_modules
 /shopify-app/.react-router
 /shopify-app/build
+.neon
+.env
+.env.local

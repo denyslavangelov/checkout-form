@@ -36,6 +36,9 @@ export default function Dashboard() {
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const defaults = defaultConfig();
+  const enabledCount = rules.filter(
+    (rule: { enabled: boolean }) => rule.enabled,
+  ).length;
 
   return (
     <s-page heading={String(appName)} inlineSize="base">
@@ -43,97 +46,106 @@ export default function Dashboard() {
         Create rule
       </s-button>
 
-      <s-section heading="What this app does">
-        <s-paragraph>
-          When customers pick a delivery method before checkout (pickup point,
-          courier office, or a custom storefront step), Shopify still shows
-          every shipping rate. That is confusing.
-        </s-paragraph>
-        <s-paragraph>
-          {String(appName)} is a Delivery Customization app: it reads a cart
-          attribute and hides rates that do not match, so checkout shows only
-          the method the customer already chose. If the attribute is empty, all
-          rates stay visible.
-        </s-paragraph>
-      </s-section>
-
-      <s-section heading="Example">
-        <s-paragraph>
-          Your store has two rates: Office Pickup ($3.50) and Home Delivery
-          ($4.50).
-        </s-paragraph>
-        <s-paragraph>
-          A customer picks office pickup on your storefront. Your theme writes
-          cart attribute Shipping Method = Office Pickup, then sends them to
-          checkout.
-        </s-paragraph>
-        <s-unordered-list>
-          <s-list-item>
-            Without {String(appName)}: both rates appear at checkout
-          </s-list-item>
-          <s-list-item>
-            With {String(appName)}: Home Delivery is hidden; only Office Pickup
-            remains
-          </s-list-item>
-        </s-unordered-list>
-      </s-section>
-
       <s-section heading="Active rules">
         {rules.length === 0 ? (
           <s-banner tone="info" heading="No rules yet">
-            <s-paragraph>
-              Create a rule to start filtering shipping rates. You can also add
-              one from Settings → Shipping and delivery → Delivery
-              customizations.
-            </s-paragraph>
-            <s-button href="/app/rules/new" variant="primary">
-              Create your first rule
-            </s-button>
+            <s-stack direction="block" gap="base">
+              <s-paragraph>
+                Create a rule to start filtering shipping rates. You can also
+                add one from Settings → Shipping and delivery → Delivery
+                customizations.
+              </s-paragraph>
+              <s-stack direction="inline" gap="base">
+                <s-button href="/app/rules/new" variant="primary">
+                  Create your first rule
+                </s-button>
+                <s-button href="/app/setup" variant="tertiary">
+                  Setup guide
+                </s-button>
+              </s-stack>
+            </s-stack>
           </s-banner>
         ) : (
           <s-stack direction="block" gap="base">
+            <s-stack direction="inline" gap="base">
+              <s-badge tone="info">
+                {rules.length} rule{rules.length === 1 ? "" : "s"}
+              </s-badge>
+              <s-badge tone={enabledCount > 0 ? "success" : "neutral"}>
+                {enabledCount} enabled
+              </s-badge>
+            </s-stack>
+
             {rules.map(
               (rule: {
                 id: string;
                 title: string;
                 enabled: boolean;
-                config: { attributeKey: string; matchMode: string };
+                config: {
+                  attributeKey: string;
+                  matchMode: string;
+                  caseSensitive: boolean;
+                  alwaysShowTitles: string[];
+                  missingAttributeBehavior: string;
+                };
               }) => (
                 <s-box
                   key={rule.id}
                   padding="base"
                   borderWidth="base"
                   borderRadius="base"
+                  background="base"
                 >
-                  <s-stack direction="block" gap="small">
-                    <s-stack direction="inline" gap="base">
-                      <s-heading>{rule.title}</s-heading>
-                      <s-badge tone={rule.enabled ? "success" : "neutral"}>
-                        {rule.enabled ? "Enabled" : "Disabled"}
-                      </s-badge>
-                    </s-stack>
-                    <s-paragraph>
-                      Attribute: {rule.config.attributeKey} · Match:{" "}
-                      {rule.config.matchMode}
-                    </s-paragraph>
-                    <s-stack direction="inline" gap="base">
-                      <s-button
-                        href={`/app/rules/${rule.id.split("/").pop()}`}
-                        variant="secondary"
-                      >
-                        Edit
-                      </s-button>
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="delete" />
-                        <input type="hidden" name="id" value={rule.id} />
+                  <s-stack direction="block" gap="base">
+                    <s-stack
+                      direction="inline"
+                      gap="base"
+                      justifyContent="space-between"
+                    >
+                      <s-stack direction="block" gap="small-100">
+                        <s-stack direction="inline" gap="small">
+                          <s-heading>{rule.title}</s-heading>
+                          <s-badge
+                            tone={rule.enabled ? "success" : "neutral"}
+                          >
+                            {rule.enabled ? "Enabled" : "Disabled"}
+                          </s-badge>
+                        </s-stack>
+                        <s-paragraph>
+                          Attribute{" "}
+                          <s-text type="strong">
+                            {rule.config.attributeKey}
+                          </s-text>{" "}
+                          · Match{" "}
+                          <s-text type="strong">{rule.config.matchMode}</s-text>
+                          {rule.config.caseSensitive
+                            ? " · Case sensitive"
+                            : ""}
+                          {rule.config.alwaysShowTitles.length > 0
+                            ? ` · Always show ${rule.config.alwaysShowTitles.length}`
+                            : ""}
+                        </s-paragraph>
+                      </s-stack>
+                      <s-stack direction="inline" gap="small">
                         <s-button
-                          type="submit"
-                          tone="critical"
-                          {...(busy ? { disabled: true } : {})}
+                          href={`/app/rules/${rule.id.split("/").pop()}`}
+                          variant="secondary"
                         >
-                          Delete
+                          Edit
                         </s-button>
-                      </Form>
+                        <Form method="post">
+                          <input type="hidden" name="intent" value="delete" />
+                          <input type="hidden" name="id" value={rule.id} />
+                          <s-button
+                            type="submit"
+                            tone="critical"
+                            variant="tertiary"
+                            {...(busy ? { disabled: true } : {})}
+                          >
+                            Delete
+                          </s-button>
+                        </Form>
+                      </s-stack>
                     </s-stack>
                   </s-stack>
                 </s-box>
@@ -143,34 +155,110 @@ export default function Dashboard() {
         )}
       </s-section>
 
-      <s-section slot="aside" heading="Quick start">
-        <s-ordered-list>
-          <s-list-item>Create a rule (attribute key + match mode)</s-list-item>
-          <s-list-item>
-            On the storefront, save the chosen rate title to that cart
-            attribute before checkout
-          </s-list-item>
-          <s-list-item>
-            At Shopify checkout, unmatched rates are hidden automatically
-          </s-list-item>
-        </s-ordered-list>
-        <s-button href="/app/setup" variant="tertiary">
-          Open setup guide
-        </s-button>
+      <s-section heading="How it works">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>
+            {String(appName)} hides shipping rates that do not match a cart
+            attribute set on your storefront. If the attribute is empty, every
+            rate stays visible.
+          </s-paragraph>
+
+          <s-query-container>
+            <s-grid
+              gridTemplateColumns="@container (inline-size > 480px) 1fr 1fr, 1fr"
+              gap="base"
+            >
+              <s-grid-item>
+                <s-box
+                  padding="base"
+                  borderWidth="base"
+                  borderRadius="base"
+                  background="subdued"
+                >
+                  <s-stack direction="block" gap="small">
+                    <s-badge>Without {String(appName)}</s-badge>
+                    <s-paragraph>
+                      Customer chose Office Pickup, but checkout still shows
+                      Office Pickup and Home Delivery.
+                    </s-paragraph>
+                  </s-stack>
+                </s-box>
+              </s-grid-item>
+              <s-grid-item>
+                <s-box
+                  padding="base"
+                  borderWidth="base"
+                  borderRadius="base"
+                  background="subdued"
+                >
+                  <s-stack direction="block" gap="small">
+                    <s-badge tone="success">With {String(appName)}</s-badge>
+                    <s-paragraph>
+                      Attribute Shipping Method = Office Pickup. Home Delivery
+                      is hidden; only Office Pickup remains.
+                    </s-paragraph>
+                  </s-stack>
+                </s-box>
+              </s-grid-item>
+            </s-grid>
+          </s-query-container>
+        </s-stack>
       </s-section>
 
-      <s-section slot="aside" heading="What this app does not do">
-        <s-paragraph>
-          It does not replace Shopify Checkout, process payments, or book
-          carriers. It only filters which shipping rates are visible.
-        </s-paragraph>
+      <s-section slot="aside" heading="Quick start">
+        <s-stack direction="block" gap="base">
+          <s-stack direction="block" gap="small">
+            <s-paragraph>
+              <s-text type="strong">1.</s-text> Create a rule with an attribute
+              key and match mode
+            </s-paragraph>
+            <s-paragraph>
+              <s-text type="strong">2.</s-text> Save the chosen rate title to
+              that cart attribute before checkout
+            </s-paragraph>
+            <s-paragraph>
+              <s-text type="strong">3.</s-text> Unmatched rates are hidden at
+              Shopify checkout automatically
+            </s-paragraph>
+          </s-stack>
+          <s-button href="/app/setup" variant="secondary">
+            Open setup guide
+          </s-button>
+        </s-stack>
       </s-section>
 
       <s-section slot="aside" heading="Defaults">
+        <s-stack direction="block" gap="small">
+          <s-box
+            padding="small"
+            borderWidth="base"
+            borderRadius="base"
+            background="subdued"
+          >
+            <s-stack direction="block" gap="small-100">
+              <s-text type="small">Attribute key</s-text>
+              <s-text type="strong">{defaults.attributeKey}</s-text>
+            </s-stack>
+          </s-box>
+          <s-box
+            padding="small"
+            borderWidth="base"
+            borderRadius="base"
+            background="subdued"
+          >
+            <s-stack direction="block" gap="small-100">
+              <s-text type="small">Match mode</s-text>
+              <s-text type="strong">{defaults.matchMode}</s-text>
+            </s-stack>
+          </s-box>
+        </s-stack>
+      </s-section>
+
+      <s-section slot="aside" heading="Out of scope">
         <s-paragraph>
-          Default attribute key: {defaults.attributeKey}
+          Does not replace Checkout, process payments, or book carriers. It only
+          filters which rates are visible.
         </s-paragraph>
-        <s-paragraph>Default match mode: {defaults.matchMode}</s-paragraph>
       </s-section>
     </s-page>
   );
