@@ -1,12 +1,20 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "8183cfa1a8072d54ecb1ce6bbc45007c"
-application_url = "https://localhost"
+application_url = "https://shipmatch.vercel.app"
 embedded = true
 name = "Shipmatch"
 
 [webhooks]
 api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -14,10 +22,13 @@ scopes = "read_delivery_customizations,write_delivery_customizations"
 
 [auth]
 redirect_urls = [
-  "https://localhost/auth/callback",
-  "https://localhost/auth/shopify/callback",
-  "https://localhost/api/auth/callback"
+  "https://shipmatch.vercel.app/auth/callback",
+  "https://shipmatch.vercel.app/auth/shopify/callback",
+  "https://shipmatch.vercel.app/api/auth/callback"
 ]
 
 [build]
 automatically_update_urls_on_dev = true
+
+[pos]
+embedded = false
