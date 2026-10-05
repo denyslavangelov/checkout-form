@@ -1,9 +1,12 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "0998828bbd4e908bd983c517a463deeb"
-name = "ShipMatch"
+client_id = "8183cfa1a8072d54ecb1ce6bbc45007c"
 application_url = "https://localhost"
 embedded = true
+name = "Shipmatch"
+
+[webhooks]
+api_version = "2025-10"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -15,9 +18,6 @@ redirect_urls = [
   "https://localhost/auth/shopify/callback",
   "https://localhost/api/auth/callback"
 ]
-
-[webhooks]
-api_version = "2025-10"
 
 [build]
 automatically_update_urls_on_dev = true
