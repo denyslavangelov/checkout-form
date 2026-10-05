@@ -20,9 +20,11 @@ export default function PrivacyPolicy() {
 
       <h2>Overview</h2>
       <p>
-        ShipMatch (“the App”) is a Shopify application that helps merchants
-        filter which shipping rates appear at checkout based on cart
-        attributes. This policy explains what information the App processes.
+        ShipMatch (“the App”) is a Shopify Delivery Customization application.
+        It helps merchants keep checkout shipping rates aligned with a delivery
+        method the customer selected earlier on the storefront, by hiding rates
+        that do not match a cart attribute. This policy explains what
+        information the App processes.
       </p>
 
       <h2>Information we process</h2>

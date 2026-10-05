@@ -24,9 +24,10 @@ export default function App() {
       <div className={styles.content}>
         <h1 className={styles.heading}>ShipMatch</h1>
         <p className={styles.text}>
-          Hide unmatched shipping rates at checkout using a cart attribute.
-          Built for pickup widgets, custom storefronts, and preselected
-          delivery flows.
+          A Shopify Delivery Customization app that keeps checkout shipping
+          rates in sync with the delivery method customers already chose on
+          your storefront — for example a pickup point or courier office
+          selector.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -41,10 +42,14 @@ export default function App() {
           </Form>
         )}
         <ul className={styles.list}>
-          <li>Filter checkout rates from a cart attribute</li>
-          <li>Exact or contains matching</li>
-          <li>Works with any storefront that can update cart attributes</li>
+          <li>Hides unmatched shipping rates at checkout</li>
+          <li>Driven by a cart attribute your storefront already sets</li>
+          <li>Does not replace Shopify Checkout or process payments</li>
         </ul>
+        <p className={styles.text}>
+          Example: customer picks “Office Pickup” on your storefront → cart
+          attribute is set → checkout shows only that rate, not “Home Delivery”.
+        </p>
         <p className={styles.text}>
           <a href="/privacy">Privacy policy</a>
         </p>

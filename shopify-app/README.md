@@ -1,8 +1,14 @@
 # ShipMatch
 
-Shopify app that hides checkout shipping rates which do not match a cart attribute.
+Shopify **Delivery Customization** app that keeps checkout shipping rates in sync
+with a delivery method the customer already chose on the storefront (pickup
+point, courier office selector, custom storefront step, etc.).
 
-This is a **standalone shipping filter** for App Store distribution (public / unlisted). It is not tied to any specific checkout form product.
+It reads a cart attribute and hides unmatched rates. It does **not** replace
+Shopify Checkout, process payments, or book carriers.
+
+This is a **standalone shipping filter** for App Store distribution (public /
+unlisted). Listing copy for reviewers: [`LISTING.md`](./LISTING.md).
 
 ## Why public distribution?
 
@@ -104,3 +110,11 @@ npm run test:function
 
 - `read_delivery_customizations`
 - `write_delivery_customizations`
+
+## Expiring offline tokens
+
+New public apps must use **expiring offline access tokens**. This app enables
+`future.expiringOfflineAccessTokens` in `app/shopify.server.ts`.
+
+If the admin UI shows `GraphQL Client: Forbidden` / HTTP 403, clear sessions and
+re-open the app from `shopify app dev` so a fresh expiring token is issued.

@@ -28,7 +28,52 @@ export default function App() {
 }
 
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+
+  // Shopify boundary.error stringifies ErrorResponse.data via innerHTML.
+  // If data is an object, the UI shows "[object Object]" — normalize first.
+  if (
+    error &&
+    typeof error === "object" &&
+    "data" in error &&
+    (error as { data?: unknown }).data != null &&
+    typeof (error as { data?: unknown }).data !== "string"
+  ) {
+    const data = (error as { data: unknown }).data;
+    const raw =
+      typeof data === "object" && data !== null && "message" in data
+        ? String((data as { message: unknown }).message)
+        : JSON.stringify(data);
+    const isTokenForbidden =
+      raw.includes("Forbidden") ||
+      raw.includes("Non-expiring access tokens") ||
+      raw.includes("403");
+    return (
+      <s-page heading="Something went wrong" inlineSize="base">
+        <s-section heading={isTokenForbidden ? "Re-authorize the app" : "Error"}>
+          <s-paragraph>
+            {isTokenForbidden
+              ? "Shopify rejected the Admin API token. Close this tab, restart npm run dev -- --config shipmatch, press P to open the app again so a new expiring offline token is issued."
+              : raw}
+          </s-paragraph>
+        </s-section>
+      </s-page>
+    );
+  }
+
+  try {
+    return boundary.error(error);
+  } catch (thrown) {
+    const message =
+      thrown instanceof Error ? thrown.message : "Unexpected application error";
+    return (
+      <s-page heading="Something went wrong" inlineSize="base">
+        <s-section heading="Error">
+          <s-paragraph>{message}</s-paragraph>
+        </s-section>
+      </s-page>
+    );
+  }
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

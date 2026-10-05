@@ -18,8 +18,8 @@ const shopify = shopifyApp({
   // Public App Store distribution (required for Functions on non-Plus stores).
   distribution: AppDistribution.AppStore,
   future: {
-    unstable_newEmbeddedAuthStrategy: true,
-    removeRest: true,
+    // Required for new public apps — non-expiring offline tokens get GraphQL 403.
+    expiringOfflineAccessTokens: true,
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }

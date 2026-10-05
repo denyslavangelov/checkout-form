@@ -26,6 +26,8 @@ redirect_urls = [
 [webhooks]
 api_version = "2025-10"
 
+# Use shopify.app.shipmatch.toml for the linked Partner app (npm run dev -- --config shipmatch).
+
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
   uri = "/webhooks/app/uninstalled"

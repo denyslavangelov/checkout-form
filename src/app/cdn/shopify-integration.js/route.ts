@@ -12,7 +12,8 @@ export async function GET() {
     return new NextResponse(fileContent, {
       headers: {
         'Content-Type': 'text/javascript; charset=utf-8',
-        'Cache-Control': 'public, max-age=31536000',
+        // Short cache so theme updates to this script pick up quickly
+        'Cache-Control': 'public, max-age=60, must-revalidate',
         'Access-Control-Allow-Origin': '*',
         'Cross-Origin-Resource-Policy': 'cross-origin'
       }
